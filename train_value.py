@@ -121,7 +121,8 @@ def main() -> None:
     if args.model == "linear":
         model.fit(Xtr, ytr, eval_set=(Xva, yva), patience=args.patience)
     else:
-        model.fit(Xtr, ytr)
+        # LightGBM 等后端同样用验证集做早停（GBDT 不做早停几乎必然过拟合）
+        model.fit(Xtr, ytr, eval_set=(Xva, yva))
 
     # ---------------- 评估
     ptr = model.predict(Xtr)
