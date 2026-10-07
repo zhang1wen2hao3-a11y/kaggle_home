@@ -18,15 +18,31 @@ Kaggle 比赛 [The Pokémon Company - PTCG AI Battle Challenge Playground](https
 bash fetch_data.sh
 ```
 
-## 当前成绩
+## 当前基线
 
-本地对局框架 `local_match.py`；座位与"选先后手权"双重交替，详见 `实验记录.md`。
+| 项 | 值 |
+|---|---|
+| **提交入口**（真正上传的） | `main.py`（自包含；+ `cg/` + `deck.csv` 即构成提交） |
+| 等价实验版 | `agents/greedy.py` |
+| 策略配置 | `develop_first` + `go_first=True` + `bench_full=True` |
+| 基准对手 | `agents/random_baseline.py` |
+| 等价性验证 | `main.py` vs `agents/greedy.py` = **0.490**（n=300）→ 同一策略 |
+
+> `main.py` 因提交要求必须自包含（不能 import `agents/`），与 `agents/greedy.py` 是同一策略的
+> 两份实现 —— **改动时两边都要改**，并用 `evaluate.py main.py vs agents/greedy.py` 回归验证。
 
 | 实验 | Agent | 本地胜率 | 对局数 | 对手 |
 |---|---|---|---|---|
-| exp01_random_selfplay | random_baseline | 0.455 | 400 | random_baseline（框架自检） |
-| **exp02_greedy_vs_random** | rulebase | **0.855** | 200 | random_baseline |
-| exp03_main_vs_random | main.py（提交版） | 见 `实验记录.md` | 200 | random_baseline |
+| exp01_random_selfplay | random_baseline | 0.4475 | 400 | random_baseline（框架自检） |
+| exp02_greedy_vs_random | greedy（基线） | 0.850 | 200 | random_baseline |
+| exp03_main_vs_random | main.py（基线） | 0.805 | 200 | random_baseline |
+| **exp04_main_vs_greedy** | main.py | **0.490** | 300 | greedy（等价性验证） |
+
+> ⚠️ EXP-0002 与 EXP-0003 是**同一策略**的两次测量，0.850 与 0.805 的差异属抽样噪声
+> （n=200 时标准误≈0.025），不是版本差异。
+
+> ⚠️ `random_baseline` 作为基准**已无区分度**：所有合理配置都能赢它 80%~88%，
+> 继续用它无法区分策略优劣。下一步需换成搜索型对手。
 
 ## 关键发现
 

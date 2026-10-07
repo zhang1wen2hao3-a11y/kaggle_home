@@ -39,7 +39,18 @@ COLUMNS = [
     "submission", "changes", "notes",
 ]
 # 跨实验的公共基准：不同实验必须用同一套对手与局数才可比
-EVAL_REF = "vs-random-bo3-n200"
+# 注意：evaluate.py 会按 --opponent 文件名自动生成 eval_scheme（如 vs-random_baseline-n200），
+# 这里必须与之一致，否则 exp_log list 的"可与基准比较"提示会失效。
+EVAL_REF = "vs-random_baseline-n200"
+
+# ---- 当前基线（改基线时同步更新这里）----
+BASELINE = {
+    "submission": "main.py",              # 真正提交的文件（自包含）
+    "agent": "agents/greedy.py",          # 等价的实验版
+    "config": "rulebase.make_agent(order='develop_first', go_first=True, bench_full=True)",
+    "opponent": "agents/random_baseline.py",
+    "equivalence": "main.py vs agents/greedy.py = 0.490 (n=300, EXP-0004)，二者同一策略",
+}
 
 
 def _ensure() -> None:
@@ -136,6 +147,22 @@ def cmd_md(_args) -> None:
         f"> 基准评估：`{EVAL_REF}`（所有实验必须同一套对手与局数才可比）  ",
         f"> 生成时间：{dt.datetime.now():%Y-%m-%d %H:%M}  ·  共 {len(rows)} 条",
         "",
+        "## 当前基线",
+        "",
+        "| 项 | 值 |",
+        "|---|---|",
+        f"| 提交入口（真正上传的） | `{BASELINE['submission']}` |",
+        f"| 等价实验版 | `{BASELINE['agent']}` |",
+        f"| 策略配置 | `{BASELINE['config']}` |",
+        f"| 基准对手 | `{BASELINE['opponent']}` |",
+        f"| 等价性验证 | {BASELINE['equivalence']} |",
+        "",
+        "> `main.py` 必须自包含（提交时只上传它 + `cg/` + `deck.csv`，不能 import `agents/`），",
+        "> 所以它与 `agents/greedy.py` 是同一策略的两份实现，改动时**两边都要改**。",
+        "",
+        "> ⚠️ EXP-0002（greedy 0.850）与 EXP-0003（main 0.805）是**同一策略**的两次测量，",
+        "> 差异属抽样噪声（n=200 时标准误≈0.025），不要解读为版本差异。",
+        "",
         "| ID | 实验 | Agent | 评估方案 | 胜率 | 局数 | **LB** | 改动点 | 备注 |",
         "|---|---|---|---|---|---|---|---|---|",
     ]
@@ -148,6 +175,9 @@ def cmd_md(_args) -> None:
         "## 说明",
         "",
         "- **本地胜率**是唯一可信的对比依据；总共只有 2 次计分提交，不要用 LB 反复试探。",
+        "- **框架自检优先**：任何策略对比前，先确认 `random vs random ≈ 0.5`。",
+        "  本项目曾因 `agents/random.py` 遮蔽标准库 `random`（对手开局即崩、崩溃被静默记为输）",
+        "  导致全部配置被误记为 100% 胜率。`evaluate.py` 现在会红字警告并排除崩溃局。",
         "- 每次评估的对手和局数必须固定（见 `eval_scheme`），否则胜率不可比。",
         "- 新实验只有胜率 ≥ 当前最佳才保留，否则回滚。",
         "- 提交前先在本地跑够局数（建议 ≥200 局），Bo3 的方差比单局大。",
