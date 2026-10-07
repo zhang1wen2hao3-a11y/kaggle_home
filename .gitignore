@@ -1,0 +1,28 @@
+# ==== 比赛数据：官方卡牌数据库 + C++ 引擎，不公开分发 ====
+data/
+
+# ==== 运行产物 / 缓存 ====
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+*.egg-info/
+.pytest_cache/
+
+# ==== 对局回放 / 日志 ====
+replays/
+*.log
+*.log.bak
+*.tmp
+
+# ==== 模型权重 ====
+models/
+*.pt
+*.pth
+*.onnx
+
+# ==== 凭据：永远不要提交 ====
+kaggle.json
+access_token
+.credentials*
+*.pem
+.env
