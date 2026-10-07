@@ -27,7 +27,8 @@ def load_agent(path: str):
     # 让 agent 能 import 同目录的兄弟模块（如 rulebase）
     d = os.path.dirname(path)
     if d not in sys.path:
-        sys.path.insert(0, d)
+        # 注意：必须 append 而不是 insert(0)，否则 agents/ 下的模块会遮蔽标准库
+        sys.path.append(d)
     spec = importlib.util.spec_from_file_location("agent_mod_" + os.path.basename(path)[:-3], path)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
@@ -54,18 +55,21 @@ def main() -> None:
 
     wins = losses = draws = fails = 0
     all_warnings = []
+    errs = []
     t0 = time.time()
     for g in range(args.games):
-        # 偶数局 A 坐 0 号位，奇数局换座位
-        if g % 2 == 0:
-            r = play_match(A, B, deck, deck)
-            a_idx = 0
+        # 座位 + reverse 双重交替：4 局覆盖全部组合，消除 0 号位的结构优势
+        seat = g % 2          # 0: A 坐 0 号位, 1: A 坐 1 号位
+        rev = (g // 2) % 2    # 交替"谁能选先后手"
+        a_idx = seat
+        if seat == 0:
+            r = play_match(A, B, deck, deck, reverse=bool(rev))
         else:
-            r = play_match(B, A, deck, deck)
-            a_idx = 1
+            r = play_match(B, A, deck, deck, reverse=bool(rev))
 
         if r["result"] is None:
             fails += 1
+            errs.append(r.get("error") or "未知")
             if not args.quiet:
                 print(f"  game {g}: 异常 -> {r['error']}")
             continue
@@ -92,6 +96,12 @@ def main() -> None:
     print(f"对手       : {args.opponent}")
     print(f"对局       : {played} 有效 / {args.games} 总 (平{draws} 失败{fails})")
     print(f"胜率       : {wr:.4f}   (W{wins} L{losses})")
+    if fails:
+        print(f"\n\033[31m!!!! {fails}/{args.games} 局因 agent 崩溃而无效 —— 胜率不可信 !!!!\033[0m")
+        from collections import Counter
+        for msg, c in Counter(errs).most_common(3):
+            print(f"    x{c}  {msg}")
+        print("    崩溃的对局已排除在胜率之外，请先修掉再解读数字。\n")
     print(f"耗时       : {dt:.1f}s  ({dt/max(args.games,1):.2f}s/局)")
     print(f"评估方案   : {scheme}")
     if all_warnings:

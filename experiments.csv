@@ -1,4 +1,4 @@
 ﻿exp_id,date,name,agent,eval_scheme,win_rate,n_games,lb_score,submission,changes,notes
-EXP-0001,2026-10-07 18:08,exp_random_selfplay,random,vs-random-n100,0.5000,100,,,框架自检：random 自对弈，期望胜率≈0.5,对手=random.py 平0 失败0
-EXP-0002,2026-10-07 18:08,exp_greedy_v1,greedy,vs-random-n100,1.0000,100,,,规则基线：develop_first + 先手 + 铺满后备,对手=random.py 平0 失败0
-EXP-0003,2026-10-07 18:08,exp_greedy_selfplay,greedy,vs-greedy-n100,0.4400,100,,,同配置自对弈，确认无先后手绝对优势,对手=greedy.py 平0 失败0
+EXP-0001,2026-10-07 18:13,exp01_random_selfplay,random_baseline,vs-random_baseline-n400,0.4475,400,,,框架对称性自检：random 自对弈应≈0.5（座位+reverse 双交替）,对手=random_baseline.py 平0 失败0
+EXP-0002,2026-10-07 18:13,exp02_greedy_vs_random,greedy,vs-random_baseline-n200,0.8500,200,,,规则基线 develop_first+先手+铺满后备,对手=random_baseline.py 平0 失败0
+EXP-0003,2026-10-07 18:13,exp03_main_vs_random,main,vs-random_baseline-n200,0.8050,200,,,提交入口 main.py 自包含版本,对手=random_baseline.py 平0 失败0

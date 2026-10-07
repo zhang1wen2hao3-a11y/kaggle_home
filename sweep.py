@@ -11,7 +11,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-sys.path.insert(0, os.path.join(HERE, "agents"))
+sys.path.append(os.path.join(HERE, "agents"))  # append：别遮蔽标准库
 
 from local_match import play_match, load_deck  # noqa: E402
 from rulebase import make_agent, ORDERS  # noqa: E402
@@ -27,10 +27,12 @@ def load(path):
 def evaluate(A, B, deck, games):
     wins = losses = draws = fails = 0
     for g in range(games):
-        if g % 2 == 0:
-            r, a_idx = play_match(A, B, deck, deck), 0
+        seat, rev = g % 2, (g // 2) % 2
+        a_idx = seat
+        if seat == 0:
+            r = play_match(A, B, deck, deck, reverse=bool(rev))
         else:
-            r, a_idx = play_match(B, A, deck, deck), 1
+            r = play_match(B, A, deck, deck, reverse=bool(rev))
         if r["result"] is None:
             fails += 1
         elif r["result"] == 2:
@@ -46,7 +48,7 @@ def evaluate(A, B, deck, games):
 def main():
     games = int(sys.argv[1]) if len(sys.argv) > 1 else 60
     deck = load_deck()
-    R = load("agents/random.py")
+    R = load("agents/random_baseline.py")
     G = load("agents/greedy.py")
 
     print("对手1 = random, 对手2 = greedy(develop_first)")

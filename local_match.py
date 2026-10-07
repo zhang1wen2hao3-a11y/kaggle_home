@@ -59,8 +59,15 @@ def sanitize(sel, select_data) -> tuple[list[int], str | None]:
     return sel, note
 
 
-def play_match(agent0, agent1, deck0=None, deck1=None, max_steps=MAX_STEPS):
+def play_match(agent0, agent1, deck0=None, deck1=None, max_steps=MAX_STEPS, reverse=False):
     """打完整一局。
+
+    Args:
+        reverse: True 时由 1 号位玩家选择先后手。
+
+    重要：battle_start(reverse=False) 下，"选先后手"的 SelectContext.IS_FIRST
+    只会发给 0 号位 —— 这是结构性优势。实测 random 自对弈反而不对称
+    （0.62 而非 0.5）。评估时必须把 reverse 也交替掉。
 
     Returns:
         dict: {result, winner, steps, error, warnings}
@@ -71,9 +78,9 @@ def play_match(agent0, agent1, deck0=None, deck1=None, max_steps=MAX_STEPS):
     agents = {0: agent0, 1: agent1}
     warnings = []
 
-    obs, sd = battle_start(deck0, deck1)
+    obs, sd = battle_start(deck0, deck1, reverse_player=reverse)
     if obs is None:
-        return {"result": None, "winner": None, "steps": 0,
+        return {"result": None, "winner": None, "steps": 0, "crashed": False,
                 "error": f"开局失败 errorPlayer={sd.errorPlayer} errorType={sd.errorType}",
                 "warnings": warnings}
 
@@ -92,9 +99,15 @@ def play_match(agent0, agent1, deck0=None, deck1=None, max_steps=MAX_STEPS):
             me = cur["yourIndex"]
             try:
                 raw = agents[me](obs)
-            except Exception as e:  # agent 崩了视作该方失利
-                return {"result": 1 - me, "winner": 1 - me, "steps": steps,
+            except Exception as e:
+                # 关键：agent 崩溃必须显式标记为 crashed，
+                # 否则会被上层当成"输了一局"而静默污染胜率统计
+                # （本项目就踩过：agents/random.py 遮蔽标准库导致对手开局即崩，
+                #   结果所有配置都被记成 100% 胜率）
+                import traceback
+                return {"result": None, "winner": None, "steps": steps, "crashed": True,
                         "error": f"agent[{me}] 抛异常: {type(e).__name__}: {e}",
+                        "traceback": traceback.format_exc(),
                         "warnings": warnings}
 
             choice, note = sanitize(raw, sel_data)
@@ -106,7 +119,7 @@ def play_match(agent0, agent1, deck0=None, deck1=None, max_steps=MAX_STEPS):
         battle_finish()
 
     if result == -1 or result is None:
-        return {"result": None, "winner": None, "steps": steps,
+        return {"result": None, "winner": None, "steps": steps, "crashed": False,
                 "error": f"未在 {max_steps} 步内结束", "warnings": warnings}
     return {"result": result, "winner": None if result == 2 else result,
-            "steps": steps, "error": None, "warnings": warnings}
+            "steps": steps, "error": None, "crashed": False, "warnings": warnings}

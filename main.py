@@ -11,14 +11,17 @@ import os
 
 from cg.api import OptionType, SelectType, SelectContext, to_observation_class
 
+# 顺序即优先级。切勿把 ATTACK 排前面 —— 攻击会结束回合，
+# 攻击优先会让 agent 每回合只平A、从不铺场（实测对 random 胜率仅 0.17）。
+# 必须"先铺场/进化/充能，最后攻击"。此顺序与 agents/rulebase.py 的 develop_first 一致。
 PRIORITY = {
-    OptionType.ATTACK: 0,
+    OptionType.PLAY: 0,
     OptionType.EVOLVE: 1,
     OptionType.ABILITY: 2,
     OptionType.ATTACH: 3,
-    OptionType.PLAY: 4,
-    OptionType.RETREAT: 5,
-    OptionType.DISCARD: 6,
+    OptionType.RETREAT: 4,
+    OptionType.DISCARD: 5,
+    OptionType.ATTACK: 6,
     OptionType.END: 9,
 }
 GO_FIRST = True
@@ -52,8 +55,8 @@ def agent(obs_dict: dict) -> list[int]:
         return [0]
 
     if obs.select.type == SelectType.MAIN:
-        order = sorted(range(n), key=lambda i: PRIORITY.get(OptionType(opts[i]["type"]), 5))
-        return order[:max(lo, 1)]
+        best = min(range(n), key=lambda i: PRIORITY.get(OptionType(opts[i]["type"]), 99))
+        return [best]
 
     if obs.select.type == SelectType.YES_NO:
         for i, o in enumerate(opts):
@@ -61,4 +64,9 @@ def agent(obs_dict: dict) -> list[int]:
                 return [i]
         return [0]
 
-    return list(range(max(lo, 1)))[:hi]
+    # 铺设后备时选满：主力被击倒后 Active 空场会直接判负
+    if obs.select.context in (SelectContext.SETUP_BENCH_POKEMON, SelectContext.TO_BENCH):
+        return list(range(hi))
+
+    k = max(lo, 1 if hi >= 1 else 0)
+    return list(range(min(k, hi)))
