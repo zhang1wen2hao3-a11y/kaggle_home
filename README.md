@@ -122,18 +122,36 @@ PTCG 的**攻击会结束回合**。把 ATTACK 排在优先级首位，agent 就
 
 ## 训练框架
 
-见 [`framework/README.md`](framework/README.md)。核心是**模型无关**：
+见 [`framework/README.md`](framework/README.md)。核心是**模型无关**。
+
+### ⚠️ 一律用 `./run.sh`，别直接 `python`
+
+本机有两个解释器，训练必须用依赖齐全的那个（装了 numpy/lightgbm/torch）：
+
+| 环境 | 依赖 | 能做什么 |
+|---|---|---|
+| `base` (3.14.6) | 零依赖 | 只能跑评估/对局 |
+| **`py310` (3.10.21)** | 齐全 | ✅ 训练、评估、对局全都行 |
+
+`./run.sh` 会自动挑到合适的解释器，所以所有命令统一写成：
 
 ```bash
-# 生成自对弈数据（可选 --oracle 记录真实隐藏信息）
-python gen_data.py --games 300 --opponent agents/random_baseline.py --out data/sp_vs_random.jsonl
+./run.sh --check                              # 环境诊断（选了哪个解释器、有哪些依赖）
+./run.sh evaluate.py --agent main.py --opponent agents/random_baseline.py --games 200
 
-# 训练价值模型 V（--model 可换 lightgbm / xgboost 等后端）
-python train_value.py --data data/selfplay_v1.jsonl --model linear
+# 生成自对弈数据（--oracle 可额外记录真实隐藏信息）
+./run.sh gen_data.py --games 300 --opponent agents/random_baseline.py --out data/sp_vs_random.jsonl
+
+# 训练价值模型 V（--model 可换 lightgbm / linear）
+./run.sh train_value.py --data data/selfplay_v1.jsonl --model lightgbm
 
 # GameMemory 跨局污染回归测试
-python tests/test_memory.py
+./run.sh tests/test_memory.py
 ```
+
+需要指定别的解释器时：`PTCG_PYTHON=/path/to/python ./run.sh ...`
+
+（`make` 目标也都已经走 `./run.sh`：`make check / eval / gen / train / test`）
 
 ### ⚠️ 训练框架的第一个实测结论：对手强度混合会毁掉 V
 
@@ -154,6 +172,7 @@ python tests/test_memory.py
 
 ```
 .
+├── run.sh                 # ★ 统一解释器入口（务必用它跑脚本）
 ├── main.py                # ★ 提交入口（自包含）
 ├── deck.csv               # ★ 提交卡组
 ├── cg/                    # ★ 官方引擎（gitignore）

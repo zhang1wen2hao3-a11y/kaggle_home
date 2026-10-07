@@ -53,19 +53,23 @@ framework/
 
 ## 快速上手
 
+> ⚠️ 命令一律用 `./run.sh` 前缀。它会自动挑到依赖齐全的解释器
+> （本机 `base` 是 3.14 且零依赖，`py310` 才有 numpy/lightgbm）。
+> 先跑 `./run.sh --check` 看环境诊断。
+
 ```bash
 # 1. 生成自对弈数据
-python gen_data.py --games 300 --opponent agents/random_baseline.py \
-       --out data/sp_vs_random.jsonl --game-offset 0
-python gen_data.py --games 300 --opponent agents/greedy.py \
-       --out data/sp_vs_greedy.jsonl --game-offset 100000
+./run.sh gen_data.py --games 300 --opponent agents/random_baseline.py \
+        --out data/sp_vs_random.jsonl --game-offset 0
+./run.sh gen_data.py --games 300 --opponent agents/greedy.py \
+        --out data/sp_vs_greedy.jsonl --game-offset 100000
 cat data/sp_vs_*.jsonl > data/selfplay_v1.jsonl
 
 # 2. 训练价值模型 V
-python train_value.py --data data/selfplay_v1.jsonl --model linear
+./run.sh train_value.py --data data/selfplay_v1.jsonl --model lightgbm
 
 # 3. 回归测试
-python tests/test_memory.py
+./run.sh tests/test_memory.py
 ```
 
 ## 扩展点（"口子"）
