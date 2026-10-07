@@ -49,7 +49,9 @@ BASELINE = {
     "agent": "agents/greedy.py",          # 等价的实验版
     "config": "rulebase.make_agent(order='develop_first', go_first=True, bench_full=True)",
     "opponent": "agents/random_baseline.py",
-    "equivalence": "main.py vs agents/greedy.py = 0.490 (n=300, EXP-0004)，二者同一策略",
+    # 等价性以 EXP-0004 的实际记录为准。手工跑过一次 0.490、记录那次 0.507，
+    # 二者都在 0.5 附近 —— 结论是"同一策略"，不是某个精确数字。
+    "equivalence": "main.py vs agents/greedy.py ≈ 0.5（EXP-0004，n=300）→ 二者是同一策略",
 }
 
 

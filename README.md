@@ -26,7 +26,7 @@ bash fetch_data.sh
 | 等价实验版 | `agents/greedy.py` |
 | 策略配置 | `develop_first` + `go_first=True` + `bench_full=True` |
 | 基准对手 | `agents/random_baseline.py` |
-| 等价性验证 | `main.py` vs `agents/greedy.py` = **0.490**（n=300）→ 同一策略 |
+| 等价性验证 | `main.py` vs `agents/greedy.py` ≈ **0.5**（EXP-0004, n=300）→ 同一策略 |
 
 > `main.py` 因提交要求必须自包含（不能 import `agents/`），与 `agents/greedy.py` 是同一策略的
 > 两份实现 —— **改动时两边都要改**，并用 `evaluate.py main.py vs agents/greedy.py` 回归验证。
@@ -36,7 +36,7 @@ bash fetch_data.sh
 | exp01_random_selfplay | random_baseline | 0.4475 | 400 | random_baseline（框架自检） |
 | exp02_greedy_vs_random | greedy（基线） | 0.850 | 200 | random_baseline |
 | exp03_main_vs_random | main.py（基线） | 0.805 | 200 | random_baseline |
-| **exp04_main_vs_greedy** | main.py | **0.490** | 300 | greedy（等价性验证） |
+| **exp04_main_vs_greedy** | main.py | **0.5067** | 300 | greedy（等价性验证） |
 
 > ⚠️ EXP-0002 与 EXP-0003 是**同一策略**的两次测量，0.850 与 0.805 的差异属抽样噪声
 > （n=200 时标准误≈0.025），不是版本差异。
