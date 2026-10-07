@@ -1,23 +1,25 @@
-"""最小可跑 agent：随机合法动作。
+"""随机基线 agent：本地评估用的最低门槛对手。
 
-用途：作为本地评估的基准对手。
-  胜率(你的 agent vs random) 是最低门槛指标 —— 如果连随机都打不过，先别提交。
+签名为提交版签名 agent(obs_dict) -> list[int]，可直接用于本地对局。
 """
 import random
 
 
-def agent(obs, config=None):
-    """obs 的结构取决于 Kaggle 环境；这里给的是防御式写法。
+def agent(obs_dict):
+    sel = obs_dict.get("select")
+    if sel is None:
+        # 开局选牌：必须返回 60 张卡组
+        return _deck()
+    n = len(sel["option"])
+    lo, hi = sel["minCount"], min(sel["maxCount"], n)
+    if hi <= 0:
+        return []
+    k = random.randint(lo, hi)
+    return random.sample(range(n), k)
 
-    先跑通一次对局、把 obs print 出来，再按真实结构改成自己的选牌逻辑。
-    """
-    if isinstance(obs, dict):
-        select = obs.get("select")
-        if select is not None:
-            options = select.get("option") if isinstance(select, dict) else None
-            if options:
-                return random.randrange(len(options))
-        action = obs.get("action")
-        if isinstance(action, list) and action:
-            return random.randrange(len(action))
-    return 0
+
+def _deck():
+    import os
+    path = "deck.csv" if os.path.exists("deck.csv") else "/kaggle_simulations/agent/deck.csv"
+    with open(path) as f:
+        return [int(x) for x in f.read().split() if x.strip()][:60]
