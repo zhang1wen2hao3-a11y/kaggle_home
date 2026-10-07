@@ -110,15 +110,65 @@ PTCG 的**攻击会结束回合**。把 ATTACK 排在优先级首位，agent 就
 `cg.api` 提供 `search_begin` / `search_step`，可把对手手牌/牌库/奖赏卡做 **determinization**
 后向前推演 —— 这是打不完美信息卡牌的关键工具，也是下一步的主要方向。
 
+⚠️ **读源码得出的机制**（`Api.h:105` / `State.h:302` / `Search.h:109`）：
+引擎在序列化 `search_begin_input` 前会调用 `erasePlayerData()`，
+把隐藏卡清成 `cardId = 0`；`Search::start` 再专门找这些空槽位，
+用**你传入的预测值**填回去。
+
+> 被抹掉的：我方牌库+奖赏、对手牌库+手牌+奖赏、里侧 Active
+> 保留的　：弃牌堆、场面、我方手牌、各项数量
+
+**所以没有填充器就无法搜索** —— 这不是可选组件。见 `framework/filler.py`。
+
+## 训练框架
+
+见 [`framework/README.md`](framework/README.md)。核心是**模型无关**：
+
+```bash
+# 生成自对弈数据（可选 --oracle 记录真实隐藏信息）
+python gen_data.py --games 300 --opponent agents/random_baseline.py --out data/sp_vs_random.jsonl
+
+# 训练价值模型 V（--model 可换 lightgbm / xgboost 等后端）
+python train_value.py --data data/selfplay_v1.jsonl --model linear
+
+# GameMemory 跨局污染回归测试
+python tests/test_memory.py
+```
+
+### ⚠️ 训练框架的第一个实测结论：对手强度混合会毁掉 V
+
+600 局自对弈、53 维状态特征、线性模型：
+
+| 训练数据 | 验证 AUC | 验证 log_loss | 常数基线 |
+|---|---|---|---|
+| 只对 `random_baseline` | **0.7202** | 0.6125 | 0.6701 |
+| 只对 `greedy` | **0.6968** | 0.6157 | 0.6820 |
+| **两者混合** | **0.6336** | **0.6830** | 0.6823 |
+
+混合后 **log_loss 比"永远预测平均值"还差**。同一局面在不同对手下胜率天差地别，
+而特征不足以刻画对手强度 → 混合数据对 V 就是纯噪声。
+
+**这直接约束对手池设计**：训练 V 时对手强度要相对集中，或必须补上对手强度特征。
+
 ## 目录结构
 
 ```
 .
-├── fetch_data.sh          # 重新拉取比赛数据到 data/
-├── exp_log.py             # 实验记录工具：追加 / 查看 / 生成 markdown / 写入 LB
-├── experiments.csv        # 实验记录表（唯一事实来源，utf-8-sig 可直接用 Excel 打开）
-├── 实验记录.md            # 实验记录的 markdown 版（由 exp_log.py md 生成）
-├── data/                  # 比赛数据（gitignore，不入库）
+├── main.py                # ★ 提交入口（自包含）
+├── deck.csv               # ★ 提交卡组
+├── cg/                    # ★ 官方引擎（gitignore）
+├── local_match.py         # 本地对局框架
+├── evaluate.py            # 批量胜率评估
+├── sweep.py               # 策略配置扫描
+├── gen_data.py            # 自对弈数据生成
+├── train_value.py         # 训练价值模型 V
+├── framework/             # 训练框架（见 framework/README.md）
+├── tests/                 # 回归测试
+├── exp_log.py             # 实验记录工具
+├── experiments.csv        # 实验记录表（唯一事实来源）
+├── 实验记录.md            # 实验记录的 markdown 版
+├── data/                  # 比赛数据 + 数据集（gitignore）
+├── models/                # 训练产物（gitignore，可用脚本重建）
 └── agents/                # agent 实现
 ```
 

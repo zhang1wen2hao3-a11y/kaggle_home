@@ -18,8 +18,10 @@ replays/
 *.log.bak
 *.tmp
 
-# ==== 模型权重 ====
-models/
+# ==== 模型权重（训练产物，可用 train_value.py 重建）====
+# ⚠️ 必须锚定根目录：写 `models/` 会匹配任意层级，
+#    把 framework/models/ 这个代码目录也一起忽略掉。
+/models/
 *.pt
 *.pth
 *.onnx
