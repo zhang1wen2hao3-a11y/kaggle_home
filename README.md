@@ -30,37 +30,64 @@ bash fetch_data.sh
 
 ## 关键发现
 
+以下数字均为**修正后**的实测结果，指标统一为 `vs random_baseline`，且框架已通过
+`random vs random ≈ 0.5` 自检（见 `experiments.csv` / `实验记录.md`）。
+
 ### 1. 决策顺序是决定性的：ATTACK 绝不能排第一
 
-PTCG 的**攻击会结束回合**。把 ATTACK 排在优先级首位，agent 就变成"每回合只平A、
-从不铺场/进化/充能"，实测 n=200：
+PTCG 的**攻击会结束回合**。把 ATTACK 排在优先级首位，agent 就退化成"每回合只平A、
+从不铺场/进化/充能"。n=200：
 
-| 配置 | vs random_baseline |
+| 配置（go_first=True, bench_full=True） | vs random_baseline |
 |---|---|
 | `attack_first`（错误示范） | **0.170** |
-| `develop_first`（先铺场后攻击） | **0.855** |
+| `attack_last_only` | 0.780 |
 | `attach_first` | 0.790 |
-| `no_retreat` | 0.833 |
+| `no_retreat` | 0.830 |
+| **`develop_first`（定稿）** | **0.845** |
 
 正确顺序：`PLAY → EVOLVE → ABILITY → ATTACH → RETREAT → DISCARD → ATTACK → END`
 
 ### 2. 开局必须铺满后备
 
-`SETUP_BENCH_POKEMON` 要取满 `maxCount`。只上 1 只后备时主力被击倒后 Active 空场
-直接判负（败因 3）。这一条把 `attack_first` 从 0.10 拉到 ~0.17，也把
-`develop_first` 从 0.467 拉到 0.667（对旧版 greedy 的对照实验）。
+`SETUP_BENCH_POKEMON` 取满 `maxCount`。只上 1 只后备时，主力被击倒后 Active 空场
+直接判负（败因 3）。对照实验（n=60，vs random_baseline）：
 
-### 3. 评估框架本身踩过的坑（值得记住）
+| 配置 | bench_full=False | bench_full=True |
+|---|---|---|
+| `attack_first` | 0.100 | **0.167** |
+| `develop_first` | 0.733 | **0.867** |
+
+### 3. 修好前两条之后，剩下的顺序差异基本是噪声
+
+两两对决 n=200，四个"合理"配置互有胜负、全部落在 0.4～0.55：
+
+| 对局 | A 胜率 |
+|---|---|
+| `develop_first` vs `attach_first` | 0.500 |
+| `no_retreat` vs `attack_last_only` | 0.540 |
+| `develop_first` vs `no_retreat` | 0.440 |
+| `develop_first` vs `attack_last_only` | 0.480 |
+
+**结论：不要在这些顺序上继续调参** —— 收益已在噪声内。要提升必须换更强的机制
+（见下方"内置前向搜索"）。
+
+### 4. 评估框架本身踩过的坑（比策略更重要）
 
 - **`agents/random.py` 遮蔽了标准库 `random`**。加了 `sys.path.insert(0, agents/)` 后，
   该文件里的 `import random` 导入了它自己 → 对手开局即崩。而 `play_match` 当时把崩溃
-  静默记成"输"，导致**所有配置都被记成 100% 胜率**。修复：文件改名 `random_baseline.py`
-  + `sys.path` 改用 `append` + 崩溃显式标记 `crashed` 并单独统计。
-- **0 号位有结构优势**：`battle_start(reverse_player=False)` 时，"选先后手"
-  （`SelectContext.IS_FIRST`）只发给 0 号位。只交替座位的话，random 自对弈会跑出
-  0.62 而非 0.5。修复：座位与 `reverse` 双重交替（`play_match(..., reverse=...)`）。
-- 教训：**胜率数字在框架自检通过之前一律不可信**。先用 `random vs random ≈ 0.5`
-  验证框架，再解读任何策略对比。
+  **静默记成"输"**，导致所有配置都被记成 100% 胜率。
+  修复：改名 `random_baseline.py` + `sys.path` 改用 `append` + 崩溃显式标记 `crashed` 并单独统计。
+- **0 号位有结构优势**：`battle_start(reverse_player=False)` 时"选先后手"
+  （`SelectContext.IS_FIRST`）只发给 0 号位。只交替座位时 random 自对弈会跑出 0.62 而非 0.5。
+  修复：座位与 `reverse` 双重交替，`play_match(..., reverse=...)`。
+- **教训**：胜率数字在框架自检通过之前一律不可信。先跑 `random vs random ≈ 0.5`，
+  再解读任何策略对比。`evaluate.py` 现在会在出现崩溃时红字警告并把它排除在胜率之外。
+
+### 5. 当前基线
+
+`agents/greedy.py` 与提交入口 `main.py` 同为 `develop_first + 先手 + 铺满后备`。
+直接评估 `main.py`（n=200）：**0.840**，与 `greedy.py` 一致 —— 提交入口可用。
 
 ## 内置前向搜索
 
