@@ -18,31 +18,88 @@ Kaggle 比赛 [The Pokémon Company - PTCG AI Battle Challenge Playground](https
 bash fetch_data.sh
 ```
 
-## 当前基线
+## 当前状态（TL;DR）
+
+### 提交物：纯规则 greedy，**没有任何模型**
 
 | 项 | 值 |
 |---|---|
-| **提交入口**（真正上传的） | `main.py`（自包含；+ `cg/` + `deck.csv` 即构成提交） |
+| **提交入口** | `main.py`（自包含；+ `cg/` + `deck.csv` 即构成提交） |
 | 等价实验版 | `agents/greedy.py` |
 | 策略配置 | `develop_first` + `go_first=True` + `bench_full=True` |
-| 基准对手 | `agents/random_baseline.py` |
-| 等价性验证 | `main.py` vs `agents/greedy.py` ≈ **0.5**（EXP-0004, n=300）→ 同一策略 |
+| 绝对强度 | **0.815 ± 0.019 vs random_baseline**（n=400） |
+| 等价性 | `main.py` vs `agents/greedy.py` = **0.510**（n=300）→ 同一策略 |
 
-> `main.py` 因提交要求必须自包含（不能 import `agents/`），与 `agents/greedy.py` 是同一策略的
-> 两份实现 —— **改动时两边都要改**，并用 `evaluate.py main.py vs agents/greedy.py` 回归验证。
+> `main.py` 因提交要求必须自包含（不能 import `agents/`），与 `agents/greedy.py`
+> 是同一策略的两份实现 —— **改动时两边都要改**，并用
+> `./run.sh evaluate.py --agent main.py --opponent agents/greedy.py` 回归（应≈0.5）。
+
+### 已建成的组件
+
+| 组件 | 状态 | 结论 |
+|---|---|---|
+| 规则策略（greedy） | ✅ | **当前最强，作提交** |
+| 对局/评估框架 | ✅ | 座位+reverse 双交替、崩溃检测、按局 CV |
+| 特征体系 | ✅ | 48 局面 + 15 记忆 + 31 选项 = 94 维 |
+| 卡组池（11 套 archetype） | ✅ | 多样性验证通过（平均胜率跨度 0.71） |
+| 自动 parquet 缓存 | ✅ | 加载快 36×、省内存 3× |
+| **V（价值模型 LightGBM）** | ✅ 训出来了 | AUC **0.78 ± 0.04**（5 折按局 CV） |
+| **P（策略先验 LTR）** | ✅ 训出来了 | 模仿 greedy **top1 = 0.9994** |
+| **MCTS 搜索闭环** | ✅ 工程跑通 | ❌ **但打不过 greedy** |
+| GA 卡组选择器 | ⚠️ 可跑 | ❌ 产出的卡组**更差** |
+| 对手推断模型 | ❌ 未开始 | 缺 oracle 数据 |
+
+### 有效 vs 无效（全部经过统计检验）
+
+**有效：**
+- ATTACK 排第一位是灾难（0.17 vs 0.85），必须"先铺场后攻击"
+- 开局铺满后备（否则主力倒下空场判负）
+- **卡组多样性显著提升 V**：单对手 AUC 0.722 → 多样卡组池 0.766（控制记录数后仍 +0.044）
+- 修复 `st_turn` 伪特征（回合奇偶编码了"谁在行动"）——它曾导致搜索 96% 选 END
+
+**无效 / 已证伪：**
+| 尝试 | 结果 |
+|---|---|
+| MCTS 搜索（V + 搜索） | **0.39 vs greedy 0.5** ❌ |
+| + P 先验裁剪 top_k=3 | **0.3725**（400 局，低 5.2σ）❌ |
+| 1-ply（纯 V 选动作） | **0.20** ❌ |
+| 启发式 V | **0.25** ❌ |
+| 加深搜索（150 sims / depth 10） | **更差**（0.225）❌ |
+| GA 优化卡组 | 产出**构造更差**的卡组（无用能量 + 单张填充）❌ |
+| `retreat_late` 配置 | 头对头赢但**绝对强度更差**（0.760 vs 0.815）❌ |
+
+> **为什么 V 不能选动作**：V 预测的是「这个局面的胜率」，但选动作需要
+> 「这个动作造成的胜率变化」。后者量级 ~0.02，远小于 V 的误差 ~0.05。
+> **AUC 0.83 的价值函数，在选动作上可以完全没用。** 详见 `framework/README.md`。
+
+### 三条评估纪律（都踩过坑才总结出来）
+
+1. **必须用按局 K 折 CV** —— 单次切分的 AUC 标准差达 0.041，而特征改进只有 0.005 量级
+2. **头对头赢 ≠ 更强** —— 非传递性是常态，任何改动都要同时看对统一基准的绝对胜率
+3. **样本量要够** —— 检测 0.05 的差异需要 ~1600 局；80 局的结论全是噪声
+
+### 下一步（按价值排序）
+
+| 优先 | 做什么 | 理由 |
+|---|---|---|
+| 1 | **定稿提交 greedy** | 它是实测最强的，且零依赖零风险 |
+| 2 | 训 **Q(s,a)** 而非 V(s) | 直接学"动作价值"，才是选动作需要的 |
+| 3 | 生成 oracle 数据 → 对手推断 | 便宜（~3 分钟），让 determinization 有依据 |
+| 4 | 迭代自对弈 | 前提是 search 先 ≥ greedy（鸡生蛋） |
+
+## 历史基线记录
 
 | 实验 | Agent | 本地胜率 | 对局数 | 对手 |
 |---|---|---|---|---|
 | exp01_random_selfplay | random_baseline | 0.4475 | 400 | random_baseline（框架自检） |
-| exp02_greedy_vs_random | greedy（基线） | 0.850 | 200 | random_baseline |
-| exp03_main_vs_random | main.py（基线） | 0.805 | 200 | random_baseline |
-| **exp04_main_vs_greedy** | main.py | **0.5067** | 300 | greedy（等价性验证） |
+| exp02_greedy_vs_random | greedy | 0.850 | 200 | random_baseline |
+| exp03_main_vs_random | main.py | 0.805 | 200 | random_baseline |
+| exp04_main_vs_greedy | main.py | 0.5067 | 300 | greedy（等价性验证） |
 
-> ⚠️ EXP-0002 与 EXP-0003 是**同一策略**的两次测量，0.850 与 0.805 的差异属抽样噪声
-> （n=200 时标准误≈0.025），不是版本差异。
-
-> ⚠️ `random_baseline` 作为基准**已无区分度**：所有合理配置都能赢它 80%~88%，
-> 继续用它无法区分策略优劣。下一步需换成搜索型对手。
+> ⚠️ EXP-0002 与 EXP-0003 是**同一策略**的两次测量，0.850 与 0.805 的差异属抽样噪声。
+>
+> ⚠️ `random_baseline` 作为基准**已无区分度**：所有合理配置都能赢它 80%+。
+> 需要更强的基准对手才能区分策略优劣。
 
 ## 关键发现
 
@@ -175,24 +232,54 @@ PTCG 的**攻击会结束回合**。把 ATTACK 排在优先级首位，agent 就
 ## 目录结构
 
 ```
-.
+# ── 提交物（这三个 + cg/ 就是全部）──
+├── main.py                # ★ 提交入口（自包含，规则 greedy）
+├── deck.csv               # ★ 提交卡组（官方样例）
+├── cg/                    # ★ 官方引擎（gitignore，比赛方授权）
+│
 ├── run.sh                 # ★ 统一解释器入口（务必用它跑脚本）
-├── main.py                # ★ 提交入口（自包含）
-├── deck.csv               # ★ 提交卡组
-├── cg/                    # ★ 官方引擎（gitignore）
-├── local_match.py         # 本地对局框架
+│
+# ── 对局与评估 ──
+├── local_match.py         # 本地对局框架（座位+reverse 双交替、崩溃检测）
 ├── evaluate.py            # 批量胜率评估
 ├── sweep.py               # 策略配置扫描
-├── gen_data.py            # 自对弈数据生成
-├── train_value.py         # 训练价值模型 V
-├── framework/             # 训练框架（见 framework/README.md）
-├── tests/                 # 回归测试
 ├── exp_log.py             # 实验记录工具
 ├── experiments.csv        # 实验记录表（唯一事实来源）
 ├── 实验记录.md            # 实验记录的 markdown 版
-├── data/                  # 比赛数据 + 数据集（gitignore）
-├── models/                # 训练产物（gitignore，可用脚本重建）
-└── agents/                # agent 实现
+│
+# ── 数据生成 ──
+├── gen_data.py            # 单对手自对弈数据生成
+├── gen_pool_data.py       # 跨卡组池轮转采数据（55 种 matchup）
+├── make_decks.py          # 按 archetype 构造卡组
+│
+# ── 训练 ──
+├── train_value.py         # 训练 V（价值模型），支持 --cv-folds 按局 CV
+├── train_policy.py        # 训练 P（策略先验，LTR / LambdaMART）
+├── alpha_loop.py          # 迭代自对弈循环（AlphaZero 式）
+├── ga_deck.py             # GA 卡组选择器（实测效果不好，保留作记录）
+│
+# ── 框架 ──
+├── framework/             # 见 framework/README.md
+│   ├── features.py        #   特征提取（48 局面 + 15 记忆 + 31 选项）
+│   ├── memory.py          #   GameMemory（增量日志累积、防跨局污染）
+│   ├── filler.py          #   determinization 填充器
+│   ├── search.py          #   MCTS（UCB / 回传 / 先验裁剪）
+│   ├── deck.py            #   卡组表示 / 合法性 / 遗传算子
+│   ├── cache.py           #   自动 parquet 缓存
+│   ├── dataset.py         #   数据集读写与按局切分
+│   └── models/            #   模型抽象接口 + linear / lightgbm 后端
+│
+├── agents/                # agent 实现
+│   ├── rulebase.py        #   参数化规则策略（8 种 order 配置）
+│   ├── greedy.py          #   ★ 当前基线
+│   ├── random_baseline.py #   基准对手（已无区分度）
+│   └── search_agent.py    #   搜索 agent（MCTS + P + V，实测打不过 greedy）
+│
+├── decks/                 # 11 套 archetype 卡组
+├── tests/                 # 回归测试（GameMemory 跨局污染、卡组合法性）
+│
+├── data/                  # 比赛数据 + 数据集 + parquet 缓存（gitignore）
+└── models/                # 训练产物（gitignore，可用脚本重建）
 ```
 
 ## 使用
