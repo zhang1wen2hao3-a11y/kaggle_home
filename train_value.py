@@ -81,12 +81,97 @@ def calibration_table(y, p, bins: int = 5) -> list[tuple[str, int, float, float]
     return rows
 
 
+
+# ---------------------------------------------------------------- K 折 CV
+def _run_cv(args) -> None:
+    """按【对局】K 折交叉验证。
+
+    为什么必须按局而不是按记录：
+        同一局内的几十~几百条记录高度相关，有效样本量是"局数"而不是"记录数"。
+        实测：550 局、单次 110 局验证时，仅换切分种子 AUC 就在 0.73~0.84 之间波动
+        （标准差 0.041）。而特征改进往往只有 0.005 量级 —— 单次切分完全测不出来。
+    """
+    import random as _random
+    import statistics
+    import polars as pl
+    from framework import cache
+
+    print(f"读取 {args.data}（parquet 缓存，{args.cv_folds} 折按局 CV）")
+    df = cache.load(args.data, kind="value")
+    meta_cols = {"game", "label", "player", "turn"}
+    feat_cols = [c for c in df.columns if c not in meta_cols]
+    games = df["game"].unique().to_list()
+    _random.Random(args.seed).shuffle(games)
+    k = args.cv_folds
+    folds = [games[i::k] for i in range(k)]
+    print(f"  总记录 {df.height:,} / {len(games)} 局 / 特征 {len(feat_cols)} 维\n")
+
+    aucs, lls = [], []
+    for i in range(k):
+        va_g = folds[i]
+        tr = df.filter(~pl.col("game").is_in(va_g))
+        va = df.filter(pl.col("game").is_in(va_g))
+        Xtr = tr.select(feat_cols).to_numpy().astype("float32")
+        ytr = tr["label"].to_numpy().astype("float32")
+        Xva = va.select(feat_cols).to_numpy().astype("float32")
+        yva = va["label"].to_numpy().astype("float32")
+        m = create(args.model, task="binary")
+        if hasattr(m, "fit_arrays"):
+            m.fit_arrays(Xtr, ytr, feat_cols, eval_set=(Xva, yva))
+            pva = m.predict_arrays(Xva)
+        else:
+            Xtr_d = [dict(zip(feat_cols, r)) for r in Xtr.tolist()]
+            Xva_d = [dict(zip(feat_cols, r)) for r in Xva.tolist()]
+            m.fit(Xtr_d, ytr.tolist(), eval_set=(Xva_d, yva.tolist()))
+            pva = m.predict(Xva_d)
+        a, l = auc(yva, pva), log_loss(yva, pva)
+        aucs.append(a); lls.append(l)
+        print(f"  折 {i+1}/{k}: 验证 {len(va_g):>3} 局/{va.height:>6,} 条  "
+              f"AUC={a:.4f}  log_loss={l:.4f}")
+
+    ma, sa = statistics.mean(aucs), statistics.pstdev(aucs)
+    ml, sl = statistics.mean(lls), statistics.pstdev(lls)
+    print("\n" + "=" * 62)
+    print(f"  AUC      = {ma:.4f} ± {sa:.4f}   (折间极差 {max(aucs)-min(aucs):.4f})")
+    print(f"  log_loss = {ml:.4f} ± {sl:.4f}")
+    print("=" * 62)
+    print("  ⚠️ 比较模型/特征时，必须看 mean ± std；只差 <2*std 的差异不可信。")
+
+    # 全量再训一次并保存
+    X = df.select(feat_cols).to_numpy().astype("float32")
+    y = df["label"].to_numpy().astype("float32")
+    m = create(args.model, task="binary")
+    if hasattr(m, "fit_arrays"):
+        m.fit_arrays(X, y, feat_cols)
+    else:
+        m.fit([dict(zip(feat_cols, r)) for r in X.tolist()], y.tolist())
+    os.makedirs(os.path.dirname(os.path.abspath(args.out)) or ".", exist_ok=True)
+    m.save(args.out)
+    print(f"\n全量模型已保存 -> {args.out}")
+    try:
+        import importlib.util as iu
+        spec = iu.spec_from_file_location("el", os.path.join(HERE, "exp_log.py"))
+        el = iu.module_from_spec(spec); spec.loader.exec_module(el)
+        eid = el.log_experiment(
+            name=f"value_{args.model}_cv{args.cv_folds}", agent=f"value:{args.model}",
+            eval_scheme=f"cv{args.cv_folds}-auc-{args.model}", win_rate=ma,
+            n_games=len(games),
+            changes=f"{len(feat_cols)}维特征, {args.cv_folds}折按局CV",
+            notes=f"AUC={ma:.4f}±{sa:.4f} log_loss={ml:.4f}±{sl:.4f}")
+        print(f"已记录 {eid}（win_rate 列存 CV 平均 AUC）")
+    except Exception as e:
+        print(f"(未写入实验记录: {e})")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--data", required=True)
     ap.add_argument("--model", default="linear", help=f"可选: {available()}")
     ap.add_argument("--val-ratio", type=float, default=0.2)
+    ap.add_argument("--cv-folds", type=int, default=0,
+                    help="按局 K 折交叉验证（0=单次切分）。"
+                         "实测单次切分的 AUC 标准差达 0.04，远大于特征效应，必须用 CV")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--epochs", type=int, default=400, help="linear 后端用")
     ap.add_argument("--lr", type=float, default=0.5, help="linear 后端用")
@@ -98,6 +183,11 @@ def main() -> None:
                     help="禁用 parquet 缓存，直接读 JSONL（调试用）")
     ap.add_argument("--quiet", action="store_true")
     args = ap.parse_args()
+
+    # ---------------- K 折交叉验证（按局）
+    if args.cv_folds and args.cv_folds >= 2:
+        _run_cv(args)
+        return
 
     # ---------------- 数据加载：自动 parquet 缓存
     # 训练前自动把 JSONL 转成列式 parquet（源文件变了会自动重建）。

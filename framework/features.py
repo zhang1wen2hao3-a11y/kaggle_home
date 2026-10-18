@@ -18,6 +18,7 @@
 """
 from __future__ import annotations
 
+import math
 from typing import Any
 
 # ---------------------------------------------------------------- 卡牌数据缓存
@@ -165,9 +166,37 @@ def state_features(obs: dict, memory=None) -> dict[str, float]:
     f["st_special_op"] = float(_has_special_condition(op))
     f["st_special_diff"] = float(_has_special_condition(me) - _has_special_condition(op))
 
-    # ---- 能否攻击（用卡牌数据判断当前 Active 的能量是否够）
+    # ---- 能否攻击
     f["st_can_attack"] = 1.0 if _can_attack(my_active) else 0.0
     f["st_op_can_attack"] = 1.0 if _can_attack(op_active) else 0.0
+
+    # ---- KO 威胁（核心战术量：我打对手几下能 KO / 对手打我几下）
+    am, ao = _attack_info(my_active), _attack_info(op_active)
+    my_hp_now = float((my_active or {}).get("hp") or 0)
+    op_hp_now = float((op_active or {}).get("hp") or 0)
+    # 注意：**不要**直接暴露原始伤害值（dmg_now/dmg_max）。
+    # 实测（pool_v3_v，同数据集消融）：
+    #   加 KO压力(比值)  -> AUC 0.8247 -> 0.8286  ✅
+    #   加 回合到KO      -> AUC 0.8247 -> 0.8284  ✅
+    #   加 原始伤害值    -> AUC 0.8247 -> 0.8172  ❌
+    # 原因：原始伤害是绝对值（0~300），与已有 HP 特征共线，纯增噪；
+    #       而归一化后的比值（伤害/血量）才是真正的战术信号。
+    f["st_energy_gap_me"] = am["gap"]            # 还差几个能量能攻击
+    f["st_energy_gap_op"] = ao["gap"]
+    f["st_active_hp_gap"] = my_hp_now - op_hp_now # 双方 Active 血量差
+    # KO 压力：伤害 / 对手血量。>1 表示这回合能直接击倒
+    f["st_ko_pressure_me"] = (am["dmg_now"] / op_hp_now) if op_hp_now > 0 else 0.0
+    f["st_ko_pressure_op"] = (ao["dmg_now"] / my_hp_now) if my_hp_now > 0 else 0.0
+    # 还需要几回合才能 KO 对手（向下取整 +1），0 表示本来就能 KO
+    f["st_turns_to_ko_me"] = (
+        max(0.0, math.ceil(op_hp_now / am["dmg_now"]) - 1) if am["dmg_now"] > 0 else 99.0)
+    f["st_turns_to_ko_op"] = (
+        max(0.0, math.ceil(my_hp_now / ao["dmg_now"]) - 1) if ao["dmg_now"] > 0 else 99.0)
+    # 威胁差：谁能更快达成 KO
+    f["st_ko_race"] = f["st_turns_to_ko_op"] - f["st_turns_to_ko_me"]
+    # 奖赏卡还需要几次 KO 才能赢
+    f["st_prize_need_me"] = float(my_prize)
+    f["st_prize_need_op"] = float(op_prize)
 
     # ---- 记忆特征（对手已见信息）
     if memory is not None:
@@ -176,19 +205,45 @@ def state_features(obs: dict, memory=None) -> dict[str, float]:
     return f
 
 
-def _can_attack(pokemon: dict | None) -> bool:
-    """当前 Active 是否付得起至少一个招式的能量。"""
+def _attack_info(pokemon: dict | None) -> dict:
+    """算一个宝可梦的攻防数值 —— 卡牌游戏最核心的战术量。
+
+    Returns:
+        dmg_now  : 当前能量下**实际能打出**的最大伤害（付不起的招式不算）
+        dmg_max  : 所有招式的最大伤害（理论值，用于衡量潜在威胁）
+        min_cost : 最便宜招式的能量需求
+        gap      : 还差几个能量才能攻击（0 表示已经能攻击）
+        have     : 当前已附能量数
+    """
+    out = {"dmg_now": 0.0, "dmg_max": 0.0, "min_cost": 0.0, "gap": 0.0, "have": 0.0}
     if not pokemon:
-        return False
+        return out
     card = _card(pokemon.get("id"))
     if card is None:
-        return False
+        return out
     have = len(pokemon.get("energies") or [])
+    out["have"] = float(have)
+    costs, dmgs_now = [], []
     for aid in (card.attacks or []):
         atk = _ATTACK_CACHE.get(aid)
-        if atk is not None and len(atk.energies or []) <= have:
-            return True
-    return False
+        if atk is None:
+            continue
+        cost = len(atk.energies or [])
+        dmg = float(atk.damage or 0)
+        costs.append(cost)
+        out["dmg_max"] = max(out["dmg_max"], dmg)
+        if cost <= have:
+            dmgs_now.append(dmg)
+    out["dmg_now"] = max(dmgs_now) if dmgs_now else 0.0
+    if costs:
+        out["min_cost"] = float(min(costs))
+        out["gap"] = max(0.0, out["min_cost"] - have)
+    return out
+
+
+def _can_attack(pokemon: dict | None) -> bool:
+    """当前 Active 是否付得起至少一个招式的能量。"""
+    return _attack_info(pokemon)["gap"] == 0.0 and _attack_info(pokemon)["min_cost"] > 0
 
 
 def _empty_state(f: dict) -> dict[str, float]:
@@ -213,6 +268,11 @@ STATE_FEATURE_KEYS = [
     "st_retreated", "st_stadium_in_play",
     "st_special_me", "st_special_op", "st_special_diff",
     "st_can_attack", "st_op_can_attack",
+    # KO 威胁（核心战术量，只用归一化后的比值）
+    "st_energy_gap_me", "st_energy_gap_op", "st_active_hp_gap",
+    "st_ko_pressure_me", "st_ko_pressure_op",
+    "st_turns_to_ko_me", "st_turns_to_ko_op", "st_ko_race",
+    "st_prize_need_me", "st_prize_need_op",
 ]
 
 
