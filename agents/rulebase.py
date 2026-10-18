@@ -45,6 +45,18 @@ ORDERS = {
         OptionType.ATTACH, OptionType.EVOLVE, OptionType.PLAY, OptionType.ABILITY,
         OptionType.ATTACK, OptionType.END,
     ],
+    # ★ 规范配置：当前 main.py / agents/greedy.py 用的就是它。
+    #   与 attack_last_only 行为相同（MAIN 阶段只有 DISCARD/RETREAT 是未列出项），
+    #   但把 DISCARD/RETREAT 显式列在最后，使三处优先级表**逐位一致**，
+    #   便于 tests/test_priority_sync.py 做强校验。
+    #
+    #   为什么 RETREAT 必须排在 ATTACK 之后：见本文件开头与 agents/greedy.py 的说明。
+    #   8 副卡组 vs random 平均：旧顺序 0.2725 -> 本配置 0.7612。
+    "safe_v1": [
+        OptionType.ATTACH, OptionType.EVOLVE, OptionType.PLAY, OptionType.ABILITY,
+        OptionType.ATTACK, OptionType.END,
+        OptionType.DISCARD, OptionType.RETREAT,
+    ],
 }
 
 # 选择多个选项时，这些 context 取满 maxCount（铺满后备 = 抗打击）

@@ -36,7 +36,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
 # 允许的 import 前缀（标准库由 sys.stdlib_module_names 判定，这里只管本地模块）
-ALLOWED_LOCAL = {"cg"}
+# `cg` 恒有；其余由 --extra 实际打包进来的顶层模块自动放行。
+BASE_ALLOWED = {"cg"}
 
 
 def _local_imports(path: str) -> set[str]:
@@ -62,8 +63,13 @@ def main() -> None:
     ap.add_argument("--deck", default="deck.csv")
     ap.add_argument("--cg-dir", default="cg")
     ap.add_argument("--out", default="dist/submission.tar.gz")
+    ap.add_argument("--extra", action="append", default=[],
+                    help="额外要打包的文件或目录（可重复）。"
+                         "例如 --extra framework/rollout.py --extra framework/filler.py")
     ap.add_argument("--verify-games", type=int, default=0,
                     help=">0 时用打包后的 main.py 真跑若干局对手池自检")
+    ap.add_argument("--verify-opponent", default="agents/greedy.py",
+                    help="动态自检时的对手")
     args = ap.parse_args()
 
     agent_path = os.path.join(HERE, args.agent)
@@ -80,15 +86,27 @@ def main() -> None:
         print(f"  ✅ {label:6s} {os.path.relpath(p, HERE)}")
 
     # ---------------- 静态自检
+    extras: list[tuple[str, str]] = []      # (源路径, 包内相对路径)
+    for e in args.extra:
+        src = e if os.path.isabs(e) else os.path.join(HERE, e)
+        if not os.path.exists(src):
+            raise SystemExit(f"❌ --extra 指定的路径不存在: {e}")
+        rel = os.path.relpath(src, HERE)
+        extras.append((src, rel if not rel.startswith("..") else os.path.basename(src)))
+
+    allowed = set(BASE_ALLOWED)
+    for _src, rel in extras:
+        allowed.add(rel.replace("\\", "/").split("/")[0].removesuffix(".py"))
+
     local = _local_imports(agent_path)
-    bad = local - ALLOWED_LOCAL
+    bad = local - allowed
     print(f"\n  入口文件的本地依赖: {sorted(local) or '（无）'}")
     if bad:
         print(f"  ❌ 检测到仓库内部依赖: {sorted(bad)}")
         print("     提交包里没有这些模块，到 Kaggle 会直接崩。"
               "请把这些功能内联进入口文件，或一起打进包里。")
         raise SystemExit(1)
-    print(f"  ✅ 只依赖 {sorted(local) or '标准库'} —— 提交包足够自包含")
+    print(f"  ✅ 依赖 {sorted(local) or '标准库'}，均在放行名单 {sorted(allowed)} 内")
 
     # ---------------- 组装
     stage = tempfile.mkdtemp(prefix="ptcg_sub_")
@@ -96,6 +114,13 @@ def main() -> None:
         shutil.copy2(agent_path, os.path.join(stage, "main.py"))
         shutil.copy2(deck_path, os.path.join(stage, "deck.csv"))
         shutil.copytree(cg_dir, os.path.join(stage, "cg"))
+        for src, rel in extras:
+            dst = os.path.join(stage, rel)
+            os.makedirs(os.path.dirname(dst) or stage, exist_ok=True)
+            if os.path.isdir(src):
+                shutil.copytree(src, dst, dirs_exist_ok=True)
+            else:
+                shutil.copy2(src, dst)
         # 排除 __pycache__ / *.pyc：它们是本机解释器版本的字节码（3.10 和 3.14 都有），
         # 打进包里纯属浪费，且版本不匹配时还可能引起混淆。
         files = []
@@ -123,7 +148,9 @@ def main() -> None:
             print(f"\n  用打包后的 main.py 真跑 {args.verify_games} 局做自检...")
             cmd = [sys.executable, os.path.join(HERE, "evaluate.py"),
                    "--agent", os.path.join(stage, "main.py"),
-                   "--opponent", os.path.join(HERE, "agents", "greedy.py"),
+                   "--opponent", (args.verify_opponent
+                                  if os.path.isabs(args.verify_opponent)
+                                  else os.path.join(HERE, args.verify_opponent)),
                    "--games", str(args.verify_games), "--workers", "1", "--quiet"]
             r = subprocess.run(cmd, capture_output=True, text=True, timeout=1800)
             tail = [l for l in r.stdout.splitlines() if "胜率" in l or "对局" in l or "耗时" in l]

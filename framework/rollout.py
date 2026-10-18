@@ -54,15 +54,26 @@ from cg.api import (  # noqa: E402
 # 与 main.py / agents/rulebase.py 的 develop_first 完全一致。
 # ATTACK 绝不能排前面：攻击会结束回合，攻击优先会变成"只会平A、从不铺场"
 # （实测对 random 胜率 0.17 vs 0.85）。
+# ⚠️ 顺序曾经是 PLAY>EVOLVE>ABILITY>ATTACH>RETREAT>DISCARD>ATTACK>END，
+# 即 RETREAT 排在 ATTACK 之前 —— 这是个**严重 bug**：
+# 只要场上有可撤退的目标，agent 就会撤退而不攻击。
+# 实测（8 副卡组 vs random 的平均）：
+#   RETREAT 在 ATTACK 之前（旧）  = 0.2725   ← 7 副卡组上接近随机
+#   RETREAT 完全移除（现）        = 0.7612
+# 最极端的是 fire_gouging：0.23 -> 0.89。
+#
+# 之前一直没发现，是因为所有评估都用 deck.csv(sample_official)，
+# 而那副快攻牌恰好是唯一不受此 bug 影响的卡组（两个配置都是 0.78）。
 PRIORITY = {
-    OptionType.PLAY: 0,
+    OptionType.ATTACH: 0,
     OptionType.EVOLVE: 1,
-    OptionType.ABILITY: 2,
-    OptionType.ATTACH: 3,
-    OptionType.RETREAT: 4,
-    OptionType.DISCARD: 5,
-    OptionType.ATTACK: 6,
-    OptionType.END: 9,
+    OptionType.PLAY: 2,
+    OptionType.ABILITY: 3,
+    OptionType.ATTACK: 4,
+    OptionType.END: 5,
+    # 撤退与弃牌压到最后：撤退会浪费本回合攻击机会，实测严格有害
+    OptionType.DISCARD: 90,
+    OptionType.RETREAT: 91,
 }
 
 FILL_CONTEXTS = (SelectContext.SETUP_BENCH_POKEMON, SelectContext.TO_BENCH)

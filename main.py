@@ -24,14 +24,20 @@ from cg.api import OptionType, SelectType, SelectContext, to_observation_class
 #        retreat_late  vs random = 0.7600
 #    即"能打赢某个对手" ≠ "更强"（非传递性）。评估必须用统一对手做绝对比较。
 PRIORITY = {
-    OptionType.PLAY: 0,
+    OptionType.ATTACH: 0,
     OptionType.EVOLVE: 1,
-    OptionType.ABILITY: 2,
-    OptionType.ATTACH: 3,
-    OptionType.RETREAT: 4,
-    OptionType.DISCARD: 5,
-    OptionType.ATTACK: 6,
-    OptionType.END: 9,
+    OptionType.PLAY: 2,
+    OptionType.ABILITY: 3,
+    OptionType.ATTACK: 4,
+    OptionType.END: 5,
+    # ⚠️ RETREAT / DISCARD 压到最后。历史上它们排在 ATTACK 之前，是**严重 bug**：
+    #    有可撤退目标时 agent 会撤退而不攻击，白白浪费回合的攻击机会。
+    #    8 副卡组 vs random 的平均胜率：旧顺序 0.2725 -> 修复后 0.7612；
+    #    最极端的 fire_gouging 从 0.23 变成 0.89。
+    #    之所以长期没发现，是因为所有评估都用 deck.csv(sample_official)，
+    #    而它恰好是唯一不受该 bug 影响的卡组（两版都是 0.78）。
+    OptionType.DISCARD: 90,
+    OptionType.RETREAT: 91,
 }
 GO_FIRST = True
 

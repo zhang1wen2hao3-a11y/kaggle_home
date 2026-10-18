@@ -56,7 +56,9 @@ def test_equivalence():
     main = load_module(os.path.join(HERE, "main.py"), "t_main")
     greedy = load_module(os.path.join(HERE, "agents/greedy.py"), "t_greedy")
 
-    files = sorted(glob.glob(os.path.join(HERE, "decks", "*.csv")))[:6]
+    # 用 10 副卡组而不是 6 副：修好"RETREAT 排在 ATTACK 之前"这个 bug 之后，
+    # 对局明显变短（不再无限撤退），同样局数下的状态数少了一半。
+    files = sorted(glob.glob(os.path.join(HERE, "decks", "*.csv")))[:10]
     decks = [load_deck(f) for f in files]
     total = mismatch = 0
     for i, dA in enumerate(decks):
@@ -76,7 +78,7 @@ def test_equivalence():
                     if not (a_rule == a_main == a_greedy):
                         mismatch += 1
                     obs = battle_select(a_main)
-    check(total > 5000, f"覆盖 {total:,} 个状态")
+    check(total > 5000, f"覆盖 {total:,} 个状态（10 副卡组 × 45 对 × 2 种 reverse）")
     check(mismatch == 0, f"不一致 = {mismatch}")
 
 
