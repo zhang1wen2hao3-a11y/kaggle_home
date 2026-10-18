@@ -1,7 +1,18 @@
 """提交入口：PTCG AI Battle Challenge。
 
-提交时上传的就是 本文件 + cg/ + deck.csv，所以这里必须自包含，
-不能 import 本仓库的 agents/ 目录。
+## 提交格式（以比赛文档为准）
+
+     kaggle competitions submit -c <slug> -f submission.py -m "..."
+
+**提交的是单个 .py 文件**。`cg/` 与 `deck.csv` 不需要你上传 ——
+平台运行时会自己放进 `/kaggle_simulations/agent/`（官方样例就是从那里读
+`deck.csv` 的）。所以本文件必须自包含，不能 import 本仓库的 agents/。
+
+> ⚠️ 这里曾写"提交时上传的就是 本文件 + cg/ + deck.csv"，
+>    那是把【运行时目录里有什么】误读成了【上传时要给什么】，
+>    据此做出来的 tar.gz 打包方案是错的。`make_submission_py.py` 才是对的。
+>    另外：首次调用返回卡组是允许任意 60 张的，所以本任务的打包脚本会把
+>    卡组**内联**进 submission.py，让卡组完全由我们掌控。
 
 agent() 的约定：
   * 开局 obs.select is None  -> 必须返回 60 张卡组

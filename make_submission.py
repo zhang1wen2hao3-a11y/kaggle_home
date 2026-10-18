@@ -1,13 +1,24 @@
 #!/usr/bin/env python3
-"""打包并自检 Kaggle 提交包。
+"""⚠️ 本脚本【不是】提交格式 —— 只用于本地隔离自测。
 
-## 提交包必须包含什么
+## 比赛的提交格式是单个 .py 文件
 
-根据 `data/sample_submission/` 的结构，Kaggle 期望压缩包**根目录**下就是：
+    kaggle competitions submit -c <slug> -f submission.py -m "..."
 
-    main.py      入口（必须自包含，不能 import 本仓库的 agents/）
-    deck.csv     60 张卡组
-    cg/          比赛方提供的引擎与 API（含 libcg.so）
+真正用来生成提交文件的是 `make_submission_py.py`。
+
+## 那这个脚本干什么
+
+把 入口 + deck.csv + cg/ 打成一个目录/压缩包，用于：
+  1. **本地隔离自测** —— 解压到临时目录，只让该目录在 sys.path 上，
+     验证入口文件不依赖本仓库的任何东西（这是提交前最有效的检查）
+  2. 静态检查入口的 import 是否只依赖 cg/ 与标准库
+
+## 当初为什么会做 tar.gz（错误的历史）
+
+`main.py` 里曾写"提交时上传的就是 本文件 + cg/ + deck.csv"，
+那是把【运行时 /kaggle_simulations/agent/ 目录里有什么】
+误读成了【上传时要给什么】。据此做的压缩包方案是错的，已修正。
 
 ## 本脚本做三件事
 
