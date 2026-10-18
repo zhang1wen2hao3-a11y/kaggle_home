@@ -30,3 +30,6 @@ EXP-0028,2026-10-18 10:32,value_lightgbm_v1,value:lightgbm,val-auc-lightgbm,0.81
 EXP-0029,2026-10-18 10:35,value_lightgbm_v1,value:lightgbm,val-auc-lightgbm,0.7454,110,,,"V模型 lightgbm: 63维特征, 按局切分",log_loss=0.5930 acc=0.6811 brier=0.2044 (win_rate列存的是AUC)
 EXP-0030,2026-10-18 10:36,value_lightgbm_cv5,value:lightgbm,cv5-auc-lightgbm,0.7899,550,,,"63维特征, 5折按局CV",AUC=0.7899±0.0226 log_loss=0.5480±0.0244
 EXP-0031,2026-10-18 10:41,policy_ltr_v1,policy:lambdarank,cv3-top1,0.9994,330,,,"LTR 模仿 greedy, 95维, 3折按局CV",top1=0.9994 mrr=0.9997 ndcg@3=0.9998
+EXP-0032,2026-10-18 11:42,q_lgb_v1,q:lightgbm,cv3-auc-q,0.8165,330,,,"Q(s,a) 95维, 3折按局CV, 仅用 chosen 行",AUC=0.8165±0.0143
+EXP-0033,2026-10-18 11:43,q_lgb_v1,q:lightgbm,cv3-auc-q,0.7097,330,,,"Q(s,a) 95维, 3折按局CV, 仅用 chosen 行",AUC=0.7097±0.0163
+EXP-0034,2026-10-18 11:45,q_lgb_v1,q:lightgbm,cv3-auc-q,0.7707,275,,,"Q(s,a) 95维, 3折按局CV, 仅用 chosen 行",AUC=0.7707±0.0164
