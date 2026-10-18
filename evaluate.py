@@ -57,6 +57,11 @@ def main() -> None:
     all_warnings = []
     errs = []
     t0 = time.time()
+    if not args.quiet:
+        # 立刻打一行，让人一眼看出"已经在跑了"（第一局可能要好几秒）
+        print(f"开始对局：{args.games} 局  |  "
+              f"{os.path.basename(args.agent)} vs {os.path.basename(args.opponent)}  |  "
+              f"座位×先手 四路交替", flush=True)
     for g in range(args.games):
         # 座位 + reverse 双重交替：4 局覆盖全部组合，消除 0 号位的结构优势
         seat = g % 2          # 0: A 坐 0 号位, 1: A 坐 1 号位
@@ -81,9 +86,13 @@ def main() -> None:
             losses += 1
         all_warnings.extend(r["warnings"])
 
-        if not args.quiet and (g + 1) % 10 == 0:
+        if not args.quiet and (g == 0 or (g + 1) % 10 == 0):
             played = wins + losses + draws
-            print(f"  {g+1}/{args.games}  胜率={wins/max(played,1):.3f}  (W{wins} L{losses} D{draws} F{fails})")
+            el = time.time() - t0
+            eta = el / (g + 1) * (args.games - g - 1) if g >= 0 else 0
+            print(f"  {g+1}/{args.games}  胜率={wins/max(played,1):.3f}  "
+                  f"(W{wins} L{losses} D{draws} F{fails})  "
+                  f"已用 {el:.0f}s  预计还需 {eta:.0f}s", flush=True)
 
     played = wins + losses + draws
     wr = wins / played if played else 0.0

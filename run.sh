@@ -133,4 +133,8 @@ if [ -n "${PTCG_VERBOSE:-}" ]; then
     echo "[run.sh] 解释器: $PY  (需要 $WANT)" >&2
 fi
 
+# 强制行缓冲：否则 `./run.sh xxx | tee log` 时 Python 会走块缓冲（4~8KB），
+# 进度行全积在缓冲区里，看起来像"卡住没输出"。踩过一次。
+export PYTHONUNBUFFERED=1
+
 exec "$PY" "$@"
