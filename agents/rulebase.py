@@ -81,7 +81,7 @@ FILL_CONTEXTS = {
 
 
 def make_agent(order="develop_first", go_first=True, bench_full=True,
-               attack_pick="first"):
+               attack_pick="first", smart_sub=False):
     """构造一个规则 agent。
 
     Args:
@@ -146,6 +146,23 @@ def make_agent(order="develop_first", go_first=True, bench_full=True,
                 if o["type"] == OptionType.YES:
                     return [i]
             return [0]
+
+        # 其余：策略子决策（可选）。不给就沿用旧的"取第一个"。
+        # 实测改变率：SWITCH 63%、TO_ACTIVE 18%、ATTACH_FROM 3.4%、
+        # SETUP_ACTIVE_POKEMON 0% —— 所以这类决策原先是让引擎的选项顺序替我们做决定。
+        if smart_sub and hi >= 1:
+            try:
+                from framework.rollout import _POKEMON_TARGET_CTX, pick_pokemon_target
+                if ctx in _POKEMON_TARGET_CTX:
+                    best = pick_pokemon_target(
+                        obs_dict,
+                        [o.get("area") for o in opts],
+                        [o.get("index") for o in opts],
+                    )
+                    if best is not None:
+                        return [best]
+            except Exception:
+                pass
 
         # 其余：满足下限即可，避免乱选牌
         k = max(lo, 1 if hi >= 1 else 0)

@@ -56,6 +56,7 @@ ENV = os.environ
 MODE = ENV.get("PTCG_ROLLOUT_MODE", "attack")
 WORLDS = int(ENV.get("PTCG_ROLLOUT_WORLDS", "10"))
 MARGIN = float(ENV.get("PTCG_ROLLOUT_MARGIN", "1.0"))
+CANDS = ENV.get("PTCG_ROLLOUT_CANDS", "trio")     # trio | all
 
 
 def _read_deck() -> list[int]:
@@ -100,6 +101,7 @@ def agent(obs_dict: dict) -> list[int]:
         action, info = choose_action(
             obs_dict, filler=_FILLER, my_deck=_DECK,
             n_worlds=WORLDS, margin=MARGIN, memory=_MEM,
+            candidate_mode=CANDS,
         )
         STATS["worlds"] += info.get("worlds", 0)
         if action != base:

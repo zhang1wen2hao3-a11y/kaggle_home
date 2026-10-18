@@ -62,6 +62,19 @@ try:
 except Exception:
     pass
 
+# cardId -> 该宝可梦【最便宜招式】需要的能量数（用来判断"离能攻击还差几张能量"）
+_MIN_ATK_COST: dict = {}
+try:
+    from cg.api import all_card_data as _all_card_data
+    for _c in _all_card_data():
+        costs = [_ATTACK_INFO[a][1] for a in (getattr(_c, "attacks", None) or [])
+                 if a in _ATTACK_INFO and _ATTACK_INFO[a][1] > 0]
+        if costs:
+            _MIN_ATK_COST[_c.cardId] = min(costs)
+    del _all_card_data
+except Exception:
+    pass
+
 # 与 main.py / agents/rulebase.py 的 develop_first 完全一致。
 # ATTACK 绝不能排前面：攻击会结束回合，攻击优先会变成"只会平A、从不铺场"
 # （实测对 random 胜率 0.17 vs 0.85）。
@@ -95,23 +108,131 @@ GO_FIRST = True
 def _sel_fields(sel):
     """归一化 SelectData —— 同时支持 dict（提交入口）和 dataclass（搜索状态）。
 
-    返回 6 元组：(type, context, option_types, minCount, maxCount, attack_ids)
-    attack_ids 用于同一宝可梦多招式时按伤害择优。
+    返回 8 元组：(type, context, option_types, minCount, maxCount,
+                attack_ids, areas, indices)
+    attack_ids 用于同一宝可梦多招式时按伤害择优；
+    areas/indices 用于把子决策（"贴给哪只""换谁上场"）的选项解析回实际宝可梦。
     """
     if isinstance(sel, dict):
         opts = sel.get("option") or []
         return (sel.get("type"), sel.get("context"),
                 [o.get("type") for o in opts],
                 int(sel.get("minCount", 1)), int(sel.get("maxCount", 1)),
-                [o.get("attackId") for o in opts])
+                [o.get("attackId") for o in opts],
+                [o.get("area") for o in opts],
+                [o.get("index") for o in opts])
     opts = getattr(sel, "option", None) or []
     return (getattr(sel, "type", None), getattr(sel, "context", None),
             [getattr(o, "type", None) for o in opts],
             int(getattr(sel, "minCount", 1)), int(getattr(sel, "maxCount", 1)),
-            [getattr(o, "attackId", None) for o in opts])
+            [getattr(o, "attackId", None) for o in opts],
+            [getattr(o, "area", None) for o in opts],
+            [getattr(o, "index", None) for o in opts])
 
 
-def _decide(stype, ctx, opt_types, lo, hi, attack_ids=None, n_opts=None):
+# ============================================================ 策略子决策
+# 背景：非 MAIN 决策占全部决策的 37.5%（CARD 20.7% + ENERGY 15.6%），
+# 而原来的兜底是 `return list(range(k))` —— **永远取列表第一个**，
+# 等于让"引擎的选项排列顺序"替我们做决定。
+#
+# 这里先只做【可解析且量最大】的一类：贴能量时选哪只宝可梦（ATTACH_FROM，
+# 实测约 113 次 / 1200 局）。选项带 area(4=ACTIVE/5=BENCH)+index，
+# 能解析回实际宝可梦，从而看到 HP、已有能量、离能攻击还差几张。
+
+def _get(o, key, default=None):
+    """同时支持 dict 与 dataclass 的取值。"""
+    if o is None:
+        return default
+    if isinstance(o, dict):
+        v = o.get(key, default)
+    else:
+        v = getattr(o, key, default)
+    return default if v is None else v
+
+
+def _players(obs):
+    """返回 (players 列表, 我的下标) —— 同时支持 dict 与 dataclass 的 observation。"""
+    cur = _get(obs, "current")
+    if cur is None:
+        return None, 0
+    ps = _get(cur, "players") or []
+    me = int(_get(cur, "yourIndex", 0))
+    return ps, me
+
+
+def _pokemon_at(ps, me, area, index):
+    """把 area+index 解析成宝可梦对象；解析不了返回 None。"""
+    try:
+        if area == 4:          # AreaType.ACTIVE
+            arr = _get(ps[me], "active") or []
+        elif area == 5:        # AreaType.BENCH
+            arr = _get(ps[me], "bench") or []
+        else:
+            return None
+        arr = [x for x in arr if x]
+        return arr[int(index)] if index is not None and 0 <= int(index) < len(arr) else None
+    except Exception:
+        return None
+
+
+def _energy_count(pk):
+    n = _get(pk, "energies")
+    if n:
+        return len(n)
+    return len(_get(pk, "energyCards") or [])
+
+
+def _score_pokemon(pk, is_active: bool):
+    """给"该不该把能量投给它"打分，越大越优先。
+
+    设计依据：能量是稀缺资源，应该投给【马上能打出来】且【活得下去】的那只。
+      · 差 1 张就能满足最便宜招式  -> 最高优先级（立刻转化为攻击）
+      · 已有能量进度                -> 越接近能攻击越好
+      · 血量                          -> 太薄的血量投入容易打水漂
+      · 出场位                        -> 能立刻攻击，略加分
+    """
+    hp = float(_get(pk, "hp", 0) or 0)
+    max_hp = float(_get(pk, "maxHp", hp) or hp or 1)
+    cur = _energy_count(pk)
+    need = _MIN_ATK_COST.get(_get(pk, "id"), 0)
+    score = 0.0
+    if need > 0:
+        prog = min(cur / need, 1.0)
+        score += 2.0 * prog
+        if cur < need and need - cur == 1:
+            score += 3.0                 # 再贴一张就能攻击
+        if cur >= need:
+            score += 1.0                 # 已经能攻击，边际价值略低
+    if is_active:
+        score += 2.0
+    score += 1.5 * (hp / max_hp)
+    if max_hp > 0 and hp / max_hp < 0.3:
+        score -= 3.0                     # 残血，别浪费
+    return score
+
+
+# 这些 context 的选项指向"我的某只宝可梦"，可以用上面的打分挑目标
+POKEMON_TARGET_CONTEXTS = None   # 延迟初始化，避免 SelectContext 未导入
+
+
+def pick_pokemon_target(obs, areas, indices):
+    """在"选择我的宝可梦"这类子决策里挑最优下标；挑不了返回 None。"""
+    ps, me = _players(obs)
+    if not ps or len(ps) <= me:
+        return None
+    best_i, best_s = None, -1e9
+    for i, (a, idx) in enumerate(zip(areas, indices)):
+        pk = _pokemon_at(ps, me, a, idx)
+        if pk is None:
+            continue
+        s = _score_pokemon(pk, is_active=(a == 4))
+        if s > best_s:
+            best_i, best_s = i, s
+    return best_i
+
+
+def _decide(stype, ctx, opt_types, lo, hi, attack_ids=None, areas=None,
+            indices=None, obs=None, n_opts=None):
     """规则决策核心。返回选项下标列表。与 main.py 逐行等价。"""
     n = len(opt_types) if n_opts is None else n_opts
     hi = min(hi, n)
@@ -147,14 +268,37 @@ def _decide(stype, ctx, opt_types, lo, hi, attack_ids=None, n_opts=None):
     if ctx in FILL_CONTEXTS:
         return list(range(hi))
 
+    # ---- 策略子决策：选"我的哪只宝可梦"
+    # 原先是 `return list(range(k))`，即永远取列表第一个 —— 把决定权
+    # 交给了引擎的选项排列顺序。这里改成按"离能攻击的进度 + 血量"打分。
+    if ctx in _POKEMON_TARGET_CTX and obs is not None and areas and indices and hi >= 1:
+        best = pick_pokemon_target(obs, areas, indices)
+        if best is not None:
+            return [best]
+
     # 其余：满足下限即可
     k = max(lo, 1 if hi >= 1 else 0)
     return list(range(min(k, hi)))
 
 
-def rule_action(sel):
-    """给定 SelectData（dict 或 dataclass），返回规则策略会选的选项下标列表。"""
-    return _decide(*_sel_fields(sel))
+# 哪些 context 的选项指向"我的宝可梦"（可用 HP/能量打分挑目标）
+_POKEMON_TARGET_CTX = frozenset({
+    SelectContext.ATTACH_FROM,          # 贴能量给哪只
+    SelectContext.SWITCH,               # 换哪只上场
+    SelectContext.TO_ACTIVE,            # 把后备提上场
+    SelectContext.SETUP_ACTIVE_POKEMON,  # 开局选出场
+})
+
+
+def rule_action(sel, obs=None):
+    """给定 SelectData（dict 或 dataclass），返回规则策略会选的选项下标列表。
+
+    Args:
+        sel: SelectData
+        obs: 完整 observation（可选）。给了才能做策略子决策
+             （如"贴能量给哪只宝可梦"），否则退化为"取第一个选项"。
+    """
+    return _decide(*_sel_fields(sel), obs=obs)
 
 
 def is_main(sel) -> bool:
@@ -163,12 +307,12 @@ def is_main(sel) -> bool:
 
 
 def has_type(sel, want) -> bool:
-    _, _, opt_types, _, _, _ = _sel_fields(sel)
+    _, _, opt_types, *_ = _sel_fields(sel)
     return want in opt_types
 
 
 def index_of_type(sel, want):
-    _, _, opt_types, _, _, _ = _sel_fields(sel)
+    _, _, opt_types, *_ = _sel_fields(sel)
     for i, t in enumerate(opt_types):
         if t == want:
             return i
@@ -194,7 +338,7 @@ def rollout_to_end(sid, obs, my_index: int, max_steps: int = 800):
         sel = getattr(obs, "select", None)
         if sel is None:
             return None
-        act = rule_action(sel)
+        act = rule_action(sel, obs)
         try:
             st = search_step(sid, act)
         except Exception:
@@ -280,7 +424,8 @@ def _stats(vals):
 
 def choose_action(obs: dict, *, filler, my_deck, n_worlds: int = 10,
                   margin: float = 1.0, min_pairs: int = 4,
-                  max_steps: int = 800, memory=None):
+                  max_steps: int = 800, memory=None,
+                  candidate_mode: str = "trio"):
     """决定这一手该下哪个动作。
 
     安全设计：**默认就是规则策略的选择**，只有当某个候选在配对比对上
@@ -291,7 +436,7 @@ def choose_action(obs: dict, *, filler, my_deck, n_worlds: int = 10,
         (action: list[int], info: dict)
     """
     sel = obs.get("select")
-    base = rule_action(sel)
+    base = rule_action(sel, obs)
     info = {"base": base, "chosen": base, "reason": "rule",
             "cands": [], "stats": {}, "pairs": {}, "worlds": 0}
     if not sel or len(base) != 1:
@@ -300,11 +445,23 @@ def choose_action(obs: dict, *, filler, my_deck, n_worlds: int = 10,
         return base, info
 
     base_i = base[0]
-    cands = [base_i]
-    for want in (OptionType.ATTACK, OptionType.END):
-        i = index_of_type(sel, want)
-        if i is not None and i not in cands:
-            cands.append(i)
+    n_opts = len(sel.get("option") or [])
+
+    # 候选集：
+    #   trio —— [baseline, ATTACK, END]，实测约 12 个选项里只看 2~3 个（默认）
+    #   all  —— 全部选项。成本约 4 倍，但覆盖完整
+    #
+    # ⚠️ 候选变多后有个统计问题：我们从 k 个候选里取"最大 z"，k 越大这个最大值
+    #    天然越大（multipel comparison），所以 margin 必须同步调高，否则会
+    #    在纯噪声上做出偏离。经验上 k 从 3 增到 12，阈值应从 ~1.0 提到 ~2.0+。
+    if candidate_mode == "all":
+        cands = [base_i] + [i for i in range(n_opts) if i != base_i]
+    else:
+        cands = [base_i]
+        for want in (OptionType.ATTACK, OptionType.END):
+            i = index_of_type(sel, want)
+            if i is not None and i not in cands:
+                cands.append(i)
     if len(cands) < 2:                  # 没有可比的备选
         return base, info
 

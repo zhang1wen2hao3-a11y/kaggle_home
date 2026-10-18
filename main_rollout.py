@@ -43,7 +43,13 @@ from framework.rollout import (  # noqa: E402
 ENV = os.environ
 MODE = ENV.get("PTCG_ROLLOUT_MODE", "attack")
 WORLDS = int(ENV.get("PTCG_ROLLOUT_WORLDS", "10"))
-MARGIN = float(ENV.get("PTCG_ROLLOUT_MARGIN", "1.0"))
+MARGIN = float(ENV.get("PTCG_ROLLOUT_MARGIN", "1.5"))
+# 候选集：trio=[base,ATTACK,END] | all=全部选项
+# 实测（跨 5 卡组，对手=最强规则 agent，各 150 局）：
+#   trio + margin1.0 = 0.490
+#   all  + margin1.5 = 0.733   ← 当前采用
+#   all  + margin4.0 = 0.593
+CANDS = ENV.get("PTCG_ROLLOUT_CANDS", "all")
 BUDGET_S = float(ENV.get("PTCG_BUDGET_S", "45"))
 
 
@@ -87,6 +93,7 @@ def agent(obs_dict: dict) -> list[int]:
         action, _info = choose_action(
             obs_dict, filler=_FILLER, my_deck=_DECK,
             n_worlds=WORLDS, margin=MARGIN, memory=None,
+            candidate_mode=CANDS,
         )
         return action
     except Exception:
