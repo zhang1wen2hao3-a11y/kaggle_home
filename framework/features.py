@@ -97,7 +97,15 @@ def state_features(obs: dict, memory=None) -> dict[str, float]:
     me, op = players[me_idx], players[1 - me_idx]
 
     # ---- 回合与阶段
-    f["st_turn"] = float(cur.get("turn", 0))
+    # ⚠️ 必须用「回合轮数」而不是绝对回合数。
+    #    绝对回合在两人之间交替（1,2,3,4...），它的**奇偶**等价于编码了"谁在行动"，
+    #    而视角特征又是相对的（*_diff = 我方-对手），两者叠加会让模型学到
+    #    "奇数回合的行动方更可能输"这种伪相关。
+    #    实测：全特征时按回合奇偶分组的平均预测差 0.068（偶0.530/奇0.462）；
+    #    这个偏差会直接毒化搜索——因为搜索里"结束回合"的动作会让 yourIndex 翻转，
+    #    翻转后的估值被这个偏差系统性抬高，导致 agent 96% 的决策都选 END。
+    _turn = int(cur.get("turn", 0))
+    f["st_round"] = float(_turn // 2)
     f["st_turn_action"] = float(cur.get("turnActionCount", 0))
     f["st_is_first_player"] = 1.0 if cur.get("firstPlayer") == me_idx else 0.0
 
@@ -192,7 +200,7 @@ def _empty_state(f: dict) -> dict[str, float]:
 
 # state_features 产出的全部键（缺失时补 0，保证维度对齐）
 STATE_FEATURE_KEYS = [
-    "st_turn", "st_turn_action", "st_is_first_player",
+    "st_round", "st_turn_action", "st_is_first_player",
     "st_prize_me", "st_prize_adv", "st_prize_progress",
     "st_deck_me", "st_deck_diff", "st_hand_me", "st_hand_diff",
     "st_discard_me", "st_discard_diff", "st_deck_low",
