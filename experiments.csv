@@ -24,3 +24,5 @@ EXP-0022,2026-10-18 09:30,value_lightgbm_v1,value:lightgbm,val-auc-lightgbm,0.71
 EXP-0023,2026-10-18 09:50,value_lightgbm_v1,value:lightgbm,val-auc-lightgbm,0.7818,110,,,"V模型 lightgbm: 53维特征, 按局切分",log_loss=0.5526 acc=0.6995 brier=0.1893 (win_rate列存的是AUC)
 EXP-0024,2026-10-18 09:50,value_lightgbm_v1,value:lightgbm,val-auc-lightgbm,0.7818,110,,,"V模型 lightgbm: 53维特征, 按局切分",log_loss=0.5526 acc=0.6995 brier=0.1893 (win_rate列存的是AUC)
 EXP-0025,2026-10-18 10:03,value_lightgbm_v1,value:lightgbm,val-auc-lightgbm,0.8313,110,,,"V模型 lightgbm: 53维特征, 按局切分",log_loss=0.5013 acc=0.7459 brier=0.1685 (win_rate列存的是AUC)
+EXP-0026,2026-10-18 10:25,value_lightgbm_v1,value:lightgbm,val-auc-lightgbm,0.8313,110,,,"V模型 lightgbm: 53维特征, 按局切分",log_loss=0.5013 acc=0.7459 brier=0.1685 (win_rate列存的是AUC)
+EXP-0027,2026-10-18 10:25,value_lightgbm_v1,value:lightgbm,val-auc-lightgbm,0.8345,110,,,"V模型 lightgbm: 53维特征, 按局切分",log_loss=0.4988 acc=0.7512 brier=0.1672 (win_rate列存的是AUC)

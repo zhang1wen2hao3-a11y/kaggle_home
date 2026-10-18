@@ -1,4 +1,4 @@
-.PHONY: check list md data clean test gen train eval sweep
+.PHONY: check list md data clean test gen train eval sweep cache
 
 # 所有命令都走 ./run.sh —— 它会自动挑到依赖齐全的解释器（py310），
 # 避免"装了 lightgbm 却 import 不到"这类问题。
@@ -34,6 +34,10 @@ gen:             ## 生成自对弈数据（两个对手各 300 局并合并）
 
 train:           ## 训练价值模型 V（MODEL=lightgbm 可换后端）
 	./run.sh train_value.py --data data/selfplay_v1.jsonl --model $(or $(MODEL),lightgbm)
+
+cache:           ## 预建 parquet 缓存（训练时也会自动建，这里用于查看收益）
+	./run.sh -m framework.cache data/pool_v2_v.jsonl --kind value
+	./run.sh -m framework.cache data/selfplay_v1.jsonl --kind rank
 
 # ---------------------------------------------------------------- 测试
 test:            ## 跑回归测试

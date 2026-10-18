@@ -143,7 +143,11 @@ PTCG 的**攻击会结束回合**。把 ATTACK 排在优先级首位，agent 就
 ./run.sh gen_data.py --games 300 --opponent agents/random_baseline.py --out data/sp_vs_random.jsonl
 
 # 训练价值模型 V（--model 可换 lightgbm / linear）
-./run.sh train_value.py --data data/selfplay_v1.jsonl --model lightgbm
+# 训练前会自动把 JSONL 转成 parquet 缓存（加载快 36x、省内存 3x）
+./run.sh train_value.py --data data/pool_v2_v.jsonl --model lightgbm
+
+# 手动预建/查看缓存（可选，训练时也会自动建）
+./run.sh -m framework.cache data/pool_v2_v.jsonl --kind value --show
 
 # GameMemory 跨局污染回归测试
 ./run.sh tests/test_memory.py

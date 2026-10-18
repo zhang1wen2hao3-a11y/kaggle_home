@@ -33,6 +33,34 @@ framework/
                   └──── 标签来自搜索 ─┘
 ```
 
+## 自动 Parquet 缓存（framework/cache.py）
+
+JSONL 有两个硬伤：**体积浪费 6~7 倍**（每个 float 写成文本），
+**加载会内存爆炸**（全部变成 Python dict，1.8 GB 文件要 10+ GB 内存 —— 踩过 OOM）。
+
+所以训练前会自动把 JSONL 转成列式 parquet：
+
+```python
+from framework import cache
+df = cache.load("data/pool_v2_v.jsonl", kind="value")   # 自动建缓存
+lf = cache.scan("data/selfplay_v1.jsonl", kind="rank")  # 惰性，可超内存数据
+```
+
+**实测收益**（pool_v2_v，11.7 万行）：
+
+| | JSONL | Parquet |
+|---|---|---|
+| 加载 | 1.41 s | **0.04 s（36×）** |
+| 体积 | 172 MB | **2.2 MB** |
+| 端到端训练 | 13.1 s | **4.6 s（2.9×）** |
+| 峰值内存 | 1.31 GB | **424 MB** |
+
+设计纪律：
+1. **按源文件 size + mtime + 版本号判新鲜度** —— 源数据重新生成会自动重建
+2. **分块写多个 part**（默认 5 万行/块），绝不一次性把全部行读进内存
+3. `kind="value"` 给 V 用（每行一个决策点）；`kind="rank"` 给 P 用
+   （**拍平**成每行一个候选动作，`query_id` 即 LTR 的 group）
+
 ## 三条设计纪律
 
 ### 1. 特征只用公开信息

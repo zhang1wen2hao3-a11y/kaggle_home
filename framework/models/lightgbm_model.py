@@ -114,6 +114,50 @@ class LGBMModel(BaseModel):
         p = self.booster.predict(X, num_iteration=num_iter if num_iter > 0 else None)
         return [float(x) for x in p]
 
+    # ------------------------------------------------------------ 数组直通
+    # 配合 framework.cache 用：parquet 读出来就是 numpy 数组，
+    # 走 dict 往返 (rows -> _vectorize -> np.asarray) 是纯浪费。
+    def fit_arrays(self, X, y, feature_keys: list[str], eval_set=None,
+                   early_stopping_rounds: int = 50):
+        """直接吃 numpy 数组。eval_set=(X_val, y_val) 或 None。"""
+        self._require()
+        import lightgbm as lgb
+        X = np.asarray(X, dtype=np.float32)
+        yv = np.asarray(y)
+        self.feature_keys = list(feature_keys)
+
+        if self.task == "binary":
+            params = dict(objective="binary", metric="binary_logloss", **self.params)
+            train_set = lgb.Dataset(X, label=yv.astype(int))
+        elif self.task == "rank":
+            raise ValueError("rank 请用 fit() 传 groups")
+        else:
+            params = dict(objective="regression", metric="l2", **self.params)
+            train_set = lgb.Dataset(X, label=yv)
+
+        callbacks, valid_sets = [], None
+        if eval_set is not None:
+            Xv = np.asarray(eval_set[0], dtype=np.float32)
+            yvv = np.asarray(eval_set[1])
+            valid_sets = [lgb.Dataset(Xv, label=(yvv.astype(int) if self.task == "binary" else yvv),
+                                      reference=train_set)]
+            callbacks = [lgb.early_stopping(early_stopping_rounds, verbose=False)]
+
+        self.booster = lgb.train(params, train_set,
+                                 num_boost_round=self.params.get("n_estimators", 400),
+                                 valid_sets=valid_sets, callbacks=callbacks)
+        self.best_iteration = getattr(self.booster, "best_iteration", None)
+        self.fitted = True
+        return self
+
+    def predict_arrays(self, X):
+        self._require()
+        if not self.fitted:
+            raise RuntimeError("模型未训练")
+        X = np.asarray(X, dtype=np.float32)
+        n = self.best_iteration or 0
+        return self.booster.predict(X, num_iteration=n if n > 0 else None)
+
     # ------------------------------------------------------------ 持久化
     def to_dict(self) -> dict:
         self._require()
