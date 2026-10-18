@@ -17,6 +17,7 @@ dist/
 
 # ==== 对局回放 / 日志 ====
 replays/
+logs/
 *.log
 *.log.bak
 *.tmp

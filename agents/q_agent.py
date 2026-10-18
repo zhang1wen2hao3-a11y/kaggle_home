@@ -39,7 +39,7 @@ from framework.models.base import create as _create_model  # noqa: E402
 from framework.rollout import rule_action  # noqa: E402
 
 ENV = os.environ
-MODEL_PATH = ENV.get("PTCG_Q_MODEL", os.path.join(HERE, "..", "models", "cf_q_spread.json"))
+MODEL_PATH = ENV.get("PTCG_Q_MODEL", os.path.join(HERE, "..", "models", "cf_q_final.json"))
 MARGIN = float(ENV.get("PTCG_Q_MARGIN", "0.02"))
 QMODE = ENV.get("PTCG_Q_MODE", "main")
 

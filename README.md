@@ -4,7 +4,8 @@ Kaggle 比赛 [The Pokémon Company - PTCG AI Battle Challenge Playground](https
 的智能体开发工程。
 
 - **任务**：写一个 agent，让宝可梦集换式卡牌对战（Pokémon TCG）的三局两胜（Bo3）对局胜率最大化
-- **提交形式**：`submission.py`（提交的是代码，不是预测结果）
+- **提交形式**：`.tar.gz` 包（`main.py` + `deck.csv` + `cg/`，`-f <file>` 上传，必须带 `-m` 留言）
+  —— 提交的是**代码**，不是预测结果
 - **指标**：`cabt_bo3`（三局两胜）
 - **截止**：2027-01-08
 - **限制**：每天 5 次提交，**总共 2 次计分提交**；队伍上限 5 人
@@ -20,7 +21,7 @@ bash fetch_data.sh
 
 ## 当前状态（TL;DR）
 
-### 提交物：纯规则 greedy，**没有任何模型**
+### 提交物：纯规则 greedy + 官方样例卡组（LB 600.0）**，没有任何模型参与决策**
 
 | 项 | 值 |
 |---|---|
@@ -29,10 +30,18 @@ bash fetch_data.sh
 | 策略配置 | `develop_first` + `go_first=True` + `bench_full=True` |
 | 绝对强度 | **0.815 ± 0.019 vs random_baseline**（n=400） |
 | 等价性 | `main.py` vs `agents/greedy.py` = **0.510**（n=300）→ 同一策略 |
+| **LB** | **600.0**（`dist/ptcg_greedy.tar.gz`）· 榜中位 ~670 · 团队 ~341/426 |
+
+> **卡组选择比策略更值钱**：同策略（规则）换卡组，LB 差 **+204.5**；
+> 同卡组换策略（规则→前向搜索），LB 差 **+78.2**。详见 [`LB记录.md`](LB记录.md)。
 
 > `main.py` 因提交要求必须自包含（不能 import `agents/`），与 `agents/greedy.py`
 > 是同一策略的两份实现 —— **改动时两边都要改**，并用
 > `./run.sh evaluate.py --agent main.py --opponent agents/greedy.py` 回归（应≈0.5）。
+
+> **下一份待提交**：`dist/ptcg_rollout_sample.tar.gz`（前向搜索 + `sample_official`）。
+> 它把两个已实测的正向杠杆叠在一起，预期 LB ≈678（**外推，不是测量**）。
+> 提交前请注意 `LB记录.md` 里的"计分窗口"规则 —— 只有最近 2 份提交在池子里配对。
 
 ### 已建成的组件
 
@@ -40,12 +49,14 @@ bash fetch_data.sh
 |---|---|---|
 | 规则策略（greedy） | ✅ | **当前最强，作提交** |
 | 对局/评估框架 | ✅ | 座位+reverse 双交替、崩溃检测、按局 CV |
-| 特征体系 | ✅ | 48 局面 + 15 记忆 + 31 选项 = 94 维 |
-| 卡组池（11 套 archetype） | ✅ | 多样性验证通过（平均胜率跨度 0.71） |
-| 自动 parquet 缓存 | ✅ | 加载快 36×、省内存 3× |
-| **V（价值模型 LightGBM）** | ✅ 训出来了 | AUC **0.78 ± 0.04**（5 折按局 CV） |
-| **P（策略先验 LTR）** | ✅ 训出来了 | 模仿 greedy **top1 = 0.9994** |
-| **MCTS 搜索闭环** | ✅ 工程跑通 | ❌ **但打不过 greedy** |
+| 特征体系 | ✅ | 局面 **63 维**（48 静态 + 15 记忆）+ 选项 **40 维** |
+| 卡组池（25 套 archetype） | ✅ | 25 套、600 种 matchup 全覆盖 |
+| **确定性填充器（determinization）** | ✅ 修好 BUG-001 | 剩余张数 93.3% / 99.3% 精确重建 |
+| **前向搜索 rollout（规则策略续弈）** | ✅ **真的赢** | 同卡组 LB **+78.2**（Gate 1 通过） |
+| V（价值模型 LightGBM） | ✅ 训出来了 | AUC **0.78 ± 0.04**，❌ 但不能选动作 |
+| P（策略先验 LTR） | ✅ 训出来了 | 模仿 greedy **top1 = 0.9994**（天花板 = greedy） |
+| **Q(s,a)（反事实 GBDT）** | ✅ 训出来了 | 选项重要性 **34.79%**，❌ 但选动作 **0.465**（Gate 3 失败） |
+| MCTS 搜索闭环（V + P） | ✅ 工程跑通 | ❌ **打不过 greedy** |
 | GA 卡组选择器 | ⚠️ 可跑 | ❌ 产出的卡组**更差** |
 | 对手推断模型 | ❌ 未开始 | 缺 oracle 数据 |
 
@@ -54,8 +65,11 @@ bash fetch_data.sh
 **有效：**
 - ATTACK 排第一位是灾难（0.17 vs 0.85），必须"先铺场后攻击"
 - 开局铺满后备（否则主力倒下空场判负）
+- **换卡组是最大的杠杆**：同策略（规则）LB **+204.5**
+- **前向搜索 rollout 是真收益**：同卡组 LB **+78.2**（Gate 1，n=600 本地配对角 0.5817，z=+4.06）
 - **卡组多样性显著提升 V**：单对手 AUC 0.722 → 多样卡组池 0.766（控制记录数后仍 +0.044）
 - 修复 `st_turn` 伪特征（回合奇偶编码了"谁在行动"）——它曾导致搜索 96% 选 END
+- 修复 BUG-001（填充器把 GameMemory 的日志计数当剩余张数）——99.5% 的局面 determinization 失真
 
 **无效 / 已证伪：**
 | 尝试 | 结果 |
@@ -65,12 +79,23 @@ bash fetch_data.sh
 | 1-ply（纯 V 选动作） | **0.20** ❌ |
 | 启发式 V | **0.25** ❌ |
 | 加深搜索（150 sims / depth 10） | **更差**（0.225）❌ |
+| **Q(s,a) 反事实 GBDT 选动作** | **0.4650 vs 规则**（n=600，z=**−1.72**）❌ **比规则还差** |
+| Q 换 margin 再试 | 0.35 / 0.445 / 0.415 / 0.425（margin 0/0.05/0.1/0.2）❌ 全部 <0.47 |
 | GA 优化卡组 | 产出**构造更差**的卡组（无用能量 + 单张填充）❌ |
 | `retreat_late` 配置 | 头对头赢但**绝对强度更差**（0.760 vs 0.815）❌ |
 
 > **为什么 V 不能选动作**：V 预测的是「这个局面的胜率」，但选动作需要
 > 「这个动作造成的胜率变化」。后者量级 ~0.02，远小于 V 的误差 ~0.05。
 > **AUC 0.83 的价值函数，在选动作上可以完全没用。** 详见 `framework/README.md`。
+
+> **那直接学 Q(s,a) 呢？也不行，这条路我们走到了尽头。**
+> 用 2,400 局反事实 rollout 标了 69,042 个动作标签（`data/cf_q_final.jsonl`），
+> 把选项特征重要性从 **0.59% 拉到 34.79%**（Gate 2 通过）——
+> 但**选动作胜率只有 0.4650**，比纯规则还低，换 margin 也救不回来。
+> 特征提取能力已经到位，差的是**36% 的 argmax 错误率**（63.60% vs 随机 42.19%）：
+> 决策点上一个错误就直接抵消掉全部收益，而终局 playout 近似无偏，
+> 所以 95 维的 GBDT 打不过一次真实的 rollout。
+> **结论：PIMC / 学习型 Q 到此为止，不要再投入。** 详见 `framework/README.md`。
 
 ### 三条评估纪律（都踩过坑才总结出来）
 
@@ -82,10 +107,11 @@ bash fetch_data.sh
 
 | 优先 | 做什么 | 理由 |
 |---|---|---|
-| 1 | **定稿提交 greedy** | 它是实测最强的，且零依赖零风险 |
-| 2 | 训 **Q(s,a)** 而非 V(s) | 直接学"动作价值"，才是选动作需要的 |
-| 3 | 生成 oracle 数据 → 对手推断 | 便宜（~3 分钟），让 determinization 有依据 |
-| 4 | 迭代自对弈 | 前提是 search 先 ≥ greedy（鸡生蛋） |
+| 1 | **卡组选择** | 实测最大杠杆（LB **+204.5**），比任何策略改动都值钱。难点在于本地 round-robin 排名对线上**没有预测力**（`grass_heracross` 本地第一、线上垫底），需要构造更贴近真实对手分布的评估 |
+| 2 | 提交 rollout + `sample_official` | 两个杠杆同向：`greedy`(规则+sample)=600.0，rollout 再 +78 量级 |
+| 3 | 扩大 rollout 覆盖面 | 目前只在部分决策点启用（成本 O(决策数²)，长卡组会到 3–5 s/局）；把候选集/世界数调优到成本可接受的上限 |
+| 4 | 生成 oracle 数据 → 对手推断 | 让 determinization 从"按牌库比例瞎猜"变成"按对手实际构筑推断"，直接提升 rollout 的信号质量 |
+| ~~—~~ | ~~Q(s,a) / PIMC / 迭代自对弈~~ | ❌ **已四条独立证据证伪**，不再投入（见上） |
 
 ## 历史基线记录
 
@@ -232,38 +258,44 @@ PTCG 的**攻击会结束回合**。把 ATTACK 排在优先级首位，agent 就
 ## 目录结构
 
 ```
-# ── 提交物（这三个 + cg/ 就是全部）──
+# ── 提交物（这个 + deck.csv + cg/ 就是全部；打成 tar.gz 上传）──
 ├── main.py                # ★ 提交入口（自包含，规则 greedy）
-├── deck.csv               # ★ 提交卡组（官方样例）
+├── main_rollout.py        # ★ 提交入口（前向搜索版，另需 framework/）
+├── deck.csv               # ★ 提交卡组（gitignore：比赛方数据）
 ├── cg/                    # ★ 官方引擎（gitignore，比赛方授权）
+├── make_submission.py     # 打包 + 静态/动态自检（exec 模拟，Kaggle 没有 __file__）
 │
 ├── run.sh                 # ★ 统一解释器入口（务必用它跑脚本）
 │
 # ── 对局与评估 ──
 ├── local_match.py         # 本地对局框架（座位+reverse 双交替、崩溃检测）
-├── evaluate.py            # 批量胜率评估
+├── evaluate.py            # 批量胜率评估（--workers 走 spawn）
 ├── sweep.py               # 策略配置扫描
 ├── exp_log.py             # 实验记录工具
 ├── experiments.csv        # 实验记录表（唯一事实来源）
-├── 实验记录.md            # 实验记录的 markdown 版
+├── 实验记录.md            # 实验记录的 markdown 版（exp_log.py md 生成）
+├── LB记录.md              # ★ 排行榜读数与"计分窗口"机制（只有 2 次计分提交）
 │
 # ── 数据生成 ──
 ├── gen_data.py            # 单对手自对弈数据生成
-├── gen_pool_data.py       # 跨卡组池轮转采数据（55 种 matchup）
+├── gen_pool_data.py       # 跨卡组池轮转采数据（25 套 / 600 matchup）
+├── gen_counterfactual.py  # ★ 反事实 Q 数据：同一局面分叉多个动作 + rollout 打标签
 ├── make_decks.py          # 按 archetype 构造卡组
 │
 # ── 训练 ──
 ├── train_value.py         # 训练 V（价值模型），支持 --cv-folds 按局 CV
 ├── train_policy.py        # 训练 P（策略先验，LTR / LambdaMART）
+├── train_cf_q.py          # 训练 Q(s,a)（反事实），报告选项重要性 / argmax 一致率
 ├── alpha_loop.py          # 迭代自对弈循环（AlphaZero 式）
 ├── ga_deck.py             # GA 卡组选择器（实测效果不好，保留作记录）
 │
 # ── 框架 ──
 ├── framework/             # 见 framework/README.md
-│   ├── features.py        #   特征提取（48 局面 + 15 记忆 + 31 选项）
+│   ├── features.py        #   特征提取（局面 63 维 + 选项 40 维）
 │   ├── memory.py          #   GameMemory（增量日志累积、防跨局污染）
-│   ├── filler.py          #   determinization 填充器
-│   ├── search.py          #   MCTS（UCB / 回传 / 先验裁剪）
+│   ├── filler.py          #   determinization 填充器（BUG-001 已修）
+│   ├── rollout.py         # ★ 前向搜索 rollout（规则续弈 + CRN + 离散 margin）
+│   ├── search.py          #   MCTS（UCB / 回传 / 先验裁剪）—— 已证伪
 │   ├── deck.py            #   卡组表示 / 合法性 / 遗传算子
 │   ├── cache.py           #   自动 parquet 缓存
 │   ├── dataset.py         #   数据集读写与按局切分
@@ -272,11 +304,13 @@ PTCG 的**攻击会结束回合**。把 ATTACK 排在优先级首位，agent 就
 ├── agents/                # agent 实现
 │   ├── rulebase.py        #   参数化规则策略（8 种 order 配置）
 │   ├── greedy.py          #   ★ 当前基线
+│   ├── rollout_agent.py   #   ★ 前向搜索 agent（env 可调：mode/worlds/margin/cands）
+│   ├── q_agent.py         #   Q 推理 agent（实测打不过规则，保留作记录）
 │   ├── random_baseline.py #   基准对手（已无区分度）
 │   └── search_agent.py    #   搜索 agent（MCTS + P + V，实测打不过 greedy）
 │
-├── decks/                 # 11 套 archetype 卡组
-├── tests/                 # 回归测试（GameMemory 跨局污染、卡组合法性）
+├── decks/                 # 25 套 archetype 卡组
+├── tests/                 # 回归测试（优先级表同步、rollout 差分测试、内存污染）
 │
 ├── data/                  # 比赛数据 + 数据集 + parquet 缓存（gitignore）
 └── models/                # 训练产物（gitignore，可用脚本重建）
