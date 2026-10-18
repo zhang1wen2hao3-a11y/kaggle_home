@@ -37,11 +37,50 @@ def load_agent(path: str):
     return mod.agent
 
 
+# ============================================================ 并行执行
+# 为什么用【进程】而不是线程：
+#   引擎是 ctypes 加载的 C++ 单例 —— `Battle.battle_ptr` 是类属性、
+#   `GameInitialize()` 只调用一次、搜索状态存在 lib 内部的全局变量里。
+#   同一个进程里并发跑两局会互相踩状态，加线程救不了（ctypes 释放 GIL 也没用）。
+#
+# 为什么用 spawn 而不是 fork：
+#   fork 出来的子进程会继承父进程已初始化的 lib 状态；spawn 每个进程全新加载，
+#   隔离干净。代价是每个 worker 多花零点几秒初始化。
+
+_W: dict = {}
+
+
+def _worker_init(agent_path: str, opp_path: str) -> None:
+    """每个 worker 进程只执行一次：加载两侧 agent 与卡组。"""
+    _W["A"] = load_agent(agent_path)
+    _W["B"] = load_agent(opp_path)
+    _W["deck"] = load_deck()
+
+
+def _worker_play(g: int) -> dict:
+    """打第 g 局。座位与 reverse 由 g 决定，所以结果与执行顺序无关。"""
+    A, B, deck = _W["A"], _W["B"], _W["deck"]
+    seat = g % 2          # 0: A 坐 0 号位, 1: A 坐 1 号位
+    rev = (g // 2) % 2    # 交替"谁能选先后手"
+    try:
+        if seat == 0:
+            r = play_match(A, B, deck, deck, reverse=bool(rev))
+        else:
+            r = play_match(B, A, deck, deck, reverse=bool(rev))
+    except Exception as e:                        # worker 里绝不能让异常炸掉整池
+        return {"g": g, "seat": seat, "result": None,
+                "error": f"{type(e).__name__}: {e}", "warnings": []}
+    return {"g": g, "seat": seat, "result": r["result"],
+            "error": r.get("error"), "warnings": r.get("warnings") or []}
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--agent", required=True, help="被测 agent 文件")
     ap.add_argument("--opponent", required=True, help="对手 agent 文件")
     ap.add_argument("--games", type=int, default=100)
+    ap.add_argument("--workers", type=int, default=1,
+                    help="并行进程数（1=串行）。实测加速：3→2.8x, 6→5.5x, 12→6.4x")
     ap.add_argument("--eval-scheme", default=None)
     ap.add_argument("--log", action="store_true", help="写入 exp_log")
     ap.add_argument("--name", default=None, help="实验名（--log 时必填）")
@@ -49,9 +88,12 @@ def main() -> None:
     ap.add_argument("--quiet", action="store_true")
     args = ap.parse_args()
 
-    A = load_agent(args.agent)
-    B = load_agent(args.opponent)
-    deck = load_deck()
+    # 提前校验路径：worker 里才报错的话，Pool 初始化失败的现场会很难看
+    for p in (args.agent, args.opponent):
+        if not os.path.exists(p):
+            raise SystemExit(f"找不到 agent 文件: {p}")
+    if args.workers < 1:
+        raise SystemExit("--workers 必须 >= 1")
 
     wins = losses = draws = fails = 0
     all_warnings = []
@@ -61,38 +103,49 @@ def main() -> None:
         # 立刻打一行，让人一眼看出"已经在跑了"（第一局可能要好几秒）
         print(f"开始对局：{args.games} 局  |  "
               f"{os.path.basename(args.agent)} vs {os.path.basename(args.opponent)}  |  "
-              f"座位×先手 四路交替", flush=True)
-    for g in range(args.games):
-        # 座位 + reverse 双重交替：4 局覆盖全部组合，消除 0 号位的结构优势
-        seat = g % 2          # 0: A 坐 0 号位, 1: A 坐 1 号位
-        rev = (g // 2) % 2    # 交替"谁能选先后手"
-        a_idx = seat
-        if seat == 0:
-            r = play_match(A, B, deck, deck, reverse=bool(rev))
-        else:
-            r = play_match(B, A, deck, deck, reverse=bool(rev))
+              f"座位×先手 四路交替  |  workers={args.workers}", flush=True)
 
-        if r["result"] is None:
-            fails += 1
-            errs.append(r.get("error") or "未知")
-            if not args.quiet:
-                print(f"  game {g}: 异常 -> {r['error']}")
-            continue
-        if r["result"] == 2:
-            draws += 1
-        elif r["result"] == a_idx:
-            wins += 1
-        else:
-            losses += 1
-        all_warnings.extend(r["warnings"])
+    if args.workers > 1:
+        import multiprocessing as mp
+        # spawn 而不是 fork：引擎是 ctypes 加载的 C++ 单例，fork 出来的子进程
+        # 会继承父进程已经初始化的 lib 状态，容易出诡异问题。spawn 每进程全新加载。
+        ctx = mp.get_context("spawn")
+        pool = ctx.Pool(args.workers, initializer=_worker_init,
+                        initargs=(args.agent, args.opponent))
+        it = pool.imap_unordered(_worker_play, range(args.games), chunksize=1)
+    else:
+        pool = None
+        _worker_init(args.agent, args.opponent)   # 串行时在父进程里加载一次
+        it = map(_worker_play, range(args.games))
 
-        if not args.quiet and (g == 0 or (g + 1) % 10 == 0):
-            played = wins + losses + draws
-            el = time.time() - t0
-            eta = el / (g + 1) * (args.games - g - 1) if g >= 0 else 0
-            print(f"  {g+1}/{args.games}  胜率={wins/max(played,1):.3f}  "
-                  f"(W{wins} L{losses} D{draws} F{fails})  "
-                  f"已用 {el:.0f}s  预计还需 {eta:.0f}s", flush=True)
+    try:
+        for done, res in enumerate(it, 1):
+            g, seat = res["g"], res["seat"]
+            if res["result"] is None:
+                fails += 1
+                errs.append(res.get("error") or "未知")
+                if not args.quiet:
+                    print(f"  game {g}: 异常 -> {res.get('error')}")
+            else:
+                if res["result"] == 2:
+                    draws += 1
+                elif res["result"] == seat:
+                    wins += 1
+                else:
+                    losses += 1
+                all_warnings.extend(res["warnings"])
+
+            if not args.quiet and (done == 1 or done % 10 == 0):
+                played = wins + losses + draws
+                el = time.time() - t0
+                eta = el / done * (args.games - done)
+                print(f"  {done}/{args.games}  胜率={wins/max(played,1):.3f}  "
+                      f"(W{wins} L{losses} D{draws} F{fails})  "
+                      f"已用 {el:.0f}s  预计还需 {eta:.0f}s", flush=True)
+    finally:
+        if pool is not None:
+            pool.close()
+            pool.join()
 
     played = wins + losses + draws
     wr = wins / played if played else 0.0
