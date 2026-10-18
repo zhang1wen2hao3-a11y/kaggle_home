@@ -50,23 +50,26 @@ def load_agent(path: str):
 _W: dict = {}
 
 
-def _worker_init(agent_path: str, opp_path: str) -> None:
+def _worker_init(agent_path: str, opp_path: str, deck_path: str,
+                 opp_deck_path: str | None = None) -> None:
     """每个 worker 进程只执行一次：加载两侧 agent 与卡组。"""
     _W["A"] = load_agent(agent_path)
     _W["B"] = load_agent(opp_path)
-    _W["deck"] = load_deck()
+    _W["deck"] = load_deck(deck_path)
+    _W["opp_deck"] = load_deck(opp_deck_path) if opp_deck_path else _W["deck"]
 
 
 def _worker_play(g: int) -> dict:
     """打第 g 局。座位与 reverse 由 g 决定，所以结果与执行顺序无关。"""
-    A, B, deck = _W["A"], _W["B"], _W["deck"]
+    A, B = _W["A"], _W["B"]
+    dA, dB = _W["deck"], _W["opp_deck"]
     seat = g % 2          # 0: A 坐 0 号位, 1: A 坐 1 号位
     rev = (g // 2) % 2    # 交替"谁能选先后手"
     try:
         if seat == 0:
-            r = play_match(A, B, deck, deck, reverse=bool(rev))
+            r = play_match(A, B, dA, dB, reverse=bool(rev))
         else:
-            r = play_match(B, A, deck, deck, reverse=bool(rev))
+            r = play_match(B, A, dB, dA, reverse=bool(rev))
     except Exception as e:                        # worker 里绝不能让异常炸掉整池
         return {"g": g, "seat": seat, "result": None,
                 "error": f"{type(e).__name__}: {e}", "warnings": []}
@@ -81,6 +84,9 @@ def main() -> None:
     ap.add_argument("--games", type=int, default=100)
     ap.add_argument("--workers", type=int, default=1,
                     help="并行进程数（1=串行）。实测加速：3→2.8x, 6→5.5x, 12→6.4x")
+    ap.add_argument("--deck", default="deck.csv", help="被测方卡组")
+    ap.add_argument("--deck-opponent", default=None,
+                    help="对手卡组（默认同 --deck，即镜像对局）")
     ap.add_argument("--eval-scheme", default=None)
     ap.add_argument("--log", action="store_true", help="写入 exp_log")
     ap.add_argument("--name", default=None, help="实验名（--log 时必填）")
@@ -103,7 +109,9 @@ def main() -> None:
         # 立刻打一行，让人一眼看出"已经在跑了"（第一局可能要好几秒）
         print(f"开始对局：{args.games} 局  |  "
               f"{os.path.basename(args.agent)} vs {os.path.basename(args.opponent)}  |  "
-              f"座位×先手 四路交替  |  workers={args.workers}", flush=True)
+              f"座位×先手 四路交替  |  workers={args.workers}\n"
+              f"卡组：{args.deck}  vs  {args.deck_opponent or args.deck}"
+              f"{'  （镜像）' if not args.deck_opponent else ''}", flush=True)
 
     if args.workers > 1:
         import multiprocessing as mp
@@ -111,11 +119,13 @@ def main() -> None:
         # 会继承父进程已经初始化的 lib 状态，容易出诡异问题。spawn 每进程全新加载。
         ctx = mp.get_context("spawn")
         pool = ctx.Pool(args.workers, initializer=_worker_init,
-                        initargs=(args.agent, args.opponent))
+                        initargs=(args.agent, args.opponent, args.deck,
+                                  args.deck_opponent))
         it = pool.imap_unordered(_worker_play, range(args.games), chunksize=1)
     else:
         pool = None
-        _worker_init(args.agent, args.opponent)   # 串行时在父进程里加载一次
+        _worker_init(args.agent, args.opponent, args.deck,
+                     args.deck_opponent)          # 串行时在父进程里加载一次
         it = map(_worker_play, range(args.games))
 
     try:
