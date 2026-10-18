@@ -42,7 +42,7 @@ JSONL 有两个硬伤：**体积浪费 6~7 倍**（每个 float 写成文本）�
 
 ```python
 from framework import cache
-df = cache.load("data/pool_v2_v.jsonl", kind="value")   # 自动建缓存
+df = cache.load("data/pool_v4_v.jsonl", kind="value")   # 自动建缓存
 lf = cache.scan("data/selfplay_v1.jsonl", kind="rank")  # 惰性，可超内存数据
 ```
 

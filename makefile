@@ -36,7 +36,7 @@ train:           ## 训练价值模型 V（MODEL=lightgbm 可换后端）
 	./run.sh train_value.py --data data/selfplay_v1.jsonl --model $(or $(MODEL),lightgbm)
 
 cache:           ## 预建 parquet 缓存（训练时也会自动建，这里用于查看收益）
-	./run.sh -m framework.cache data/pool_v2_v.jsonl --kind value
+	./run.sh -m framework.cache data/pool_v4_v.jsonl --kind value
 	./run.sh -m framework.cache data/selfplay_v1.jsonl --kind rank
 
 # ---------------------------------------------------------------- 测试

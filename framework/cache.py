@@ -29,12 +29,12 @@ JSONL 有两个硬伤（都踩过）：
 ## 用法
 
     from framework import cache
-    df = cache.load("data/pool_v2_v.jsonl", kind="value")      # 自动建缓存
+    df = cache.load("data/pool_v4_v.jsonl", kind="value")      # 自动建缓存
     lf = cache.scan("data/selfplay_v1.jsonl", kind="rank")     # 惰性
-    cache.ensure("data/pool_v2_v.jsonl", force=True)           # 强制重建
+    cache.ensure("data/pool_v4_v.jsonl", force=True)           # 强制重建
 
 命令行预建：
-    ./run.sh -m framework.cache data/pool_v2_v.jsonl --kind value
+    ./run.sh -m framework.cache data/pool_v4_v.jsonl --kind value
 """
 from __future__ import annotations
 

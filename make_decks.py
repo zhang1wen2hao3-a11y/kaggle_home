@@ -45,6 +45,22 @@ ARCHETYPES = [
     ("psychic_floette",  "Mega Floette ex",        None),               # 超
     ("grass_heracross",  "Mega Heracross ex",      None),               # 草
     ("dragon_latias",    "Mega Latias ex",         None),               # 龙（双色）
+
+    # ---- 第二批：补齐能量覆盖（原 10 套缺口最多的是【雷】，无色只有 1 套）----
+    ("lightning_zeraora",    "Mega Zeraora ex",        None),           # 雷
+    ("lightning_pikachu",    "Pikachu ex",             None),           # 雷
+    ("lightning_ironthorns", "Iron Thorns ex",         None),           # 雷
+    ("colorless_kangaskhan", "Mega Kangaskhan ex",     None),           # 无色
+    ("psychic_mewtwo",       "Team Rocket's Mewtwo ex", None),          # 超
+    ("psychic_miraidon",     "Miraidon ex",            None),           # 超/雷
+    ("metal_zacian",         "Zacian ex",              None),           # 钢
+    ("metal_genesect",       "Genesect ex",            None),           # 钢
+    ("fighting_koraidon",    "Koraidon ex",            None),           # 斗
+    ("fighting_hawlucha",    "Mega Hawlucha ex",       None),           # 斗
+    ("dark_darkrai",         "Mega Darkrai ex",        None),           # 恶
+    ("fire_hooh",            "Ethan's Ho-Oh ex",       None),           # 火
+    ("water_dondozo",        "Dondozo ex",             None),           # 水
+    ("grass_ironleaves",     "Iron Leaves ex",         None),           # 草
 ]
 
 # 通用训练师（取自样例卡组，已实测可用）
@@ -55,6 +71,14 @@ DEFAULT_TRAINERS = [
     ("Cyrano", 2),
     ("Maximum Belt", 1),
 ]
+
+
+def _stable_hash(s: str) -> int:
+    """与进程无关的字符串散列（内置 hash() 会随 PYTHONHASHSEED 变化）。"""
+    h = 0
+    for ch in s:
+        h = (h * 131 + ord(ch)) & 0xFFFFFFFF
+    return h
 
 
 def find_card(pool: CardPool, name: str):
@@ -103,7 +127,9 @@ def build_archetype(pool: CardPool, attacker_name: str, backup_name: str | None,
                      and not pool.energy_types_needed(c)]
     if sec_cands:
         # 在同分档里按名字散开，避免所有卡组都用同一张副攻手
-        sec = sec_cands[abs(hash(attacker_name)) % len(sec_cands)]
+        # ⚠️ 不能用内置 hash()：Python 的字符串 hash 每个进程随机（PYTHONHASHSEED），
+        #    会导致同名 archetype 每次生成出不同的卡组，破坏可复现性。
+        sec = sec_cands[_stable_hash(attacker_name) % len(sec_cands)]
         for cid in pool.evolution_chain(sec):
             deck += [cid] * 4
 
@@ -143,6 +169,8 @@ def main() -> None:
     ap.add_argument("--out-dir", default="decks")
     ap.add_argument("--verify", action="store_true", help="生成后跑交叉对战矩阵")
     ap.add_argument("--games", type=int, default=120, help="验证时每对局数")
+    ap.add_argument("--skip-existing", action="store_true",
+                    help="已存在的 decks/<key>.csv 不重新生成（保护既有卡组不被改写）")
     args = ap.parse_args()
 
     pool = CardPool()
@@ -155,6 +183,10 @@ def main() -> None:
 
     made: dict[str, list[int]] = {}
     for key, atk, backup in ARCHETYPES:
+        path = os.path.join(out_dir, f"{key}.csv")
+        if args.skip_existing and os.path.exists(path):
+            print(f"  ⏭  {key:<20} 已存在，跳过")
+            continue
         deck, note = build_archetype(pool, atk, backup)
         if deck is None:
             print(f"  ❌ {key:<20} {note}")
