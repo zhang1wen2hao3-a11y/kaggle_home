@@ -30,6 +30,16 @@ ORDERS = {
         OptionType.PLAY, OptionType.ABILITY, OptionType.EVOLVE, OptionType.ATTACH,
         OptionType.DISCARD, OptionType.ATTACK, OptionType.RETREAT, OptionType.END,
     ],
+    # RETREAT 挪到 ATTACK 之后 —— 撤退会浪费本回合攻击机会
+    "retreat_late": [
+        OptionType.PLAY, OptionType.EVOLVE, OptionType.ABILITY, OptionType.ATTACH,
+        OptionType.DISCARD, OptionType.ATTACK, OptionType.RETREAT, OptionType.END,
+    ],
+    # 进化优先（实测 EVOLVE 只占 0.3%，可能被 PLAY 挤掉了）
+    "evolve_first": [
+        OptionType.EVOLVE, OptionType.PLAY, OptionType.ABILITY, OptionType.ATTACH,
+        OptionType.ATTACK, OptionType.RETREAT, OptionType.DISCARD, OptionType.END,
+    ],
     # 纯平A但把 END 排最后（对照：确认 END 不是问题所在）
     "attack_last_only": [
         OptionType.ATTACH, OptionType.EVOLVE, OptionType.PLAY, OptionType.ABILITY,

@@ -14,6 +14,15 @@ from cg.api import OptionType, SelectType, SelectContext, to_observation_class
 # 顺序即优先级。切勿把 ATTACK 排前面 —— 攻击会结束回合，
 # 攻击优先会让 agent 每回合只平A、从不铺场（实测对 random 胜率仅 0.17）。
 # 必须"先铺场/进化/充能，最后攻击"。此顺序与 agents/rulebase.py 的 develop_first 一致。
+# 顺序即优先级。核心纪律：
+#   ATTACK 绝不能排前面 —— 攻击会结束回合，攻击优先会让 agent 每回合只平A、
+#   从不铺场（实测对 random 胜率仅 0.17 vs 0.85）。
+#
+# ⚠️ 另一个反直觉结果：把 RETREAT 挪到 ATTACK 之后（retreat_late）能在
+#    **头对头**上赢本配置（0.5483, n=600），但**绝对强度更差**：
+#        develop_first vs random = 0.8150
+#        retreat_late  vs random = 0.7600
+#    即"能打赢某个对手" ≠ "更强"（非传递性）。评估必须用统一对手做绝对比较。
 PRIORITY = {
     OptionType.PLAY: 0,
     OptionType.EVOLVE: 1,

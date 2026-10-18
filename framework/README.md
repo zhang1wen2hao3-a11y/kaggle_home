@@ -61,6 +61,23 @@ lf = cache.scan("data/selfplay_v1.jsonl", kind="rank")  # 惰性，可超内存�
 3. `kind="value"` 给 V 用（每行一个决策点）；`kind="rank"` 给 P 用
    （**拍平**成每行一个候选动作，`query_id` 即 LTR 的 group）
 
+## ⚠️ 非传递性：头对头赢 ≠ 更强
+
+一个真实踩到的坑：
+
+```
+retreat_late（把 RETREAT 挪到 ATTACK 之后）
+  vs develop_first : 0.5483  (n=600, 2.4σ 显著)  ← 头对头赢
+  vs random_baseline: 0.7600                     ← 绝对强度更差
+develop_first
+  vs random_baseline: 0.8150 ± 0.0194            ← 绝对强度更好
+```
+
+**A 能打赢 B，但 B 对第三方更强。** 卡牌/石头剪刀布式的非传递性是常态。
+
+**结论：任何"改进了 X"的结论，必须同时用统一对手做绝对比较，
+不能只看头对头。** 这就是为什么要有固定的基准对手。
+
 ## ⚠️ 已证实的负面结论：当前 V 不能用于选动作
 
 加了 P（策略先验）之后做了系统测量（400 局，SE≈0.024）：
