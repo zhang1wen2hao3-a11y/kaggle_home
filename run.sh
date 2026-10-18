@@ -109,11 +109,11 @@ PYEOF
 }
 
 case "${1:-}" in
-    --check|-c)
+    --check|--env)   # 注意：不能用 -c，会和 python 的 -c 冲突
         _diag
         exit 0
         ;;
-    --which|-w)
+    --which)
         echo "$PY"
         exit 0
         ;;

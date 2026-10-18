@@ -79,7 +79,8 @@ def record_oracle(obs: dict) -> dict | None:
 
 
 def play_and_record(agent0, agent1, deck0, deck1, game_idx: int,
-                    reverse: bool, oracle: bool, max_steps: int = 3000) -> list[dict]:
+                    reverse: bool, oracle: bool, max_steps: int = 3000,
+                    record_options: bool = True) -> list[dict]:
     """打一局并记录每一步。"""
     obs, sd = battle_start(deck0, deck1, reverse_player=reverse)
     if obs is None:
@@ -98,7 +99,8 @@ def play_and_record(agent0, agent1, deck0, deck1, game_idx: int,
             mem = mems[me]
             mem.observe(obs)                    # 累积增量日志
 
-            opts = [F.option_features(obs, i, mem) for i in range(len(sel["option"]))]
+            opts = ([F.option_features(obs, i, mem) for i in range(len(sel["option"]))]
+                    if record_options else [])
             rec = {
                 "game": game_idx,
                 "step": steps,
@@ -143,6 +145,8 @@ def main() -> None:
     ap.add_argument("--deck", default="deck.csv")
     ap.add_argument("--deck-opponent", default=None, help="对手卡组（默认同 --deck）")
     ap.add_argument("--out", default="data/selfplay.jsonl")
+    ap.add_argument("--no-options", action="store_true",
+                    help="不记录选项特征（给 V 用，文件小 10 倍以上）")
     ap.add_argument("--oracle", action="store_true",
                     help="额外记录真实隐藏信息（仅本地，用途见文件头说明）")
     ap.add_argument("--seed", type=int, default=0)
@@ -166,7 +170,8 @@ def main() -> None:
     started = failed = 0
     for g in range(args.games):
         recs = play_and_record(A0, A1, deck0, deck1, g + args.game_offset,
-                               bool(g % 2), args.oracle)
+                               bool(g % 2), args.oracle,
+                               record_options=not args.no_options)
         if recs:
             all_recs.extend(recs)
             started += 1
