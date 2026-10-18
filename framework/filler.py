@@ -62,10 +62,39 @@ def _counts(obs: dict) -> dict | None:
 
 
 def _pad(pool: list[int], need: int, fallback_id: int) -> list[int]:
-    """池子不够时补齐（正常情况不该发生；补上宁可让搜索退化也不要崩）。"""
+    """池子不够时补齐（**已不再用于常规路径**，保留仅为向后兼容）。"""
     if len(pool) >= need:
         return pool[:need]
     return pool + [fallback_id] * (need - len(pool))
+
+
+def _normalize(pool: list[int], need: int, deck_hint: list[int], rng):
+    """把未见池规整到恰好 need 张，并返回实际补齐的张数。
+
+    - **多了**（len > need）：说明有几张卡落在我没建模的区域里
+      （实测最常见是 setup 期间多 1 张）。随机剔除多余的，而不是截断尾部 ——
+      尾部是按 Counter 插入顺序排的，截断会系统性地偏向某些卡。
+    - **少了**（len < need）：说明扣多了。按卡组自身的构成比例补齐，至少保持 archetype。
+
+    ⚠️ 历史 bug（已修）：旧版这里直接 `pool + [fallback_id] * short`，
+       而 fallback 取的是 `deck[0]`（基础水能量）。一旦上传 `GameMemory`，
+       `my_seen` 这个"日志事件计数"会把同一张卡重复扣很多次，导致池子
+       缺 27 张（中位 29），于是 37 张基础能量被塞进牌库 ——
+       实测 99.5% 的决策点都发生了这种污染。
+    """
+    if len(pool) == need:
+        return pool, 0
+    if len(pool) > need:
+        rng.shuffle(pool)
+        return pool[:need], 0
+    short = need - len(pool)
+    src = deck_hint if deck_hint else pool
+    if not src:
+        return pool + [0] * short, short
+    # 按卡组构成循环取样补齐（允许重复：牌库本来就允许同名多张）
+    extra = [src[(i * 7919) % len(src)] for i in range(short)]
+    return pool + extra, short
+
 
 
 class UniformFiller(Filler):
@@ -82,6 +111,9 @@ class UniformFiller(Filler):
         self.my_deck = list(my_deck)
         self.opp_prior = list(opponent_deck_prior) if opponent_deck_prior else list(my_deck)
         self.rng = random.Random(seed)
+        # 诊断计数：线上/离线都应该看到 short_me / short_op 接近 0。
+        # 若它们很大，说明未见池算错了（历史上曾因误用 GameMemory 而大面积触发）。
+        self.stats = {"calls": 0, "short_me": 0, "short_op": 0}
 
     def fill(self, obs: dict, memory, my_deck: list[int] | None = None) -> dict | None:
         c = _counts(obs)
@@ -92,7 +124,9 @@ class UniformFiller(Filler):
         # ---- 我方：牌库+奖赏的合并内容我完全知道，只是不知道怎么分
         pool_me = self._my_unseen(obs, c, deck, memory)
         need_me = c["my_deck"] + c["my_prize"]
-        pool_me = _pad(pool_me, need_me, deck[0] if deck else 0)
+        pool_me, short_me = _normalize(pool_me, need_me, deck, self.rng)
+        self.stats["short_me"] += short_me
+        self.stats["calls"] += 1
         self.rng.shuffle(pool_me)
         my_d = pool_me[:c["my_deck"]]
         my_p = pool_me[c["my_deck"]:need_me]
@@ -100,8 +134,8 @@ class UniformFiller(Filler):
         # ---- 对手：卡组构成**未知**，用先验卡组 − 已见卡 得到候选池
         pool_op = self._op_unseen(obs, c, memory)
         need_op = c["op_hand"] + c["op_deck"] + c["op_prize"]
-        fallback = self.opp_prior[0] if self.opp_prior else (deck[0] if deck else 0)
-        pool_op = _pad(pool_op, need_op, fallback)
+        pool_op, short_op = _normalize(pool_op, need_op, self.opp_prior or deck, self.rng)
+        self.stats["short_op"] += short_op
         self.rng.shuffle(pool_op)
         i = 0
         op_h = pool_op[i:i + c["op_hand"]]; i += c["op_hand"]
@@ -121,7 +155,14 @@ class UniformFiller(Filler):
         return result
 
     def _my_unseen(self, obs: dict, c: dict, deck: list[int], memory) -> list[int]:
-        """我方未见池 = 我的卡组 − 已见（手牌/弃牌/场面）+ 已累积的日志。"""
+        """我方未见池 = 我的卡组 − 当前可见（手牌/弃牌/场面及附着）。
+
+        ⚠️ **不能**用 memory.my_seen 再扣一次。它统计的是"日志事件次数"（同一张卡
+           抽到/打出/附着会被反复记录），拿它当"还剩几张"会把池子扣到只剩十几张。
+           实测传入 GameMemory 后 99.5% 的决策点池子不足（中位缺 29 张），
+           于是 37 张基础能量被塞进牌库，determinization 完全失真。
+        """
+        _ = memory          # 保留参数签名，但不参与扣减
         pool = Counter(deck)
         cur = obs["current"]
         me = cur["players"][c["me_idx"]]
@@ -141,15 +182,15 @@ class UniformFiller(Filler):
             for k in ("energyCards", "tools", "preEvolution"):
                 for e in (pk.get(k) or []):
                     dec(e.get("id"))
-        # 场上道具/能量有些不在上面，用日志里我方已见卡再兜一层
-        if memory is not None:
-            for card_id, n in memory.my_seen.items():
-                for _ in range(n):
-                    dec(card_id)
         return [cid for cid, n in pool.items() for _ in range(max(n, 0))]
 
     def _op_unseen(self, obs: dict, c: dict, memory) -> list[int]:
-        """对手未见池 = 先验卡组 − 对手已见卡（弃牌/场面/日志）。"""
+        """对手未见池 = 先验卡组 − 对手当前可见卡（弃牌/场面及附着）。
+
+        ⚠️ 与 _my_unseen 同理：**不能**再用 memory.opp_seen 扣一次
+           （那是日志事件计数，实测会让 97.4% 的决策点池子不足）。
+        """
+        _ = memory
         pool = Counter(self.opp_prior)
         cur = obs["current"]
         op = cur["players"][1 - c["me_idx"]]
@@ -167,10 +208,6 @@ class UniformFiller(Filler):
             for k in ("energyCards", "tools", "preEvolution"):
                 for e in (pk.get(k) or []):
                     dec(e.get("id"))
-        if memory is not None:
-            for card_id, n in memory.opp_seen.items():
-                for _ in range(n):
-                    dec(card_id)
         return [cid for cid, n in pool.items() for _ in range(max(n, 0))]
 
     def _guess_op_active(self, obs: dict, c: dict, memory) -> int:
