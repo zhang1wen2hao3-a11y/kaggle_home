@@ -188,10 +188,12 @@ def state_features(obs: dict, memory=None) -> dict[str, float]:
     f["st_ko_pressure_me"] = (am["dmg_now"] / op_hp_now) if op_hp_now > 0 else 0.0
     f["st_ko_pressure_op"] = (ao["dmg_now"] / my_hp_now) if my_hp_now > 0 else 0.0
     # 还需要几回合才能 KO 对手（向下取整 +1），0 表示本来就能 KO
-    f["st_turns_to_ko_me"] = (
-        max(0.0, math.ceil(op_hp_now / am["dmg_now"]) - 1) if am["dmg_now"] > 0 else 99.0)
-    f["st_turns_to_ko_op"] = (
-        max(0.0, math.ceil(my_hp_now / ao["dmg_now"]) - 1) if ao["dmg_now"] > 0 else 99.0)
+    # ⚠️ 必须显式 float()：max(0.0, int) 在 int 更大时会返回 int，
+    #    导致同一特征在不同样本上出现 int/float 混型 -> parquet 跨 part schema 不一致。
+    f["st_turns_to_ko_me"] = float(
+        max(0.0, math.ceil(op_hp_now / am["dmg_now"]) - 1)) if am["dmg_now"] > 0 else 99.0
+    f["st_turns_to_ko_op"] = float(
+        max(0.0, math.ceil(my_hp_now / ao["dmg_now"]) - 1)) if ao["dmg_now"] > 0 else 99.0
     # 威胁差：谁能更快达成 KO
     f["st_ko_race"] = f["st_turns_to_ko_op"] - f["st_turns_to_ko_me"]
     # 奖赏卡还需要几次 KO 才能赢

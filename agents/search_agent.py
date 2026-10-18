@@ -64,6 +64,32 @@ def _load_deck() -> list[int]:
         return [int(x) for x in f.read().split() if x.strip()][:60]
 
 
+class PolicyPrior:
+    """P（策略先验）—— 预测 greedy 会选什么，给 MCTS 提供探索方向的先验。
+
+    训练自 LTR（LambdaMART），top-1 模仿准确率 0.9994。
+    它的价值不是"比 greedy 更聪明"，而是**把 greedy 的领域知识注入搜索**：
+    让 MCTS 不去探索 greedy 认为荒谬的走法（例如手上明明能铺场却选 END）。
+    """
+
+    def __init__(self, model_path: str):
+        from framework.models.lightgbm_model import LGBMModel
+        from framework import features as F
+        self.model = LGBMModel.load(model_path)
+        self.F = F
+
+    def __call__(self, obs: dict, n_options: int) -> list[float]:
+        from framework.features import combined_features
+        rows = [combined_features(obs, i) for i in range(n_options)]
+        if hasattr(self.model, "predict_arrays"):
+            import numpy as np
+            keys = self.model.feature_keys
+            X = np.asarray([[float(r.get(k, 0.0)) for k in keys] for r in rows],
+                           dtype="float32")
+            return [float(x) for x in self.model.predict_arrays(X)]
+        return [float(x) for x in self.model.predict(rows)]
+
+
 class SearchAgent:
     """带记忆 + 搜索的 agent。一个实例对应一局（或复用，靠 is_new_game 重置）。"""
 
@@ -77,11 +103,24 @@ class SearchAgent:
             self.vname = "custom"
         self.value_fn = value_fn
         self.memory = GameMemory()
+        policy_fn = None
+        top_k = ENV.get("PTCG_SEARCH_TOPK")
+        top_k = int(top_k) if top_k else None
+        if ENV.get("PTCG_SEARCH_POLICY", "").lower() == "on":
+            pp = ENV.get("PTCG_SEARCH_POLICY_MODEL",
+                         os.path.join(HERE, "models/policy_v1.json"))
+            if os.path.exists(pp):
+                policy_fn = PolicyPrior(pp)
+            else:
+                print(f"[search_agent] 策略先验模型不存在 {pp}", file=sys.stderr)
+
         self.mcts = MCTS(value_fn=value_fn,
                          filler=UniformFiller(my_deck=self.deck,
                                               opponent_deck_prior=self.deck, seed=0),
                          n_simulations=n_simulations, max_depth=max_depth,
-                         n_worlds=n_worlds)
+                         n_worlds=n_worlds,
+                         policy_fn=policy_fn, top_k=top_k)
+        self.uses_prior = policy_fn is not None
         self.fallback = fallback_agent or self._rule_fallback
         self.stats = {"calls": 0, "searched": 0, "trivial": 0, "fallback": 0}
 

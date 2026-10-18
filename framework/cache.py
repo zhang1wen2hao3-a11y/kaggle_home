@@ -91,10 +91,29 @@ def is_fresh(src: str, kind: str) -> bool:
 
 
 # ============================================================ 构建
+
+# 分块间 schema 必须一致，否则 polars scan_parquet 会报
+# "data type mismatch: incoming Int64 != target Float64"。
+# 特征值理论上都是 float，但 python 里 max(0.0, int) 这类写法会漏出 int，
+# 所以构建时统一兜底。meta 里的 ID/标签列保持原类型。
+_ID_LIKE = {"game", "query_id", "opt_index", "n_opts"}
+
+
+def _coerce(row: dict) -> dict:
+    out = {}
+    for k, v in row.items():
+        if isinstance(v, bool):
+            out[k] = v
+        elif isinstance(v, int) and k not in _ID_LIKE:
+            out[k] = float(v)
+        else:
+            out[k] = v
+    return out
+
 def _flush(rows: list[dict], out_dir: str, part_no: int) -> int:
     if not rows:
         return part_no
-    df = pl.DataFrame(rows)
+    df = pl.DataFrame([_coerce(r) for r in rows])
     df.write_parquet(os.path.join(out_dir, f"part-{part_no:04d}.parquet"),
                      compression="zstd")
     return part_no + 1

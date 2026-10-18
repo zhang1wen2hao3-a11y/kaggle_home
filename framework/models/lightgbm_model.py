@@ -118,8 +118,13 @@ class LGBMModel(BaseModel):
     # 配合 framework.cache 用：parquet 读出来就是 numpy 数组，
     # 走 dict 往返 (rows -> _vectorize -> np.asarray) 是纯浪费。
     def fit_arrays(self, X, y, feature_keys: list[str], eval_set=None,
-                   early_stopping_rounds: int = 50):
-        """直接吃 numpy 数组。eval_set=(X_val, y_val) 或 None。"""
+                   early_stopping_rounds: int = 50, groups=None,
+                   eval_groups=None):
+        """直接吃 numpy 数组。eval_set=(X_val, y_val) 或 None。
+
+        task="rank" 时必须给 groups（每个 query 的候选数）。LTR 的
+        LambdaMART 靠它知道哪些行属于同一个"局面"，只在组内排序。
+        """
         self._require()
         import lightgbm as lgb
         X = np.asarray(X, dtype=np.float32)
@@ -130,7 +135,11 @@ class LGBMModel(BaseModel):
             params = dict(objective="binary", metric="binary_logloss", **self.params)
             train_set = lgb.Dataset(X, label=yv.astype(int))
         elif self.task == "rank":
-            raise ValueError("rank 请用 fit() 传 groups")
+            if groups is None:
+                raise ValueError("task=rank 需要 groups")
+            params = dict(objective="lambdarank", metric="ndcg",
+                          ndcg_eval_at=[1, 3, 5], **self.params)
+            train_set = lgb.Dataset(X, label=yv, group=np.asarray(groups))
         else:
             params = dict(objective="regression", metric="l2", **self.params)
             train_set = lgb.Dataset(X, label=yv)
@@ -139,8 +148,13 @@ class LGBMModel(BaseModel):
         if eval_set is not None:
             Xv = np.asarray(eval_set[0], dtype=np.float32)
             yvv = np.asarray(eval_set[1])
-            valid_sets = [lgb.Dataset(Xv, label=(yvv.astype(int) if self.task == "binary" else yvv),
-                                      reference=train_set)]
+            label = yvv.astype(int) if self.task == "binary" else yvv
+            kw = {"reference": train_set}
+            if self.task == "rank":
+                if eval_groups is None:
+                    raise ValueError("rank 的 eval_set 也要给 eval_groups")
+                kw["group"] = np.asarray(eval_groups)
+            valid_sets = [lgb.Dataset(Xv, label=label, **kw)]
             callbacks = [lgb.early_stopping(early_stopping_rounds, verbose=False)]
 
         self.booster = lgb.train(params, train_set,

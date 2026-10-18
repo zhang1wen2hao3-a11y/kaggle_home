@@ -198,8 +198,18 @@ class MCTS:
 
     def __init__(self, value_fn: ValueFn, filler=None, n_simulations: int = 120,
                  max_depth: int = 12, c_puct: float = 1.4, n_worlds: int = 1,
-                 verbose: bool = False, dirichlet_alpha: float = 0.0):
+                 verbose: bool = False, dirichlet_alpha: float = 0.0,
+                 policy_fn=None, top_k: int | None = None):
+        """Args:
+            policy_fn: 可选的策略先验，签名 policy_fn(obs, n_options) -> list[float]。
+                给定时，根节点的候选动作会**按先验降序**展开，并可裁剪到 top_k 个。
+                这是 AlphaZero 的 P —— 没有它，MCTS 会把 END 和 ATTACH 一视同仁
+                地探索，而 V 判不了这种 0.02 量级的差异（实测 search 反而比规则差）。
+            top_k: 只探索先验最高的 k 个动作（None=不裁剪）。
+        """
         self.value_fn = value_fn
+        self.policy_fn = policy_fn
+        self.top_k = top_k
         self.filler = filler
         self.n_simulations = n_simulations
         self.max_depth = max_depth
@@ -281,7 +291,20 @@ class MCTS:
         if root is None:
             return {}, {}
 
-        root.untried = list(range(n_opts))
+        order = list(range(n_opts))
+        if self.policy_fn is not None:
+            try:
+                priors = list(self.policy_fn(obs, n_opts))
+                if len(priors) == n_opts:
+                    order = sorted(order, key=lambda i: -float(priors[i]))
+                    self.stats["prior_used"] = self.stats.get("prior_used", 0) + 1
+            except Exception as e:
+                if self.verbose:
+                    print(f"    policy_fn 失败，退化为无先验: {type(e).__name__}: {e}")
+        if self.top_k and len(order) > self.top_k:
+            order = order[:self.top_k]
+            self.stats["pruned"] = self.stats.get("pruned", 0) + 1
+        root.untried = order
         for _ in range(self.n_simulations):
             self.stats["sims"] += 1
             path = [root]
