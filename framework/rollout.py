@@ -281,6 +281,12 @@ def _decide(stype, ctx, opt_types, lo, hi, attack_ids=None, areas=None,
     return list(range(min(k, hi)))
 
 
+# 子决策总开关。默认关闭：实测它作为【部署策略】是 0.4637（略差于 0.5），
+# 且只改变 2.2% 的行为。但 rollout 的续弈模拟曾经单独启用它，造成
+# "模拟用的策略 ≠ 实际打的策略"，估值会有偏差 —— 所以这里统一成一个开关。
+SMART_SUB = False
+
+
 # 哪些 context 的选项指向"我的宝可梦"（可用 HP/能量打分挑目标）
 _POKEMON_TARGET_CTX = frozenset({
     SelectContext.ATTACH_FROM,          # 贴能量给哪只
@@ -338,7 +344,7 @@ def rollout_to_end(sid, obs, my_index: int, max_steps: int = 800):
         sel = getattr(obs, "select", None)
         if sel is None:
             return None
-        act = rule_action(sel, obs)
+        act = rule_action(sel, obs if SMART_SUB else None)
         try:
             st = search_step(sid, act)
         except Exception:
@@ -436,7 +442,7 @@ def choose_action(obs: dict, *, filler, my_deck, n_worlds: int = 10,
         (action: list[int], info: dict)
     """
     sel = obs.get("select")
-    base = rule_action(sel, obs)
+    base = rule_action(sel, obs if SMART_SUB else None)
     info = {"base": base, "chosen": base, "reason": "rule",
             "cands": [], "stats": {}, "pairs": {}, "worlds": 0}
     if not sel or len(base) != 1:

@@ -19,6 +19,7 @@
 from __future__ import annotations
 
 import math
+from functools import lru_cache
 from typing import Any
 
 # ---------------------------------------------------------------- 卡牌数据缓存
@@ -63,6 +64,64 @@ def _energy_count(pokemon: dict | None) -> int:
     if not pokemon:
         return 0
     return len(pokemon.get("energies") or [])
+
+
+@lru_cache(maxsize=8192)
+def _sibling_attack_max(attack_ids: tuple):
+    """一个决策里所有选项的最大招式伤害 + 攻击选项个数。
+
+    用来生成"相对兄弟选项"的特征 —— GBDT 无法跨行比较，这类特征必须显式给。
+    """
+    dmg, n = 0.0, 0
+    for aid in attack_ids:
+        a = _ATTACK_CACHE.get(aid) if aid is not None else None
+        if a is None:
+            continue
+        n += 1
+        dmg = max(dmg, float(a.damage or 0))
+    return dmg, n
+
+
+def _energy_count_of(pk) -> float:
+    if not pk:
+        return 0.0
+    e = pk.get("energies")
+    if e:
+        return float(len(e))
+    return float(len(pk.get("energyCards") or []))
+
+
+def _best_attack_stats(card_id):
+    """某张宝可梦卡：最强招式伤害 + 最便宜招式能量需求。"""
+    c = _card(card_id)
+    if c is None:
+        return 0.0, 0.0
+    max_d, min_c = 0.0, 0.0
+    for aid in (getattr(c, "attacks", None) or []):
+        a = _ATTACK_CACHE.get(aid)
+        if a is None:
+            continue
+        max_d = max(max_d, float(a.damage or 0))
+        cst = float(len(a.energies or []))
+        if cst > 0 and (min_c == 0.0 or cst < min_c):
+            min_c = cst
+    return max_d, min_c
+
+
+def _target_pokemon(player: dict, area, index):
+    """把选项的 area/index 解析成【我方某只宝可梦】。area=4 出场 / 5 后备。"""
+    try:
+        if area == 4:
+            arr = player.get("active") or []
+        elif area == 5:
+            arr = player.get("bench") or []
+        else:
+            return None
+        arr = [x for x in arr if x]
+        i = int(index) if index is not None else -1
+        return arr[i] if 0 <= i < len(arr) else None
+    except Exception:
+        return None
 
 
 def _active_of(player: dict) -> dict | None:
@@ -321,6 +380,34 @@ def option_features(obs: dict, idx: int, memory=None) -> dict[str, float]:
         f["opt_src_is_supporter"] = 0.0
         f["opt_src_energy_matches"] = 0.0
 
+    # ---------------- 攻击复合特征
+    # 设计意图：基础的"伤害"已有，但真正影响决策的是【相对量】——
+    # 相对对手血量（能不能打死/溢出多少）、相对能量（还差几张）、
+    # 相对同决策的其它攻击选项（是不是最优选择）。GBDT 跨行比较不了，必须显式给。
+    _my_active = _active_of(me)
+    _op_active = _active_of(players[1 - me_idx] if len(players) > 1 else {})
+    _dmg = _cost = 0.0
+    _has_atk = False
+    _aid = o.get("attackId")
+    if _aid is not None and _aid in _ATTACK_CACHE:
+        _a = _ATTACK_CACHE[_aid]
+        _dmg = float(_a.damage or 0)
+        _cost = float(len(_a.energies or []))
+        _has_atk = True
+    _op_hp = float((_op_active or {}).get("hp") or 0)
+    f["opt_attack_overkill"] = (_dmg - _op_hp) if _op_hp else 0.0
+    f["opt_attack_gap"] = max(0.0, _op_hp - _dmg) if _op_hp else 0.0
+    f["opt_attack_dmg_per_energy"] = (_dmg / _cost) if _cost > 0 else 0.0
+    f["opt_attack_energy_gap"] = (max(0.0, _cost - _energy_count_of(_my_active))
+                                  if _has_atk else 0.0)
+    _maxd, _natk = _sibling_attack_max(tuple(x.get("attackId") for x in opts))
+    f["opt_n_attack_options"] = float(_natk)
+    f["opt_attack_dmg_gap_best"] = (_dmg - _maxd) if _has_atk else 0.0
+    f["opt_attack_dmg_frac_best"] = (_dmg / _maxd) if (_has_atk and _maxd > 0) else 0.0
+    f["opt_attack_is_best"] = 1.0 if (_has_atk and _dmg >= _maxd and _natk >= 2) else 0.0
+
+    # 目标状态特征已按实测删除（见 OPTION_FEATURE_KEYS 后的说明）
+
     # 攻击选项：伤害 / 能否 KO
     attack_id = o.get("attackId")
     if attack_id is not None and attack_id in _ATTACK_CACHE:
@@ -393,8 +480,21 @@ OPTION_FEATURE_KEYS = (
      "opt_has_source", "opt_src_is_energy", "opt_src_is_pokemon",
      "opt_src_is_supporter", "opt_src_energy_matches",
      "opt_attack_damage", "opt_attack_cost", "opt_attack_can_ko",
-     "opt_attack_is_ko_pressure"]
+     "opt_attack_is_ko_pressure",
+     # ---- 攻击复合（跨局面 / 跨兄弟选项）★ GBDT 自己构造不出来的相对量
+     "opt_attack_overkill", "opt_attack_gap", "opt_attack_dmg_per_energy",
+     "opt_attack_energy_gap", "opt_attack_dmg_gap_best",
+     "opt_attack_dmg_frac_best", "opt_n_attack_options", "opt_attack_is_best"]
 )
+# ⚠️ 曾加过 9 个"目标状态"特征（opt_tgt_hp / opt_tgt_energy / opt_tgt_energy_gap
+#     / opt_tgt_max_dmg / opt_tgt_is_active / opt_tgt_weak_to_op / opt_opp_weak_to_tgt …），
+#     意图让模型学会"贴能量给哪只 / 换谁上场"。
+#     但**逐折配对实测显示它们有害**（data/cf_q_v3.jsonl，非 MAIN 决策一致率）：
+#         有目标特征 55.46%   vs   无目标特征 57.18%    =>  -1.72pp
+#     MAIN 决策上也无收益（61.86% vs 61.41%，噪声内）。
+#     推测原因：这些特征在 MAIN 决策上恒为 0、只在目标决策上非零，等于塞进一个
+#     "这是不是目标决策"的标识位，助长过拟合。
+#     结论：已删除。要重做需先解决"MAIN 与目标决策混训"这个结构问题。
 
 
 def combined_features(obs: dict, idx: int, memory=None) -> dict[str, float]:

@@ -122,21 +122,45 @@ def _deck(path: str):
 
 
 def _candidates(sel, base):
-    """候选动作下标：状态策略的选择 + ATTACK(若有) + END(若有)。"""
+    """候选动作下标。
+
+    MAIN 决策：state 策略的选择 + ATTACK(若有) + END(若有)  —— 比较【不同动作类型】
+    非 MAIN 决策（选目标/选卡/弃能量）：state 的选择 + 相邻的 2 个选项
+        —— 比较【同一动作作用在不同目标上】。这个分支以前缺失，导致
+           trigger=all 完全无效（v2 数据里非 MAIN 局面 = 0 个），
+           目标状态特征（opt_tgt_*）也就从来没被触发过。
+    """
+    n = len(sel.get("option") or [])
     cands = [base]
-    for want in (OptionType.ATTACK, OptionType.END):
-        i = index_of_type(sel, want)
-        if i is not None and i not in cands:
+    if is_main(sel):
+        for want in (OptionType.ATTACK, OptionType.END):
+            i = index_of_type(sel, want)
+            if i is not None and i not in cands:
+                cands.append(i)
+        return cands
+    # 非 MAIN：补两个"别的目标"作为反事实
+    for i in range(n):
+        if i != base and len(cands) < 3:
             cands.append(i)
     return cands
 
 
 def _is_target(sel, trigger: str) -> bool:
+    """哪些决策点要打标签。
+
+    main  : 只看 MAIN 阶段（动作选择）—— 快，且候选是"不同动作类型"
+    all   : 加上非 MAIN 的子决策（选目标/选卡/弃能量）—— 才能让目标状态特征
+            （opt_tgt_*）真正被触发；但决策点更多，成本更高
+    attack: 只看 ATTACK 可选的 MAIN（最便宜）
+    """
+    n = len(sel.get("option") or [])
+    if trigger == "all":
+        return n >= 2
     if not is_main(sel):
         return False
     if trigger == "attack":
         return has_type(sel, OptionType.ATTACK)
-    return len(sel.get("option") or []) >= 2      # trigger == "main"
+    return n >= 2                                  # trigger == "main"
 
 
 def _state_action(obs, sel, my_deck, filler, mem):
@@ -339,7 +363,7 @@ def main() -> None:
     # ---- 标注
     ap.add_argument("--worlds", type=int, default=8,
                     help="每个局面采多少个 determinization（= 每个候选的 rollout 次数）")
-    ap.add_argument("--trigger", choices=["attack", "main"], default="main",
+    ap.add_argument("--trigger", choices=["attack", "main", "all"], default="main",
                     help="main=所有多选项 MAIN 决策（默认；候选集含 END，覆盖"
                          "『现在结束回合 vs 继续铺场』这个最高杠杆决策）。"
                          "attack=只标注 ATTACK 可选的（约 31%%，更便宜）")

@@ -68,6 +68,10 @@ def main() -> None:
     ap.add_argument("--min-child-samples", type=int, default=100)
     ap.add_argument("--only-spread", action="store_true",
                     help="只用跨动作有差异的局面（更纯的动作信号）")
+    ap.add_argument("--drop-prefix", action="append", default=[],
+                    help="消融用：丢掉这些特征名/前缀（可重复）。"
+                         "例如 --drop-prefix opt_tgt_ 会去掉全部目标状态特征")
+    ap.add_argument("--tag", default="", help="输出标签（便于区分消融实验）")
     ap.add_argument("--out", default="models/cf_q_v1.json")
     args = ap.parse_args()
 
@@ -86,6 +90,12 @@ def main() -> None:
 
     STATE_KEYS = sorted(rows[0][2].keys())
     OPT_KEYS = sorted(rows[0][3][0].keys())
+    if args.drop_prefix:
+        def _keep(k):
+            return not any(k.startswith(p) for p in args.drop_prefix)
+        STATE_KEYS = [k for k in STATE_KEYS if _keep(k)]
+        OPT_KEYS = [k for k in OPT_KEYS if _keep(k)]
+        print(f"  消融: 丢掉前缀 {args.drop_prefix} -> 剩 {len(STATE_KEYS)}+{len(OPT_KEYS)} 维")
     FEAT_KEYS = STATE_KEYS + OPT_KEYS
     OPT_SET = set(OPT_KEYS)
 
@@ -102,19 +112,23 @@ def main() -> None:
     print("=" * 72, flush=True)
 
     # ---- 每个 (state, action) 展平成一行
-    X, y, w, gid, qkey = [], [], [], [], []
+    MAIN_INT = 0        # SelectType.MAIN == 0
+    X, y, w, gid, qkey, is_main = [], [], [], [], [], []
     for game, key, sf, ofs, labs, ns in rows:
         svec = [float(sf.get(k, 0.0) or 0.0) for k in STATE_KEYS]
+        _m = int(ofs[0].get("opt_select_type", -1)) == MAIN_INT if ofs else False
         for of, lab, n in zip(ofs, labs, ns):
             X.append(svec + [float(of.get(k, 0.0) or 0.0) for k in OPT_KEYS])
             y.append(lab)
             w.append(max(n, 1))
             gid.append(game)
             qkey.append(key)
+            is_main.append(_m)
     X = np.asarray(X, dtype=np.float32)
     y = np.asarray(y, dtype=np.float32)
     w = np.asarray(w, dtype=np.float32)
     gid = np.asarray(gid)
+    is_main = np.asarray(is_main)
     # qkey 保持 Python list：np.asarray 会把 tuple 拆成二维，取出来的不是可哈希键
     print(f"\n  展平后: {len(y):,} 行")
 
@@ -126,6 +140,7 @@ def main() -> None:
     folds = [set(gs[i::args.cv_folds]) for i in range(args.cv_folds)]
 
     mae_list, imp_shares, agree_list, base_agree = [], [], [], []
+    grp_agree = {}
 
     for fi, val_games in enumerate(folds, 1):
         tr = ~np.isin(gid, list(val_games))
@@ -153,6 +168,7 @@ def main() -> None:
         for j, gi in enumerate(va_idx):
             groups[qkey[gi]].append(j)      # j = 在验证子集里的位置（与 pred 对齐）
         agree = base = n_ok = 0
+        grp = {0: [0, 0.0], 1: [0, 0.0]}     # {is_main: [命中数, 总数]}
         for k, idxs in groups.items():
             if len(idxs) < 2:
                 continue
@@ -160,12 +176,19 @@ def main() -> None:
             if max(true) - min(true) <= 0:
                 continue
             pv = [pred[i] for i in idxs]
+            hit = 1 if int(np.argmax(pv)) == int(np.argmax(true)) else 0
             n_ok += 1
-            agree += 1 if int(np.argmax(pv)) == int(np.argmax(true)) else 0
+            agree += hit
             base += 1.0 / len(idxs)
+            g = int(is_main[va_idx[idxs[0]]])
+            grp[g][0] += hit
+            grp[g][1] += 1
         if n_ok:
             agree_list.append(agree / n_ok)
             base_agree.append(base / n_ok)
+            for g in (0, 1):
+                if grp[g][1]:
+                    grp_agree.setdefault(g, []).append(grp[g][0] / grp[g][1])
 
         print(f"  折 {fi}: MAE={mae:.4f}  选项重要性={opt_share:.2%}  "
               f"最优动作一致={agree/max(n_ok,1):.1%} (随机 {base/max(n_ok,1):.1%}, n={n_ok})",
@@ -185,6 +208,10 @@ def main() -> None:
     line("选项特征重要性", imp_shares, ".2%")
     line("最优动作一致率", agree_list, ".2%")
     line("随机基线一致率", base_agree, ".2%")
+    if grp_agree.get(1):
+        line("  └ MAIN 决策一致率", grp_agree[1], ".2%")
+    if grp_agree.get(0):
+        line("  └ 非MAIN(子决策)一致率", grp_agree[0], ".2%")
 
     print("-" * 72)
     if imp_shares:
