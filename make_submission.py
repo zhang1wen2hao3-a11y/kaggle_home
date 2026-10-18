@@ -154,6 +154,42 @@ def main() -> None:
         size_mb = os.path.getsize(out_path) / 1048576
         print(f"\n  ✅ 已生成 {os.path.relpath(out_path, HERE)}  ({size_mb:.1f} MB)")
 
+        # ---------------- ★ exec 模拟自检（必须）
+        # Kaggle 用 `exec(code, env)` 执行提交代码（kaggle_environments/agent.py:57），
+        # 那时 __file__ 未定义。若提交文件里用了 __file__，会直接：
+        #     NameError: name '__file__' is not defined  ->  status=ERROR
+        # 这个坑真实踩过（rollout 版第一次提交就是这样失败的），所以这里强制模拟一次。
+        print("\n  用 exec() 模拟 Kaggle 加载方式（无 __file__）...")
+        exec_code = (
+            "import sys, json\n"
+            "sys.path.insert(0, %r)\n"
+            "src = open(%r, encoding='utf-8').read()\n"
+            "env = {'__name__': 'kaggle_agent'}\n"
+            "try:\n"
+            "    exec(compile(src, 'main.py', 'exec'), env)\n"
+            "except NameError as e:\n"
+            "    print('NAMEERROR', e); raise SystemExit(2)\n"
+            "assert 'agent' in env, 'no agent() defined'\n"
+            "from cg.game import battle_start, battle_select\n"
+            "deck = env['agent']({'select': None, 'current': None, 'logs': []})\n"
+            "assert isinstance(deck, list) and len(deck) == 60, ('bad deck', deck)\n"
+            "obs = battle_start(deck, deck)[0]\n"
+            "steps = 0\n"
+            "while steps < 500:\n"
+            "    cur = obs.get('current')\n"
+            "    if cur is None or cur.get('result', -1) != -1: break\n"
+            "    obs = battle_select(env['agent'](obs)); steps += 1\n"
+            "print('EXEC_OK steps=', steps)\n"
+        ) % (os.path.join(stage, "cg"), os.path.join(stage, "main.py"))
+        er = subprocess.run([sys.executable, "-c", exec_code], capture_output=True,
+                            text=True, timeout=600, cwd=stage)
+        if "EXEC_OK" in er.stdout:
+            print("  ✅ exec 模拟通过：", er.stdout.strip().splitlines()[-1])
+        else:
+            print("  ❌ exec 模拟失败 —— 这个提交在 Kaggle 上必然 ERROR：")
+            print((er.stderr or er.stdout)[-1200:])
+            raise SystemExit(1)
+
         # ---------------- 动态自检（可选）
         if args.verify_games > 0:
             print(f"\n  用打包后的 main.py 真跑 {args.verify_games} 局做自检...")
