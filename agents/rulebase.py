@@ -6,7 +6,21 @@
 
 于是把顺序做成命名配置，用 evaluate.py / sweep.py 实测比较。
 """
-from cg.api import OptionType, SelectType, SelectContext
+from cg.api import OptionType, SelectType, SelectContext, all_attack
+
+# attackId -> (基础伤害, 能量需求数)。
+# 用来在【同一只宝可梦有多个招式】时择优：规则表按类型排序，所有 ATTACK 同级，
+# 原本只会取列表里第一个 —— 而第一个常常是有条件的废招，例如
+#   Mega Floette ex : Gentle Light(伤害0,还给对手回血) / Eternity Bloom(200)
+#   Mega Mawile ex  : Gobble Down(伤害0) / Huge Bite(260)
+# 实测 psychic_floette 因此只有 0.40（且 20/24 的败局是"牌库抽空"）。
+_ATTACK_INFO = {}
+try:
+    for _a in all_attack():
+        _ATTACK_INFO[_a.attackId] = (int(getattr(_a, "damage", 0) or 0),
+                                     len(getattr(_a, "energies", None) or []))
+except Exception:
+    pass
 
 # 顺序即优先级：列表越靠前越先做
 ORDERS = {
@@ -66,7 +80,8 @@ FILL_CONTEXTS = {
 }
 
 
-def make_agent(order="develop_first", go_first=True, bench_full=True):
+def make_agent(order="develop_first", go_first=True, bench_full=True,
+               attack_pick="first"):
     """构造一个规则 agent。
 
     Args:
@@ -102,8 +117,24 @@ def make_agent(order="develop_first", go_first=True, bench_full=True):
 
         # 主阶段：按优先级挑第一个动作（一次一个）
         if stype == SelectType.MAIN:
-            best = min(range(n), key=lambda i: prio.get(OptionType(opts[i]["type"]), 99))
-            return [best]
+            if attack_pick == "first":
+                best = min(range(n), key=lambda i: prio.get(OptionType(opts[i]["type"]), 99))
+                return [best]
+            # 多招式择优：优先级仍主导，同类 ATTACK 内部再按伤害降序
+            def _key(i):
+                t = OptionType(opts[i]["type"])
+                p = prio.get(t, 99)
+                if t != OptionType.ATTACK:
+                    return (p, 0, 0)
+                info = _ATTACK_INFO.get(opts[i].get("attackId"))
+                dmg = info[0] if info else 0
+                cost = info[1] if info else 9
+                if attack_pick == "maxdmg":
+                    return (p, -dmg, cost)
+                if attack_pick == "maxdmg_eff":       # 伤害/能量
+                    return (p, -(dmg / max(cost, 1)), cost)
+                return (p, -dmg, cost)
+            return [min(range(n), key=_key)]
 
         # 铺后备：选满，提高抗打击能力
         if bench_full and ctx in FILL_CONTEXTS:

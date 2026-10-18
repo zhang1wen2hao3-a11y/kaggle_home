@@ -48,8 +48,19 @@ if HERE not in sys.path:
 
 from cg.api import (  # noqa: E402
     search_begin, search_step, search_end, to_observation_class,
-    OptionType, SelectType, SelectContext,
+    OptionType, SelectType, SelectContext, all_attack,
 )
+
+# attackId -> (基础伤害, 能量需求数)，用于"同一只宝可梦有多个招式"时择优。
+# 规则表按【动作类型】排序，所有 ATTACK 同级；不做这个二次排序就只有"取第一个"，
+# 而第一个常常是有条件的废招（伤害0、甚至给对手回血）。详见 main.py 的注释。
+_ATTACK_INFO: dict = {}
+try:
+    for _a in all_attack():
+        _ATTACK_INFO[_a.attackId] = (int(getattr(_a, "damage", 0) or 0),
+                                     len(getattr(_a, "energies", None) or []))
+except Exception:
+    pass
 
 # 与 main.py / agents/rulebase.py 的 develop_first 完全一致。
 # ATTACK 绝不能排前面：攻击会结束回合，攻击优先会变成"只会平A、从不铺场"
@@ -82,19 +93,25 @@ GO_FIRST = True
 
 # ============================================================ 规则策略
 def _sel_fields(sel):
-    """归一化 SelectData —— 同时支持 dict（提交入口）和 dataclass（搜索状态）。"""
+    """归一化 SelectData —— 同时支持 dict（提交入口）和 dataclass（搜索状态）。
+
+    返回 6 元组：(type, context, option_types, minCount, maxCount, attack_ids)
+    attack_ids 用于同一宝可梦多招式时按伤害择优。
+    """
     if isinstance(sel, dict):
         opts = sel.get("option") or []
         return (sel.get("type"), sel.get("context"),
                 [o.get("type") for o in opts],
-                int(sel.get("minCount", 1)), int(sel.get("maxCount", 1)))
+                int(sel.get("minCount", 1)), int(sel.get("maxCount", 1)),
+                [o.get("attackId") for o in opts])
     opts = getattr(sel, "option", None) or []
     return (getattr(sel, "type", None), getattr(sel, "context", None),
             [getattr(o, "type", None) for o in opts],
-            int(getattr(sel, "minCount", 1)), int(getattr(sel, "maxCount", 1)))
+            int(getattr(sel, "minCount", 1)), int(getattr(sel, "maxCount", 1)),
+            [getattr(o, "attackId", None) for o in opts])
 
 
-def _decide(stype, ctx, opt_types, lo, hi, n_opts=None):
+def _decide(stype, ctx, opt_types, lo, hi, attack_ids=None, n_opts=None):
     """规则决策核心。返回选项下标列表。与 main.py 逐行等价。"""
     n = len(opt_types) if n_opts is None else n_opts
     hi = min(hi, n)
@@ -111,8 +128,13 @@ def _decide(stype, ctx, opt_types, lo, hi, n_opts=None):
 
     # 主阶段：按优先级取第一个（一次一个动作）
     if stype == SelectType.MAIN:
-        best = min(range(n), key=lambda i: PRIORITY.get(opt_types[i], 99))
-        return [best]
+        def _key(i):
+            p = PRIORITY.get(opt_types[i], 99)
+            if opt_types[i] != OptionType.ATTACK or not attack_ids:
+                return (p, 0, 0)
+            dmg, cost = _ATTACK_INFO.get(attack_ids[i], (0, 9))
+            return (p, -dmg, cost)     # ATTACK 内部按伤害降序，再按能量需求升序
+        return [min(range(n), key=_key)]
 
     # 是/否：默认"是"
     if stype == SelectType.YES_NO:
@@ -141,12 +163,12 @@ def is_main(sel) -> bool:
 
 
 def has_type(sel, want) -> bool:
-    _, _, opt_types, _, _ = _sel_fields(sel)
+    _, _, opt_types, _, _, _ = _sel_fields(sel)
     return want in opt_types
 
 
 def index_of_type(sel, want):
-    _, _, opt_types, _, _ = _sel_fields(sel)
+    _, _, opt_types, _, _, _ = _sel_fields(sel)
     for i, t in enumerate(opt_types):
         if t == want:
             return i

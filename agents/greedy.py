@@ -1,6 +1,6 @@
 """规则基线 agent（提交候选）。
 
-配置：`safe_v1` + 先手 + 铺满后备 —— 由 8 副卡组的绝对强度实测选出。
+配置：`safe_v1` + 多招式按伤害择优 + 先手 + 铺满后备 —— 由 8 副卡组的绝对强度实测选出。
 
 ## 为什么不是 develop_first（重要）
 
@@ -29,4 +29,5 @@
 """
 from rulebase import make_agent
 
-agent = make_agent(order="safe_v1", go_first=True, bench_full=True)
+agent = make_agent(order="safe_v1", go_first=True, bench_full=True,
+                   attack_pick="maxdmg")

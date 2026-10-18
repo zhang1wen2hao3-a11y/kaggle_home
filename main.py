@@ -9,7 +9,25 @@ agent() 的约定：
 """
 import os
 
-from cg.api import OptionType, SelectType, SelectContext, to_observation_class
+from cg.api import (OptionType, SelectType, SelectContext,
+                    to_observation_class, all_attack)
+
+# attackId -> (基础伤害, 能量需求数)。
+# 用途：同一只宝可梦常有多个招式，而规则表按【动作类型】排序，所有 ATTACK 同级，
+# 于是原本只会取列表里第一个 —— 而第一个常常是有条件的废招：
+#   Mega Floette ex : Gentle Light(伤害0, 还给对手回血 30) / Eternity Bloom(200)
+#   Mega Mawile ex  : Gobble Down(伤害0) / Huge Bite(260)
+#   Mega Absol ex   : Terminal Period(伤害0, 需恰好6个伤害指示物) / Claw of Darkness(200)
+# 实测（8 副卡组 vs random 的平均）：
+#   取第一个招式 0.7312  ->  按伤害择优 0.9675
+#   psychic_floette 0.37 -> 0.98，metal_mawile 0.54 -> 0.98
+_ATTACK_INFO = {}
+try:
+    for _a in all_attack():
+        _ATTACK_INFO[_a.attackId] = (int(getattr(_a, "damage", 0) or 0),
+                                     len(getattr(_a, "energies", None) or []))
+except Exception:
+    pass
 
 # 顺序即优先级。切勿把 ATTACK 排前面 —— 攻击会结束回合，
 # 攻击优先会让 agent 每回合只平A、从不铺场（实测对 random 胜率仅 0.17）。
@@ -70,8 +88,14 @@ def agent(obs_dict: dict) -> list[int]:
         return [0]
 
     if obs.select.type == SelectType.MAIN:
-        best = min(range(n), key=lambda i: PRIORITY.get(OptionType(opts[i]["type"]), 99))
-        return [best]
+        def _key(i):
+            t = OptionType(opts[i]["type"])
+            p = PRIORITY.get(t, 99)
+            if t != OptionType.ATTACK:
+                return (p, 0, 0)
+            dmg, cost = _ATTACK_INFO.get(opts[i].get("attackId"), (0, 9))
+            return (p, -dmg, cost)      # ATTACK 内部按伤害降序，再按能量需求升序
+        return [min(range(n), key=_key)]
 
     if obs.select.type == SelectType.YES_NO:
         for i, o in enumerate(opts):
