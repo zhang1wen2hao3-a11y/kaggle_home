@@ -78,6 +78,22 @@ def play_match(agent0, agent1, deck0=None, deck1=None, max_steps=MAX_STEPS, reve
     agents = {0: agent0, 1: agent1}
     warnings = []
 
+    # ⚠️ 必须显式通知 agent「新的一局开始了」。
+    # 线上每个对局是独立 episode —— kaggle_environments 的 cabt interpreter 在
+    # env.done 时会把 observation["select"] 重置成 None，agent 能靠它识别新局。
+    # 但本地 play_match 是**直接调 battle_start**，永远不会送 select=None，
+    # 于是 main_rollout 的时间预算计时器跨局累加：累计 20 秒之后，这个进程里
+    # **后面所有对局都静默退化成纯规则**，测出来的"rollout 胜率"其实是规则胜率。
+    # 这个坑曾把 rollout 的 A/B 测成 0.08 s/局（纯规则的速度），而且两个不同
+    # 计算量的配置耗时一模一样 —— 看到这种迹象就该先怀疑这里。
+    for ag in {id(a): a for a in (agent0, agent1)}.values():
+        reset = getattr(ag, "reset", None)
+        if callable(reset):
+            try:
+                reset()
+            except Exception:
+                pass
+
     obs, sd = battle_start(deck0, deck1, reverse_player=reverse)
     if obs is None:
         return {"result": None, "winner": None, "steps": 0, "crashed": False,

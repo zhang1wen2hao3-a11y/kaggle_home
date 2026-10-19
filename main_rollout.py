@@ -154,11 +154,23 @@ _T0 = [time.monotonic()]
 _OVER_BUDGET = [False]
 
 
+def reset():
+    """重置单局时间预算。挂在 agent.reset 上，供本地评估框架每局调用。
+
+    线上每个对局是独立 episode，interpreter 会把 observation["select"] 置 None，
+    agent() 自己就能识别新局并重置。**但本地 play_match 直接调 battle_start，
+    永远不会送 select=None** —— 不显式重置的话，计时器会跨局累加，
+    累计超过 BUDGET_S 之后该进程里后续所有对局都静默退化成纯规则，
+    评估结果会变成"规则 vs 规则"却毫无报错。
+    """
+    _T0[0] = time.monotonic()
+    _OVER_BUDGET[0] = False
+
+
 def agent(obs_dict: dict) -> list[int]:
     sel = obs_dict.get("select")
     if sel is None:                       # 开局交卡组 => 新的一局，重置预算
-        _T0[0] = time.monotonic()
-        _OVER_BUDGET[0] = False
+        reset()
         return list(_DECK)
 
     # ---- 纯规则兜底先算好：它永远可用，不依赖 framework
@@ -183,3 +195,7 @@ def agent(obs_dict: dict) -> list[int]:
         return action
     except Exception:
         return base            # 任何异常都不许让整局崩掉
+
+
+# 让本地评估框架能显式重置单局预算（见 reset() 的注释）。
+agent.reset = reset
