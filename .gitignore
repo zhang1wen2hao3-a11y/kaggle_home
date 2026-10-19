@@ -22,6 +22,10 @@ logs/
 *.log.bak
 *.tmp
 
+# ==== 排行榜导出 / 临时下载（别再被 `git add -A` 卷进来）====
+*.zip
+backup.ipync
+
 # ==== 模型权重（训练产物，可用 train_value.py 重建）====
 # ⚠️ 必须锚定根目录：写 `models/` 会匹配任意层级，
 #    把 framework/models/ 这个代码目录也一起忽略掉。
