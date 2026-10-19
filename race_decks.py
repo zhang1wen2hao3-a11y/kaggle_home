@@ -69,18 +69,34 @@ def main():
     ap.add_argument("--skip", default="sample_official",
                     help="逗号分隔，跳过这些卡组（默认跳过擂主自己）")
     ap.add_argument("--out", default=os.path.join(ROOT, "logs", "deck_race.log"))
+    ap.add_argument("--resume", action="store_true",
+                    help="跳过日志里已测过的卡组，续跑剩下的（接在已有的表后面）")
     args = ap.parse_args()
 
     skip = {s.strip() for s in args.skip.split(",") if s.strip()}
+    done = set()
+    if args.resume and os.path.exists(args.out):
+        for line in open(args.out, encoding="utf-8"):
+            m = re.match(r"\s+(\S+)\s+([0-9.]+)\s+\(W", line)
+            if m:
+                done.add(m.group(1))
+        print(f"续跑：日志里已有 {len(done)} 套，跳过")
     decks = sorted(d for d in glob.glob(os.path.join(args.deck_dir, "*.csv"))
-                   if os.path.basename(d)[:-4] not in skip)
+                   if os.path.basename(d)[:-4] not in skip
+                   and os.path.basename(d)[:-4] not in done)
+    if not decks:
+        print("没有待测卡组，退出")
+        return 0
     os.makedirs(os.path.dirname(args.out), exist_ok=True)
     print(f"挑战赛：{len(decks)} 套卡组 × {args.games} 局，workers={args.workers}")
     print(f"擂主 = rollout + {os.path.basename(CHAMPION_DECK)}，日志 -> {args.out}")
 
     results = []
-    with open(args.out, "w", encoding="utf-8") as out:
-        out.write(f"# 卡组挑战赛  {time.strftime('%Y-%m-%d %H:%M:%S')}\n"
+    mode = "a" if (args.resume and os.path.exists(args.out)) else "w"
+    with open(args.out, mode, encoding="utf-8") as out:
+        out.write(f"\n# ===== 续跑 {time.strftime('%Y-%m-%d %H:%M:%S')} "
+                  f"共 {len(decks)} 套 =====\n" if mode == "a" else
+                  f"# 卡组挑战赛  {time.strftime('%Y-%m-%d %H:%M:%S')}\n"
                   f"# 擂主 rollout+sample_official | 每套 {args.games} 局 | SI≈"
                   f"{0.5/args.games**0.5:.3f}\n")
         for i, d in enumerate(decks, 1):

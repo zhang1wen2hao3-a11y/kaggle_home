@@ -278,6 +278,60 @@ class OracleFiller(Filler):
         return None
 
 
+class CompositionOracleFiller(OracleFiller):
+    """用真实隐藏信息，但**打乱区内的具体分配** —— 模拟"对手推断"能拿到的上限。
+
+    为什么 `OracleFiller` 不够：
+
+    | 信息 | 对手推断能不能改善 | `OracleFiller` | 本类 |
+    |---|---|---|---|
+    | 各区数量（手牌几张、牌库几张） | 不能，本来就是公开的 | 真实 | 真实 |
+    | 每区的**多重集合**（构筑猜得准不准） | ✅ 能 | 真实 | **真实** |
+    | 区内的**具体分配 / 抽牌顺序** | ❌ 不能（那等于开图） | 真实 | **随机** |
+
+    `OracleFiller` 连顺序都对 ⇒ 10 个"世界"其实是**同一个**世界 ⇒ 方差为 0 ⇒
+    `_stats` 里 sd=0、se=0，z 要么 ±inf 要么 0，**配对检验直接失效**。
+    实测（4 局 18 个决策）：15 个决策的 z 恰好 0.00，只有 1 个偏离规则 ——
+    那不是"完美信息没用"，那是"10 次采样采到了同一个样本"。
+
+    本类保留真实的多重集合与各区张数，只在区内做无放回随机重分配，于是每个 world
+    都是**分布正确、顺序随机**的独立样本：既没有开图偏差，又保住了 CRN 需要的方差。
+    **这才是对手推断的现实天花板** —— 推断能猜的是构筑，猜不到抽牌顺序。
+    """
+
+    name = "composition_oracle"
+
+    def __init__(self, seed: int = 0):
+        import random
+        self.rng = random.Random(seed)
+
+    def fill(self, obs: dict, memory, my_deck: list[int] | None = None) -> dict | None:
+        world = super().fill(obs, memory, my_deck)
+        if not world:
+            return None
+        rng = self.rng
+
+        def redeal(keys):
+            """若干区的卡合并后无放回随机重分配，各区张数保持不变。"""
+            pool = []
+            for k in keys:
+                pool.extend(world[k])
+            rng.shuffle(pool)
+            pos, out = 0, {}
+            for k in keys:
+                n = len(world[k])
+                out[k] = pool[pos:pos + n]
+                pos += n
+            world.update(out)
+
+        # 我方：牌库 + 奖赏（构筑我知道，只是不知道顺序）
+        redeal(["your_deck", "your_prize"])
+        # 对方：牌库 + 奖赏 + 手牌（对手推断要猜的就是这个多重集合）
+        redeal(["opponent_deck", "opponent_prize", "opponent_hand"])
+        # opponent_active 是场上的里侧怪，不动 —— 它是位置，不是抽牌堆
+        return world
+
+
 class ModelFiller(Filler):
     """用训练出来的对手推断模型填充 —— 给后续工作留的口子。
 
@@ -312,6 +366,9 @@ def make_filler(kind: str = "uniform", my_deck=None, **kw) -> Filler:
         return UniformFiller(my_deck=my_deck or [], **kw)
     if kind == "oracle":
         return OracleFiller()
+    if kind == "composition_oracle":
+        # 对手推断的天花板：构筑正确、顺序随机（详见 CompositionOracleFiller）
+        return CompositionOracleFiller(**kw)
     if kind == "model":
         return ModelFiller(**kw)
     raise ValueError(f"未知 filler 类型: {kind}")
