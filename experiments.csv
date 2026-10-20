@@ -33,3 +33,20 @@ EXP-0031,2026-10-18 10:41,policy_ltr_v1,policy:lambdarank,cv3-top1,0.9994,330,,,
 EXP-0032,2026-10-18 11:42,q_lgb_v1,q:lightgbm,cv3-auc-q,0.8165,330,,,"Q(s,a) 95维, 3折按局CV, 仅用 chosen 行",AUC=0.8165±0.0143
 EXP-0033,2026-10-18 11:43,q_lgb_v1,q:lightgbm,cv3-auc-q,0.7097,330,,,"Q(s,a) 95维, 3折按局CV, 仅用 chosen 行",AUC=0.7097±0.0163
 EXP-0034,2026-10-18 11:45,q_lgb_v1,q:lightgbm,cv3-auc-q,0.7707,275,,,"Q(s,a) 95维, 3折按局CV, 仅用 chosen 行",AUC=0.7707±0.0164
+EXP-0035,2026-10-20 21:31,det_comp_oracle,agents/ro_attack_w10,vs-ro_attack_w10-n300,0.5033,300,,,determinization 换成真实构筑（CompositionOracleFiller）,隐藏信息全对（只随机顺序）；z=+0.11 纯噪声 → 对手推断天花板=0
+EXP-0036,2026-10-20 21:31,sub_smart_on,agents/ro_attack_w10,vs-ro_attack_w10-n300,0.5100,300,,,SMART_SUB=True（SWITCH/ATTACH_FROM/TO_ACTIVE/SETUP_ACTIVE 目标选择）,z=+0.35 噪声；覆盖子决策里最大一块，但只值 14% 决策
+EXP-0037,2026-10-20 21:31,margin_0.5,agents/ro_attack_w10,vs-ro_attack_w10-n300,0.4300,300,,,margin=0.5,z=-2.42 明显更差：偏离过多
+EXP-0038,2026-10-20 21:31,margin_0.75,agents/ro_attack_w10,vs-ro_attack_w10-n300,0.4833,300,,,margin=0.75,z=-0.58 噪声
+EXP-0039,2026-10-20 21:31,margin_1.0,agents/ro_attack_w10,vs-ro_attack_w10-n300,0.5133,300,,,margin=1.0,z=+0.46 噪声（平台）
+EXP-0040,2026-10-20 21:31,margin_1.25,agents/ro_attack_w10,vs-ro_attack_w10-n300,0.5133,300,,,margin=1.25,z=+0.46 噪声（平台）
+EXP-0041,2026-10-20 21:31,margin_2.0,agents/ro_attack_w10,vs-ro_attack_w10-n300,0.4800,300,,,margin=2.0,z=-0.69 噪声
+EXP-0042,2026-10-20 21:31,margin_2.5,agents/ro_attack_w10,vs-ro_attack_w10-n300,0.4233,300,,,margin=2.5,z=-2.66 明显更差：过于保守
+EXP-0043,2026-10-20 21:31,margin_adaptive,agents/ro_attack_w10,vs-ro_attack_w10-n300,0.5000,300,,,margin 随候选数自适应 margin_k=0.7,z=0.00；实际行为≈基线（gated 决策候选数中位仅 3~4，非 11.8）
+EXP-0044,2026-10-20 21:31,playout_none,agents/ro_attack_w10,vs-ro_attack_w10-n300,0.4933,300,,,PLAYOUT=None（逐字相同的对照）,z=-0.23；两个相同 agent 也非严格 0.5（filler 随机源为 OS 熵）→ 噪声底≈1pp
+EXP-0045,2026-10-20 21:31,playout_develop,agents/ro_attack_w10,vs-ro_attack_w10-n300,0.4833,300,,,续弈用 develop_first（先铺场）,z=-0.58 噪声
+EXP-0046,2026-10-20 21:31,playout_evolve,agents/ro_attack_w10,vs-ro_attack_w10-n300,0.5533,300,,,续弈用 evolve_first（先进化）,z=+1.85 未达判据；但为目前唯一接近的（需 n=600 复测）
+EXP-0047,2026-10-20 21:31,deckrace_grass_heracross,agents/ro_deck.py,vs-ro_attack_w10-n160,0.5875,160,,,卡组挑战赛：grass_heracross（n=160 初筛）,n=160 第一名，z=+2.21
+EXP-0048,2026-10-20 21:31,deckrace_grass_heracross_600,agents/ro_deck.py,vs-ro_attack_w10-n600,0.5050,600,,,卡组挑战赛复测：grass_heracross,复测落回 0.5050（z=+0.24）→ 初筛是噪声
+EXP-0049,2026-10-20 21:31,deckrace_lightning_zeraora,agents/ro_deck.py,vs-ro_attack_w10-n160,0.5563,160,,,卡组挑战赛：lightning_zeraora（n=160 初筛）,z=+1.42
+EXP-0050,2026-10-20 21:31,deckrace_lightning_zeraora_600,agents/ro_deck.py,vs-ro_attack_w10-n600,0.4867,600,,,卡组挑战赛复测：lightning_zeraora,复测 0.4867（z=-0.65）
+EXP-0051,2026-10-20 21:31,deckrace_median,agents/ro_deck.py,vs-ro_attack_w10-n160,0.2750,160,,,卡组挑战赛：24 套中位胜率,22/24 明显弱于 sample_official（z 至 -9.5）

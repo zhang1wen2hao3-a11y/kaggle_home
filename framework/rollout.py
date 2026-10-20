@@ -232,7 +232,7 @@ def pick_pokemon_target(obs, areas, indices):
 
 
 def _decide(stype, ctx, opt_types, lo, hi, attack_ids=None, areas=None,
-            indices=None, obs=None, n_opts=None):
+            indices=None, obs=None, n_opts=None, prio=None):
     """规则决策核心。返回选项下标列表。与 main.py 逐行等价。"""
     n = len(opt_types) if n_opts is None else n_opts
     hi = min(hi, n)
@@ -249,8 +249,10 @@ def _decide(stype, ctx, opt_types, lo, hi, attack_ids=None, areas=None,
 
     # 主阶段：按优先级取第一个（一次一个动作）
     if stype == SelectType.MAIN:
+        table = prio if prio is not None else PRIORITY
+
         def _key(i):
-            p = PRIORITY.get(opt_types[i], 99)
+            p = table.get(opt_types[i], 99)
             if opt_types[i] != OptionType.ATTACK or not attack_ids:
                 return (p, 0, 0)
             dmg, cost = _ATTACK_INFO.get(attack_ids[i], (0, 9))
@@ -296,7 +298,7 @@ _POKEMON_TARGET_CTX = frozenset({
 })
 
 
-def rule_action(sel, obs=None):
+def rule_action(sel, obs=None, prio=None):
     """给定 SelectData（dict 或 dataclass），返回规则策略会选的选项下标列表。
 
     Args:
@@ -304,7 +306,7 @@ def rule_action(sel, obs=None):
         obs: 完整 observation（可选）。给了才能做策略子决策
              （如"贴能量给哪只宝可梦"），否则退化为"取第一个选项"。
     """
-    return _decide(*_sel_fields(sel), obs=obs)
+    return _decide(*_sel_fields(sel), obs=obs, prio=prio)
 
 
 def is_main(sel) -> bool:
@@ -326,7 +328,7 @@ def index_of_type(sel, want):
 
 
 # ============================================================ rollout
-def rollout_to_end(sid, obs, my_index: int, max_steps: int = 800):
+def rollout_to_end(sid, obs, my_index: int, max_steps: int = 800, playout=None):
     """从搜索节点一路用规则策略打到终局。
 
     Returns:
@@ -344,7 +346,11 @@ def rollout_to_end(sid, obs, my_index: int, max_steps: int = 800):
         sel = getattr(obs, "select", None)
         if sel is None:
             return None
-        act = rule_action(sel, obs if SMART_SUB else None)
+        # 续弈策略：默认与兜底一致（rule_action）。传入 playout 可换一套 ——
+        # 这是"评估器偏差"的唯一单变量入口：模拟用的策略 ≠ 实际打的策略时，
+        # 估值会有系统偏差。注意它同时作用于双方。
+        act = (playout(sel, obs) if playout is not None
+               else rule_action(sel, obs if SMART_SUB else None))
         try:
             st = search_step(sid, act)
         except Exception:
@@ -357,7 +363,7 @@ def rollout_to_end(sid, obs, my_index: int, max_steps: int = 800):
 # ============================================================ 动作评估
 def evaluate_actions(obs: dict, actions, *, filler, my_deck,
                      n_worlds: int = 10, max_steps: int = 800,
-                     memory=None):
+                     memory=None, playout=None):
     """用 CRN 评估一组候选动作。
 
     Args:
@@ -405,7 +411,8 @@ def evaluate_actions(obs: dict, actions, *, filler, my_deck,
                     outcomes[a].append(None)
                     continue
                 outcomes[a].append(
-                    rollout_to_end(st.searchId, st.observation, my_index, max_steps)
+                    rollout_to_end(st.searchId, st.observation, my_index,
+                                   max_steps, playout)
                 )
         finally:
             try:
@@ -431,7 +438,8 @@ def _stats(vals):
 def choose_action(obs: dict, *, filler, my_deck, n_worlds: int = 10,
                   margin: float = 1.0, min_pairs: int = 4,
                   max_steps: int = 800, memory=None,
-                  candidate_mode: str = "trio"):
+                  candidate_mode: str = "trio", margin_k: float = 0.0,
+                  playout=None):
     """决定这一手该下哪个动作。
 
     安全设计：**默认就是规则策略的选择**，只有当某个候选在配对比对上
@@ -471,9 +479,20 @@ def choose_action(obs: dict, *, filler, my_deck, n_worlds: int = 10,
     if len(cands) < 2:                  # 没有可比的备选
         return base, info
 
+    # 多重比较校正：我们从 k 个候选里取"最大 z"，k 越大这个最大值天然越大
+    # （k 个标准正态的最大值 ≈ √(2 ln k)）。所以阈值必须随 k 上升，
+    # 否则候选一多就会在纯噪声上做出假偏离。
+    #   margin_k=0     → 关闭（保持旧的平坦阈值，向后兼容）
+    #   margin_k=0.7   → k=3 时 ×1.00，k=12 时 ×1.97，k=122 时 ×3.5
+    if margin_k:
+        k_eff = max(len(cands), 3)
+        margin = margin * (1.0 + margin_k * math.log(k_eff / 3.0))
+        info["margin_used"] = margin
+        info["n_cands"] = len(cands)
+
     outcomes, ev = evaluate_actions(obs, cands, filler=filler, my_deck=my_deck,
                                    n_worlds=n_worlds, max_steps=max_steps,
-                                   memory=memory)
+                                   memory=memory, playout=playout)
     info["worlds"] = ev["worlds"]
     info["cands"] = cands
     info["stats"] = {a: _stats(outcomes[a]) for a in cands}

@@ -67,6 +67,11 @@ ENV = os.environ
 MODE = ENV.get("PTCG_ROLLOUT_MODE", "attack")
 WORLDS = int(ENV.get("PTCG_ROLLOUT_WORLDS", "10"))
 MARGIN = float(ENV.get("PTCG_ROLLOUT_MARGIN", "1.5"))
+# 候选数校正系数：阈值随候选数上升（多重比较）。0=关闭，0.7≈k=12 时阈值翻倍。
+MARGIN_K = float(ENV.get("PTCG_ROLLOUT_MARGIN_K", "0"))
+# 续弈（playout）策略：None = 用与兜底相同的 rule_action。
+# 换一套可以测"评估器偏差"——模拟用的策略 ≠ 实际打的策略时估值会有系统偏差。
+PLAYOUT = None
 # 候选集：trio=[base,ATTACK,END] | all=全部选项
 # 实测（跨 5 卡组，对手=最强规则 agent，各 150 局）：
 #   trio + margin1.0 = 0.490
@@ -190,7 +195,7 @@ def agent(obs_dict: dict) -> list[int]:
         action, _info = _choose_action(
             obs_dict, filler=_FILLER, my_deck=_DECK,
             n_worlds=WORLDS, margin=MARGIN, memory=None,
-            candidate_mode=CANDS,
+            candidate_mode=CANDS, margin_k=MARGIN_K, playout=PLAYOUT,
         )
         return action
     except Exception:
