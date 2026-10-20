@@ -72,6 +72,10 @@ MARGIN_K = float(ENV.get("PTCG_ROLLOUT_MARGIN_K", "0"))
 # 续弈（playout）策略：None = 用与兜底相同的 rule_action。
 # 换一套可以测"评估器偏差"——模拟用的策略 ≠ 实际打的策略时估值会有系统偏差。
 PLAYOUT = None
+# depth-2：轮到对手做 MAIN 决策时，枚举至多 REPLY_WIDTH 个回应并取最坏。
+# REPLY_DEPTH=0 就是原来的 depth-1。详见 framework/rollout.py::rollout_to_end。
+REPLY_DEPTH = int(ENV.get("PTCG_ROLLOUT_REPLY_DEPTH", "0"))
+REPLY_WIDTH = int(ENV.get("PTCG_ROLLOUT_REPLY_WIDTH", "3"))
 # 候选集：trio=[base,ATTACK,END] | all=全部选项
 # 实测（跨 5 卡组，对手=最强规则 agent，各 150 局）：
 #   trio + margin1.0 = 0.490
@@ -196,6 +200,7 @@ def agent(obs_dict: dict) -> list[int]:
             obs_dict, filler=_FILLER, my_deck=_DECK,
             n_worlds=WORLDS, margin=MARGIN, memory=None,
             candidate_mode=CANDS, margin_k=MARGIN_K, playout=PLAYOUT,
+            reply_depth=REPLY_DEPTH, reply_width=REPLY_WIDTH,
         )
         return action
     except Exception:

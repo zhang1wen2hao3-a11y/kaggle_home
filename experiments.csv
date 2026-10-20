@@ -52,3 +52,5 @@ EXP-0050,2026-10-20 21:31,deckrace_lightning_zeraora_600,agents/ro_deck.py,vs-ro
 EXP-0051,2026-10-20 21:31,deckrace_median,agents/ro_deck.py,vs-ro_attack_w10-n160,0.2750,160,,,卡组挑战赛：24 套中位胜率,22/24 明显弱于 sample_official（z 至 -9.5）
 EXP-0052,2026-10-20 21:57,playout_evolve_2000,agents/ro_attack_w10,vs-ro_attack_w10-n2000,0.5035,2000,,,"复测 playout_evolve（n=2000, SE=0.011）",初筛 0.5533(z=+1.85) → 复测 0.5035(z=+0.31)：**赢家诅咒**，playout 轴关闭
 EXP-0053,2026-10-20 21:57,playout_attack_first,agents/ro_attack_w10,vs-ro_attack_w10-n300,0.4567,300,,,续弈用 attack_first（正对照）,z=-1.50，方向符合预期（更差的续弈→更差），但同样未达显著
+EXP-0054,2026-10-20 22:08,cands_trio_vs_all,agents/ro_cnt_trio.py,vs-ro_attack_w10-n600,0.4583,600,,,"候选集 trio（[base,ATTACK,END]）vs all（全部选项）",trio 0.4583 → all 0.5417（差 +8.3pp，z=+2.04，n=600 复测）；历史上的 +0.110 方向被复现，量级偏大。当前线上用的就是 all，无需改动
+EXP-0055,2026-10-20 22:25,depth2_w3,agents/ro_d2w3.py,vs-ro_attack_w10-n600,0.5133,600,,,depth-2：对手 MAIN 决策处枚举 3 个回应取最坏（reply_depth=1）,z=+0.65 噪声；分叉实测触发 553 次/3 局（确实跑了）；成本 0.61→1.20 s/局。实现只用 search_step（search_begin 在模拟节点上会抛 Not agent observation）

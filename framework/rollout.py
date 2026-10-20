@@ -328,13 +328,57 @@ def index_of_type(sel, want):
 
 
 # ============================================================ rollout
-def rollout_to_end(sid, obs, my_index: int, max_steps: int = 800, playout=None):
+def _reply_candidates(sel, width: int):
+    """depth-2 里要枚举的"对手回应"。
+
+    先保住规则会选的那一手（最可能是真实走法），再用**引擎枚举顺序**填补，
+    直到凑够 width 个。这里不追求"最坑我的回应"——
+    那需要评估才知道，而我们正是在用评估来算它。
+    """
+    opts = getattr(sel, "option", None) or []
+    n = len(opts)
+    if n <= 1:
+        return []
+    idxs = []
+    try:
+        base = rule_action(sel, None)
+        if base and len(base) == 1 and 0 <= base[0] < n:
+            idxs.append(base[0])
+    except Exception:
+        pass
+    for i in range(n):
+        if len(idxs) >= width:
+            break
+        if i not in idxs:
+            idxs.append(i)
+    return [[i] for i in idxs[:max(width, 1)]]
+
+
+def rollout_to_end(sid, obs, my_index: int, max_steps: int = 800, playout=None,
+                   reply_depth: int = 0, reply_width: int = 3):
     """从搜索节点一路用规则策略打到终局。
+
+    Args:
+        reply_depth: 0 = 现在的 depth-1（全部交给续弈策略）。
+                     1 = **depth-2**：遇到「对手的 MAIN 决策」时，枚举至多
+                     ``reply_width`` 个回应，各自打到终局，取**最小值**。
+                     再往内层不再分叉（所以只是一层，不是指数爆炸）。
+        reply_width: 每个分叉点枚举几个回应。
+
+    depth-2 修的是一个真实的模型错误：depth-1 里"对手怎么打"是由**我们自己的
+    规则策略**决定的，于是评估出来的是"这步对规则对手好不好"。depth-2 把对手的
+    回应换成**对抗性枚举 + 取最坏**，估值才反映"对手会挑最坑我的那手"。
+
+    ⚠️ 实现约束：不能用 search_begin 在模拟节点上重开搜索（会抛
+    `ValueError: Not agent observation.`，因为 SearchState 的
+    search_begin_input 是 None）。但 search_step 可以在已有会话内**任意深度分叉**，
+    所以 depth-2 只用 search_step 实现，隐藏信息（世界）仍然是根节点定下来的
+    —— CRN 天然保持。
 
     Returns:
         1.0 我赢 / 0.0 我输 / 0.5 平局 / None 异常（无法判定）
     """
-    for _ in range(max_steps):
+    for step in range(max_steps):
         cur = getattr(obs, "current", None)
         if cur is None:
             return None
@@ -346,6 +390,26 @@ def rollout_to_end(sid, obs, my_index: int, max_steps: int = 800, playout=None):
         sel = getattr(obs, "select", None)
         if sel is None:
             return None
+
+        # ---- depth-2：轮到**对手**做 MAIN 决策时，枚举回应并取最坏
+        if (reply_depth > 0 and is_main(sel)
+                and int(getattr(cur, "yourIndex", -1)) != int(my_index)):
+            acts = _reply_candidates(sel, reply_width)
+            if len(acts) >= 2:
+                vals = []
+                for act in acts:
+                    try:
+                        st = search_step(sid, act)
+                    except Exception:
+                        continue
+                    v = rollout_to_end(st.searchId, st.observation, my_index,
+                                       max_steps - step, playout, 0, reply_width)
+                    if v is not None:
+                        vals.append(v)
+                if vals:
+                    return min(vals)      # 对手会选最坑我们的那一手
+            # 分不了叉（只有 1 个选项 / 全失败）就退回正常推进
+
         # 续弈策略：默认与兜底一致（rule_action）。传入 playout 可换一套 ——
         # 这是"评估器偏差"的唯一单变量入口：模拟用的策略 ≠ 实际打的策略时，
         # 估值会有系统偏差。注意它同时作用于双方。
@@ -363,7 +427,8 @@ def rollout_to_end(sid, obs, my_index: int, max_steps: int = 800, playout=None):
 # ============================================================ 动作评估
 def evaluate_actions(obs: dict, actions, *, filler, my_deck,
                      n_worlds: int = 10, max_steps: int = 800,
-                     memory=None, playout=None):
+                     memory=None, playout=None,
+                     reply_depth: int = 0, reply_width: int = 3):
     """用 CRN 评估一组候选动作。
 
     Args:
@@ -412,7 +477,7 @@ def evaluate_actions(obs: dict, actions, *, filler, my_deck,
                     continue
                 outcomes[a].append(
                     rollout_to_end(st.searchId, st.observation, my_index,
-                                   max_steps, playout)
+                                   max_steps, playout, reply_depth, reply_width)
                 )
         finally:
             try:
@@ -439,7 +504,7 @@ def choose_action(obs: dict, *, filler, my_deck, n_worlds: int = 10,
                   margin: float = 1.0, min_pairs: int = 4,
                   max_steps: int = 800, memory=None,
                   candidate_mode: str = "trio", margin_k: float = 0.0,
-                  playout=None):
+                  playout=None, reply_depth: int = 0, reply_width: int = 3):
     """决定这一手该下哪个动作。
 
     安全设计：**默认就是规则策略的选择**，只有当某个候选在配对比对上
@@ -492,7 +557,8 @@ def choose_action(obs: dict, *, filler, my_deck, n_worlds: int = 10,
 
     outcomes, ev = evaluate_actions(obs, cands, filler=filler, my_deck=my_deck,
                                    n_worlds=n_worlds, max_steps=max_steps,
-                                   memory=memory, playout=playout)
+                                   memory=memory, playout=playout,
+                                   reply_depth=reply_depth, reply_width=reply_width)
     info["worlds"] = ev["worlds"]
     info["cands"] = cands
     info["stats"] = {a: _stats(outcomes[a]) for a in cands}
