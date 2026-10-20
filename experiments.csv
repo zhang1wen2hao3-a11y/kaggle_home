@@ -54,3 +54,7 @@ EXP-0052,2026-10-20 21:57,playout_evolve_2000,agents/ro_attack_w10,vs-ro_attack_
 EXP-0053,2026-10-20 21:57,playout_attack_first,agents/ro_attack_w10,vs-ro_attack_w10-n300,0.4567,300,,,续弈用 attack_first（正对照）,z=-1.50，方向符合预期（更差的续弈→更差），但同样未达显著
 EXP-0054,2026-10-20 22:08,cands_trio_vs_all,agents/ro_cnt_trio.py,vs-ro_attack_w10-n600,0.4583,600,,,"候选集 trio（[base,ATTACK,END]）vs all（全部选项）",trio 0.4583 → all 0.5417（差 +8.3pp，z=+2.04，n=600 复测）；历史上的 +0.110 方向被复现，量级偏大。当前线上用的就是 all，无需改动
 EXP-0055,2026-10-20 22:25,depth2_w3,agents/ro_d2w3.py,vs-ro_attack_w10-n600,0.5133,600,,,depth-2：对手 MAIN 决策处枚举 3 个回应取最坏（reply_depth=1）,z=+0.65 噪声；分叉实测触发 553 次/3 局（确实跑了）；成本 0.61→1.20 s/局。实现只用 search_step（search_begin 在模拟节点上会抛 Not agent observation）
+EXP-0056,2026-10-20 23:08,prio_develop_first,agents/ro_attack_w10,vs-ro_attack_w10-n600,0.4167,600,,,优先级表=develop_first（PLAY 先，但 RETREAT/DISCARD 排在 ATTACK 之前）,z=-4.08 显著更差。注意混了两个因素：先出牌 + 先撤退（后者是当年那个 bug 的形状）
+EXP-0057,2026-10-20 23:08,prio_evolve_first,agents/ro_attack_w10,vs-ro_attack_w10-n600,0.4983,600,,,优先级表=evolve_first（EVOLVE→PLAY→ABILITY→ATTACH→ATTACK→RETREAT→DISCARD→END）,z=-0.08 噪声；ATTACK 在 RETREAT 之前，属干净对照
+EXP-0058,2026-10-20 23:08,prio_play_first,agents/ro_attack_w10,vs-ro_attack_w10-n600,0.4883,600,,,优先级表：PLAY→EVOLVE→ABILITY→ATTACH→ATTACK→END→DISCARD→RETREAT,z=-0.57 噪声 —— ATTACK 位置钉住，只把 PLAY 提到最前
+EXP-0059,2026-10-20 23:08,prio_play_before_evolve,agents/ro_attack_w10,vs-ro_attack_w10-n600,0.4733,600,,,优先级表：ATTACH→PLAY→EVOLVE→ABILITY→ATTACK→END→DISCARD→RETREAT,z=-1.30 噪声偏负 —— 只把 PLAY 插到 EVOLVE 之前

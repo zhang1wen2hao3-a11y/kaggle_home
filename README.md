@@ -252,7 +252,27 @@ PTCG 的**攻击会结束回合**。把 ATTACK 排在优先级首位，agent 就
 | `attack_first` | 0.100 | **0.167** |
 | `develop_first` | 0.733 | **0.867** |
 
-### 3. 修好前两条之后，剩下的顺序差异基本是噪声
+### 3. 顺序里只有一件事重要：**ATTACK 不能被 RETREAT/DISCARD 挤到后面**
+
+2026-10-20 用 n=600（SE 2.0pp）把优先级表重测了一遍——之前那批是 n=200、且
+在 BUG-002 修复前，测不出 2~4pp 的差异：
+
+| 优先级表 | 胜率 | z | 结论 |
+|---|---:|---:|---|
+| `safe_v1`（当前）：ATTACH→EVOLVE→PLAY→ABILITY→**ATTACK**→END→DISCARD→RETREAT | 基线 | 0 | — |
+| `evolve_first`：EVOLVE→PLAY→ABILITY→ATTACH→**ATTACK**→RETREAT→DISCARD→END | 0.4983 | −0.08 | 噪声 |
+| `play_first`：PLAY→EVOLVE→ABILITY→ATTACH→**ATTACK**→END→DISCARD→RETREAT | 0.4883 | −0.57 | 噪声 |
+| `play_before_evolve`：ATTACH→PLAY→EVOLVE→ABILITY→**ATTACK**→END→DISCARD→RETREAT | 0.4733 | −1.31 | 噪声 |
+| `develop_first`：PLAY→EVOLVE→ABILITY→ATTACH→**RETREAT→DISCARD→ATTACK**→END | **0.4167** | **−4.08** | ❌ **显著更差** |
+
+关键在读表：前四行**ATTACK 都在 RETREAT/DISCARD 之前**，彼此全是噪声；
+唯一崩掉的那行恰恰是 **RETREAT→DISCARD 插在 ATTACK 前面**。
+
+⇒ **"先抽牌还是先贴能量"完全不重要**（这是直觉上最想问的那个问题，答案是不重要）。
+真正致命的只有一条：**别让撤退/弃牌挡在攻击前面**——那正是 2026-10-07 那个让
+8 套卡组平均 0.2725 的 bug。当前 `safe_v1` 在这条上是正确的，也不需要再调。
+
+### 3b.（历史记录）修好前两条之后，剩下的顺序差异基本是噪声
 
 两两对决 n=200，四个"合理"配置互有胜负、全部落在 0.4～0.55：
 

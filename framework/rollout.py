@@ -504,7 +504,8 @@ def choose_action(obs: dict, *, filler, my_deck, n_worlds: int = 10,
                   margin: float = 1.0, min_pairs: int = 4,
                   max_steps: int = 800, memory=None,
                   candidate_mode: str = "trio", margin_k: float = 0.0,
-                  playout=None, reply_depth: int = 0, reply_width: int = 3):
+                  playout=None, reply_depth: int = 0, reply_width: int = 3,
+                  base_prio=None):
     """决定这一手该下哪个动作。
 
     安全设计：**默认就是规则策略的选择**，只有当某个候选在配对比对上
@@ -515,7 +516,9 @@ def choose_action(obs: dict, *, filler, my_deck, n_worlds: int = 10,
         (action: list[int], info: dict)
     """
     sel = obs.get("select")
-    base = rule_action(sel, obs if SMART_SUB else None)
+    # base = 规则策略的选择，它是整条链的"锚"：只有某个候选显著更好时才偏离。
+    # base_prio 允许换一张优先级表（默认 None = framework 的 PRIORITY / safe_v1）。
+    base = rule_action(sel, obs if SMART_SUB else None, prio=base_prio)
     info = {"base": base, "chosen": base, "reason": "rule",
             "cands": [], "stats": {}, "pairs": {}, "worlds": 0}
     if not sel or len(base) != 1:

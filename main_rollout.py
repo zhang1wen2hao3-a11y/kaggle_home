@@ -76,6 +76,9 @@ PLAYOUT = None
 # REPLY_DEPTH=0 就是原来的 depth-1。详见 framework/rollout.py::rollout_to_end。
 REPLY_DEPTH = int(ENV.get("PTCG_ROLLOUT_REPLY_DEPTH", "0"))
 REPLY_WIDTH = int(ENV.get("PTCG_ROLLOUT_REPLY_WIDTH", "3"))
+# 优先级表覆盖：None = framework 默认（safe_v1）。变体可以换成别的顺序，
+# 测"核心策略" 本身 —— 它同时是安全阀、搜索基准、也是续弈策略。
+BASE_PRIO = None
 # 候选集：trio=[base,ATTACK,END] | all=全部选项
 # 实测（跨 5 卡组，对手=最强规则 agent，各 150 局）：
 #   trio + margin1.0 = 0.490
@@ -201,6 +204,7 @@ def agent(obs_dict: dict) -> list[int]:
             n_worlds=WORLDS, margin=MARGIN, memory=None,
             candidate_mode=CANDS, margin_k=MARGIN_K, playout=PLAYOUT,
             reply_depth=REPLY_DEPTH, reply_width=REPLY_WIDTH,
+            base_prio=BASE_PRIO,
         )
         return action
     except Exception:
