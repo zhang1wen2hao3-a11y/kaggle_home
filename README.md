@@ -361,6 +361,11 @@ PTCG 的**攻击会结束回合**。把 ATTACK 排在优先级首位，agent 就
 │   ├── random_baseline.py #   基准对手（已无区分度）
 │   └── search_agent.py    #   搜索 agent（MCTS + P + V，实测打不过 greedy）
 │
+├── tools/                 # 诊断工具（做实验前先过一遍）
+│   ├── check_agent.py     #   agent 自检：真 rollout 次数 / 被吞掉的异常 / 配置是否真生效
+│   ├── inspect_subdecisions.py  # 子决策盘点：占比、选择空间、是否退化、选项解析成具体牌
+│   └── measure_cost.py    #   单局耗时 / 预算是否被打穿 / 还剩多少算力余量
+│
 ├── decks/                 # 25 套 archetype 卡组
 ├── tests/                 # 回归测试（优先级表同步、rollout 差分测试、内存污染）
 │
