@@ -123,6 +123,27 @@ bash fetch_data.sh
 > 所以 95 维的 GBDT 打不过一次真实的 rollout。
 > **结论：PIMC / 学习型 Q 到此为止，不要再投入。** 详见 `framework/README.md`。
 
+### 日志：`evaluate.py` 每次跑完都会落盘
+
+`logs/ab_log.tsv` 是一行一次的汇总（时间 / agent / 对手 / 卡组 / 方案 / 正负 / 胜率 / 耗时），
+**无条件追加**，不需要 `| tee`，也不怕后台任务里丢掉。
+
+> 为什么要这样：以前结果只留在终端，后台跑的扫描跑完就没了（`logs/` 还是 gitignore 的）。
+> 实验记录不能依赖调用者的自觉。
+
+两个地方的分工：
+
+| 位置 | 内容 | 进仓库 |
+|---|---|---|
+| `logs/ab_log.tsv` | **所有**评估的原始汇总，防丢 | ❌ gitignore |
+| `experiments.csv` | 事后挑出**有意义**的那些，结构化记录 | ✅ 唯一事实来源 |
+
+```bash
+# 跑完把它提升成正式记录（否则只是个临时数字）
+./run.sh -c "from exp_log import log_experiment; log_experiment(
+    name='xxx', agent='agents/a', eval_scheme='vs-b-n300', win_rate=0.51, n_games=300)"
+```
+
 ### 三条评估纪律（都踩过坑才总结出来）
 
 1. **必须用按局 K 折 CV** —— 单次切分的 AUC 标准差达 0.041，而特征改进只有 0.005 量级

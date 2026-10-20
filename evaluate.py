@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 import argparse
+import datetime
 import importlib.util
 import os
 import sys
@@ -75,6 +76,31 @@ def _worker_play(g: int) -> dict:
                 "error": f"{type(e).__name__}: {e}", "warnings": []}
     return {"g": g, "seat": seat, "result": r["result"],
             "error": r.get("error"), "warnings": r.get("warnings") or []}
+
+
+AB_LOG = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs", "ab_log.tsv")
+AB_HEADER = ["时间", "agent", "对手", "被测卡组", "对手卡组", "方案",
+             "有效局", "总局", "W", "L", "平", "失败", "胜率", "耗时s", "s每局"]
+
+
+def _append_ab_log(args, scheme, played, wins, losses, draws, fails, wr, elapsed) -> None:
+    """把这次评估的汇总追加到 logs/ab_log.tsv（TSV，首次自动写表头）。"""
+    try:
+        os.makedirs(os.path.dirname(AB_LOG), exist_ok=True)
+        new = not os.path.exists(AB_LOG)
+        with open(AB_LOG, "a", encoding="utf-8") as f:
+            if new:
+                f.write("\t".join(AB_HEADER) + "\n")
+            f.write("\t".join(map(str, [
+                datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                os.path.basename(args.agent), os.path.basename(args.opponent),
+                args.deck, args.deck_opponent or args.deck, scheme,
+                played, args.games, wins, losses, draws, fails,
+                f"{wr:.4f}", f"{elapsed:.1f}", f"{elapsed / max(args.games, 1):.3f}",
+            ])) + "\n")
+        print(f"已追加日志: logs/ab_log.tsv")
+    except Exception as e:            # 记日志失败绝不能影响评估本身
+        print(f"（写 ab_log.tsv 失败，已忽略: {e}）")
 
 
 def main() -> None:
@@ -179,6 +205,11 @@ def main() -> None:
     if all_warnings:
         print(f"⚠ 非法返回 : {len(all_warnings)} 次，例：{all_warnings[:3]}")
     print("=" * 60)
+
+    # ---- 无条件落盘：每次评估都往 logs/ab_log.tsv 追加一行
+    # 为什么要有这个：以前结果只靠 `| tee logs/xxx.log` 或者留在终端里，
+    # 跑完就丢（后台任务里尤其严重）。实验记录不能依赖调用者的自觉。
+    _append_ab_log(args, scheme, played, wins, losses, draws, fails, wr, dt)
 
     if args.log:
         if not args.name:
