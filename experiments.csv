@@ -50,3 +50,5 @@ EXP-0048,2026-10-20 21:31,deckrace_grass_heracross_600,agents/ro_deck.py,vs-ro_a
 EXP-0049,2026-10-20 21:31,deckrace_lightning_zeraora,agents/ro_deck.py,vs-ro_attack_w10-n160,0.5563,160,,,卡组挑战赛：lightning_zeraora（n=160 初筛）,z=+1.42
 EXP-0050,2026-10-20 21:31,deckrace_lightning_zeraora_600,agents/ro_deck.py,vs-ro_attack_w10-n600,0.4867,600,,,卡组挑战赛复测：lightning_zeraora,复测 0.4867（z=-0.65）
 EXP-0051,2026-10-20 21:31,deckrace_median,agents/ro_deck.py,vs-ro_attack_w10-n160,0.2750,160,,,卡组挑战赛：24 套中位胜率,22/24 明显弱于 sample_official（z 至 -9.5）
+EXP-0052,2026-10-20 21:57,playout_evolve_2000,agents/ro_attack_w10,vs-ro_attack_w10-n2000,0.5035,2000,,,"复测 playout_evolve（n=2000, SE=0.011）",初筛 0.5533(z=+1.85) → 复测 0.5035(z=+0.31)：**赢家诅咒**，playout 轴关闭
+EXP-0053,2026-10-20 21:57,playout_attack_first,agents/ro_attack_w10,vs-ro_attack_w10-n300,0.4567,300,,,续弈用 attack_first（正对照）,z=-1.50，方向符合预期（更差的续弈→更差），但同样未达显著
