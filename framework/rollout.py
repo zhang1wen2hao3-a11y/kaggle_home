@@ -289,6 +289,126 @@ def _decide(stype, ctx, opt_types, lo, hi, attack_ids=None, areas=None,
 SMART_SUB = False
 
 
+# ============================================================ 子决策：选哪张牌
+# 背景：`TO_HAND`（从牌库/弃牌里挑一张进手，占 2.3%）等"选牌"类子决策，
+# 原先一律 `取引擎枚举的第一个` —— 等于让引擎的选项顺序决定我们检索什么。
+# 有检索/抽卡引擎的卡组（官方那四套：Ultra Ball / Buddy-Buddy Poffin /
+# Night Stretcher …）会因此自伤。
+#
+# 下面这套打分只用**公开信息**：卡牌库（cg.api.all_card_data / all_attack）+ 当前局面。
+SUB_CARD_CHOICE = False     # 总开关，默认关（保持与 main.py 逐行等价）
+
+_CARD_STATS: dict = {}
+
+
+def _load_card_stats() -> dict:
+    """从引擎卡库一次性建立 cardId -> 统计 的缓存。"""
+    global _CARD_STATS
+    if _CARD_STATS:
+        return _CARD_STATS
+    try:
+        from cg.api import all_card_data, all_attack
+    except Exception:
+        _CARD_STATS = {}
+        return _CARD_STATS
+    atk = {}
+    try:
+        for a in all_attack():
+            atk[int(a.attackId)] = (int(getattr(a, "damage", 0) or 0),
+                                    len(getattr(a, "energies", None) or []))
+    except Exception:
+        pass
+    stats = {}
+    try:
+        for c in all_card_data():
+            cid = int(c.cardId)
+            costs = [atk[i] for i in (c.attacks or []) if i in atk]
+            costs = [(d, n) for d, n in costs if n > 0]
+            cheapest = min(costs, key=lambda t: (t[1], -t[0])) if costs else (0, 9)
+            stats[cid] = {
+                "type": int(getattr(c, "cardType", -1)),
+                "basic": bool(getattr(c, "basic", False)),
+                "stage1": bool(getattr(c, "stage1", False)),
+                "stage2": bool(getattr(c, "stage2", False)),
+                "hp": int(getattr(c, "hp", 0) or 0),
+                "ex": bool(getattr(c, "ex", False)) or bool(getattr(c, "megaEx", False)),
+                "evolves_from": (getattr(c, "evolvesFrom", None) or None),
+                "min_cost": cheapest[1],
+                "max_dmg": max([d for d, _ in costs], default=0),
+            }
+    except Exception:
+        stats = {}
+    _CARD_STATS = stats
+    return _CARD_STATS
+
+
+def _names_in_play(obs, me_idx):
+    """我方场上/手牌里出现过的宝可梦**名字**（用于判断"这张是不是缺的那一环"）。"""
+    out = set()
+    try:
+        from cg.api import all_card_data
+        id2name = {int(c.cardId): c.name for c in all_card_data()}
+    except Exception:
+        return out
+    cur = obs.get("current") or {}
+    p = (cur.get("players") or [{}])[me_idx] or {}
+    for pk in list(p.get("active") or []) + list(p.get("bench") or []):
+        if pk:
+            out.add(id2name.get(_get(pk, "id"), ""))
+    for c in (p.get("hand") or []):
+        out.add(id2name.get(_get(c, "id"), ""))
+    out.discard("")
+    return out
+
+
+def score_card(obs, cid: int, me_idx: int, in_play_names=None) -> float:
+    """给"把这张牌拿到手"打分。只用公开信息。"""
+    st = _load_card_stats().get(int(cid))
+    if not st:
+        return 0.0
+    cur = obs.get("current") or {}
+    p = (cur.get("players") or [{}])[me_idx] or {}
+    hand_n = len(p.get("hand") or [])
+    score = 0.0
+
+    # ① 能补上进化线缺的那一环 —— 最常见也最有价值
+    if st["evolves_from"] and in_play_names and st["evolves_from"] in in_play_names:
+        score += 10.0
+    # ② 基础怪且 1~2 能就能攻击 —— 立刻能用的进攻手
+    if st["basic"] and 1 <= st["min_cost"] <= 2 and st["max_dmg"] > 0:
+        score += 4.0 + min(st["max_dmg"], 300) / 100.0
+    # ③ 进化怪但没有前置（拿了也用不上）
+    if (st["stage1"] or st["stage2"]) and not (st["evolves_from"] in (in_play_names or ())):
+        score -= 2.0
+    # ④ 手牌少时，抽卡/检索类更值钱
+    if st["type"] == 3:      # SUPPORTER
+        score += 3.0 if hand_n <= 5 else 1.0
+    elif st["type"] == 1:    # ITEM
+        score += 2.0 if hand_n <= 3 else 0.5
+    # ⑤ 基本能量：只在 Active 还打不动的时候才值得拿
+    if st["type"] == 5:
+        act = _active_of(p)
+        need = _MIN_ATK_COST.get(_get(act, "id"), 0) if act else 0
+        cur_e = _energy_count(act) if act else 0
+        score += 2.5 if (need and cur_e < need) else -0.5
+    return score
+
+
+def pick_card_target(obs, card_ids, me_idx):
+    """在"选一张牌"的子决策里挑最优下标；挑不了返回 None。"""
+    if not card_ids:
+        return None
+    names = _names_in_play(obs, me_idx)
+    best_i, best_s = None, -1e9
+    for i, cid in enumerate(card_ids):
+        if cid is None:
+            continue
+        sc = score_card(obs, cid, me_idx, names)
+        if sc > best_s:
+            best_i, best_s = i, sc
+    return best_i
+
+
 # 哪些 context 的选项指向"我的宝可梦"（可用 HP/能量打分挑目标）
 _POKEMON_TARGET_CTX = frozenset({
     SelectContext.ATTACH_FROM,          # 贴能量给哪只
@@ -298,15 +418,94 @@ _POKEMON_TARGET_CTX = frozenset({
 })
 
 
+# 允许跳过（minCount == 0）时是否真的跳过。默认 False —— 因为实测这些
+# context（ATTACH_TO / TO_HAND / SETUP_BENCH）里"选一张"通常是对的，
+# 盲目跳过反而有害。留开关是为了能 A/B 验证。
+SKIP_OPTIONAL = False
+
+# 哪些 context 是"选一张牌"（可以对卡牌本身打分）
+_CARD_PICK_CTX = frozenset({
+    SelectContext.TO_HAND,        # 从牌库/弃牌拿一张进手
+    SelectContext.LOOK,           # 查看后选一张
+})
+
+
+def _resolve_option_ids(obs, areas, indices, sel=None):
+    """把选项的 (area, index) 解析成 cardId。解析不了的位置给 None。
+
+    各区的可见性（`cg/api.py`）：
+        HAND/DISCARD/ACTIVE/BENCH/PRIZE -> players[i] 下直接可取
+        LOOKING(12)                     -> current.looking[i].id
+        DECK(1)                         -> **只能**从 select.deck 取
+                                          （"None unless selecting cards from the deck"）
+    ⚠️ 漏掉 DECK 这一支会让"从牌库检索"的决策全部解析失败 —— 那正好是
+       Ultra Ball / Buddy-Buddy Poffin 这类检索牌最需要判断的地方。
+    """
+    cur = obs.get("current") or {}
+    players = cur.get("players") or []
+    if len(players) < 2:
+        return []
+    me = int(cur.get("yourIndex", 0))
+    deck_arr = None
+    if sel is not None:
+        deck_arr = sel.get("deck") if isinstance(sel, dict) else getattr(sel, "deck", None)
+    out = []
+    for a, i in zip(areas, indices):
+        if a == 1:
+            arr = deck_arr or []
+            cid = None
+            if i is not None and 0 <= i < len(arr) and arr[i]:
+                cid = _get(arr[i], "id")
+            out.append(cid)
+            continue
+        arr = {2: players[me].get("hand"), 3: players[me].get("discard"),
+               4: players[me].get("active"), 5: players[me].get("bench"),
+               6: players[me].get("prize"), 12: cur.get("looking")}.get(a)
+        cid = None
+        if arr and i is not None and 0 <= i < len(arr) and arr[i]:
+            cid = _get(arr[i], "id")
+        out.append(cid)
+    return out
+
+
 def rule_action(sel, obs=None, prio=None):
     """给定 SelectData（dict 或 dataclass），返回规则策略会选的选项下标列表。
 
     Args:
         sel: SelectData
         obs: 完整 observation（可选）。给了才能做策略子决策
-             （如"贴能量给哪只宝可梦"），否则退化为"取第一个选项"。
+             （如"贴能量给哪只宝可梦"、"检索哪张牌"），否则退化为"取第一个选项"。
     """
-    return _decide(*_sel_fields(sel), obs=obs, prio=prio)
+    act = _decide(*_sel_fields(sel), obs=obs, prio=prio)
+    if not SUB_CARD_CHOICE or obs is None:
+        return act
+
+    stype, ctx, _otypes, lo, hi, _atk, areas, indices = _sel_fields(sel)
+    try:
+        ctx_e = SelectContext(int(ctx))
+    except Exception:
+        return act
+
+    # ---- ① minCount == 0 时允许跳过：只有当"最好的那张牌分数 <= 0"才跳过
+    if SKIP_OPTIONAL and lo == 0 and ctx_e in _CARD_PICK_CTX and areas:
+        cur = obs.get("current") or {}
+        me = int(cur.get("yourIndex", 0))
+        ids = _resolve_option_ids(obs, areas, indices, sel)
+        names = _names_in_play(obs, me)
+        best = max((score_card(obs, c, me, names) for c in ids if c is not None),
+                   default=-1e9)
+        if best <= 0:
+            return []
+
+    # ---- ② "选一张牌"时按卡牌价值挑，而不是取引擎第一个
+    if ctx_e in _CARD_PICK_CTX and areas and hi >= 1:
+        cur = obs.get("current") or {}
+        me = int(cur.get("yourIndex", 0))
+        ids = _resolve_option_ids(obs, areas, indices, sel)
+        best = pick_card_target(obs, ids, me)
+        if best is not None:
+            return [best]
+    return act
 
 
 def is_main(sel) -> bool:
