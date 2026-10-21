@@ -72,3 +72,4 @@ EXP-0070,2026-10-21 22:39,official_dragapult,agents/ro_deck.py,vs-ro_attack_w10-
 EXP-0071,2026-10-21 23:37,subcard_dragapult,agents/ro_deck_sub.py,vs-ro_deck_base-n300,0.4733,300,,,子决策选牌（SUB_CARD_CHOICE）vs 不选牌，official_dragapult,z=-0.93 噪声。按稀释计算 n=300 本来就看不见（TO_HAND 仅占 2.3%）
 EXP-0072,2026-10-21 23:37,subcard_lucario,agents/ro_deck_sub.py,vs-ro_deck_base-n300,0.4633,300,,,同上，official_lucario,z=-1.27 噪声
 EXP-0073,2026-10-21 23:37,subcard_sample,agents/ro_deck_sub.py,vs-ro_deck_base-n300,0.5300,300,,,同上，sample_official（回归检查）,z=+1.04 噪声，无回归
+EXP-0074,2026-10-22 07:39,official_dragapult_e20,agents/ro_deck.py,vs-ro_attack_w10-n300,0.1600,300,,,官方 Dragapult 卡组能量从 8 张(13%)加到 20 张(33%)，砍掉 Crushing Hammer x4 / Uncommon Stamp / Rare Candy x2 / Night Stretcher x2 / Poke Pad x3,0.2033 -> 0.1600（更差）。推翻了「能量不足导致打不动」的假设；官方卡组用我们的 agent 打不动的真实原因仍未定位
