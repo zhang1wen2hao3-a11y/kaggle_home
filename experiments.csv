@@ -86,3 +86,4 @@ EXP-0084,2026-10-22 23:14,vs_official_lucario,agents/ro_attack_w10,vs-ro_deck_ba
 EXP-0085,2026-10-22 23:14,vs_official_iono,agents/ro_attack_w10,vs-ro_deck_base-n300,0.8100,300,,,我方 sample_official vs 对手 official_iono（两侧都由我们的 agent 操作）,真实梯同 archetype 胜率：abomasnow 0.58 / dragapult 0.39 / lucario 0.36 / other 0.30 —— 只有 abomasnow 对得上
 EXP-0086,2026-10-23 00:07,rl_policy_it2,agents/policy_agent.py,vs-greedy-n600,0.4883,600,,,REINFORCE+规则锚 第2轮模型（n=200 时最好 0.575），vs greedy,n=600: z=-0.57 —— n=200 的 0.575 是 4 选 1 的赢家诅咒（今日第 4 次）
 EXP-0087,2026-10-23 00:07,rl_policy_it4,agents/policy_agent.py,vs-greedy-n600,0.4967,600,,,REINFORCE+规则锚 最终模型（第4轮），vs greedy,n=600: z=-0.16 噪声。训练后策略 ≈ 规则水平，未超过
+EXP-0088,2026-10-23 07:22,rl_decision_diag,agents/policy_agent,decision-level-rollout,0.3750,60,,,决策层诊断：60 个真实 MAIN 局面，用 rollout 评估策略 vs 规则的选择,"纯网络打分：偏离规则 63.3%，赢面差 -0.1250+-0.0384 (n=38, z=-3.26)；含规则锚（部署行为）：偏离 0%。=> 网络没学到东西，部署时等于规则本身。win_rate 列填的是 1/(1+...)：此处仅占位，真实指标见 notes"
