@@ -96,6 +96,19 @@ def load_episode(path):
         return json.load(f)
 
 
+OUR_NAME = "zhang1wen2hao3"
+
+
+def _our_index(d) -> int:
+    """回放里谁是"我们" —— 按 agent 名字认，不能假设是 player0。
+    （对手也常打同一套卡组，按卡组认会认错。）"""
+    names = [ (a.get("Name") or "") for a in ((d.get("info") or {}).get("Agents") or []) ]
+    for i, n in enumerate(names):
+        if OUR_NAME in n:
+            return i
+    return 0
+
+
 def analyse(path, verbose=True):
     d = load_episode(path)
     steps = d.get("steps") or []
@@ -126,9 +139,9 @@ def analyse(path, verbose=True):
                 best_n, best = n, (cur, pls)
     if best:
         cur, pls = best
-        me = int(cur.get("yourIndex", 0)) if cur else 0
+        me = rec.get("our_idx", 0)
         if len(pls) >= 2:
-            opp = pls[1 - me] or {}
+            opp = pls[1 - rec.get("our_idx", 0)] or {}
             opp_cards, detail = _player_cards(opp)
             rec["hidden_revealed"] = bool(detail.get("deck")) and bool(detail.get("hand"))
             rec["opp_detail"] = {k: len(v) for k, v in detail.items()}
@@ -150,6 +163,10 @@ def analyse(path, verbose=True):
                     "ctx": sel.get("context"),
                 })
 
+    rec["our_idx"] = _our_index(d)
+    if best and len(pls) >= 2:
+        ours = pls[rec["our_idx"]] or {}
+        rec["our_deck"] = sorted(c for c in _player_cards(ours)[0] if c)
     rec["archetype"] = classify(rec.get("opp_deck") or [])
 
     rew = d.get("rewards") or []
@@ -200,7 +217,7 @@ def main() -> None:
     for r in recs:
         a = r.get("archetype") or "other"
         by_arch[a][0] += 1
-        if r.get("winner") == 0:          # player0 = 我们
+        if r.get("winner") == r.get("our_idx"):
             by_arch[a][1] += 1
     print("\n  对手 archetype 分布（我方在 player0 时的胜负）：")
     for a, (n, w) in sorted(by_arch.items(), key=lambda t: -t[1][0]):
