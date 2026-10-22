@@ -76,3 +76,6 @@ EXP-0074,2026-10-22 07:39,official_dragapult_e20,agents/ro_deck.py,vs-ro_attack_
 EXP-0075,2026-10-22 20:30,smart_sub_dragapult,agents/ro_deck_subtarget.py,vs-ro_deck_base-n300,0.5100,300,,,固定 official_dragapult，smart_sub on vs off（3 条进化线）,z=+0.35 噪声
 EXP-0076,2026-10-22 20:30,smart_sub_lucario,agents/ro_deck_subtarget.py,vs-ro_deck_base-n300,0.4767,300,,,固定 official_lucario，smart_sub on vs off,z=-0.81 噪声
 EXP-0077,2026-10-22 20:30,smart_sub_sample,agents/ro_deck_subtarget.py,vs-ro_deck_base-n300,0.4967,300,,,固定 sample_official，smart_sub on vs off（回归检查）,z=-0.11 噪声
+EXP-0078,2026-10-22 21:25,sem_dragapult,agents/ro_deck_sem.py,vs-ro_deck_base-n300,0.4967,300,,,PLAY_SEMANTICS=True（PLAY 按卡牌角色排序 + 隔回合招式降权），official_dragapult,z=-0.11 噪声
+EXP-0079,2026-10-22 21:25,sem_lucario,agents/ro_deck_sem.py,vs-ro_deck_base-n300,0.4533,300,,,同上，official_lucario,z=-1.62 噪声偏负
+EXP-0080,2026-10-22 21:25,sem_sample,agents/ro_deck_sem.py,vs-ro_deck_base-n300,0.4933,300,,,同上，sample_official（回归）,z=-0.23 噪声

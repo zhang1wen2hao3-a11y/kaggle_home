@@ -253,10 +253,23 @@ def _decide(stype, ctx, opt_types, lo, hi, attack_ids=None, areas=None,
 
         def _key(i):
             p = table.get(opt_types[i], 99)
-            if opt_types[i] != OptionType.ATTACK or not attack_ids:
-                return (p, 0, 0)
-            dmg, cost = _ATTACK_INFO.get(attack_ids[i], (0, 9))
-            return (p, -dmg, cost)     # ATTACK 内部按伤害降序，再按能量需求升序
+            t = opt_types[i]
+            if t == OptionType.ATTACK and attack_ids:
+                dmg, cost = _ATTACK_INFO.get(attack_ids[i], (0, 9))
+                pen = 0.0
+                if PLAY_SEMANTICS and obs is not None:
+                    pen = _attack_penalty(attack_ids[i], obs)
+                # ATTACK 内部按伤害降序、再按能量需求升序；隔回合招式加惩罚
+                return (p, pen - dmg, cost)
+            if (t == OptionType.PLAY and PLAY_SEMANTICS and obs is not None
+                    and areas and indices):
+                try:
+                    mi = int((obs.get("current") or {}).get("yourIndex", 0))
+                    sc = _play_score(obs, areas, indices, i, mi)
+                except Exception:
+                    sc = 0.0
+                return (p, -sc, 0)     # 分数越高越优先
+            return (p, 0, 0)
         return [min(range(n), key=_key)]
 
     # 是/否：默认"是"
@@ -340,6 +353,152 @@ def _load_card_stats() -> dict:
         stats = {}
     _CARD_STATS = stats
     return _CARD_STATS
+
+
+# ============================================================ 卡牌角色（语义）
+# 为什么需要：实测「选 END 时 ATTACK 从来不本来可选」（0/36）—— 不是策略 bug，
+# 而是**组装不出能攻击的宝可梦**。复杂卡组靠"检索找线 + 抽卡 + 加速能量"组装，
+# 而我们的规则只有一张 8 类的类型优先级表，不知道哪张牌是检索、哪张有条件、哪张有代价。
+#
+# 角色标签从**卡面文本机械抽取**（`cg.api.CardData.skills[].text`，运行时可用，
+# 不需要把表硬编码进提交包），所以可审、可复现。
+PLAY_SEMANTICS = False      # 总开关，默认关
+
+_CARD_ROLES: dict = {}
+
+_ROLE_PATTERNS = (
+    ("search",      ("search your deck",)),
+    ("draw",        ("draw ", "draw cards", "draw a card")),
+    ("recover",     ("from your discard pile",)),
+    ("accel",       ("attach",)),                 # 配合 "energy" 再确认
+    ("conditional", ("does nothing if", "if you don", "if there is no",
+                     "only if", "for each")),
+    ("discard_cost", ("discard 2 other cards", "discard 2 cards",
+                      "discard a card from your hand", "discard an energy")),
+    ("coin",        ("flip a coin",)),
+    ("switch",      ("switch your active", "switch their active", "switch out")),
+    ("heal",        ("heal",)),
+    ("cannot_next", ("can’t use attacks", "can't use attacks", "can’t use ")),
+)
+
+
+def _load_card_roles() -> dict:
+    """cardId -> set(角色)。从卡面文本 + 卡牌类型机械生成。"""
+    global _CARD_ROLES
+    if _CARD_ROLES:
+        return _CARD_ROLES
+    roles = {}
+    try:
+        from cg.api import all_card_data
+    except Exception:
+        _CARD_ROLES = {}
+        return _CARD_ROLES
+    try:
+        for c in all_card_data():
+            texts = []
+            for sk in (c.skills or []):
+                t = (getattr(sk, "text", "") or "")
+                if t:
+                    texts.append(t)
+            for a in (c.attacks or []):
+                info = _ATTACK_TEXT.get(int(a), "")
+                if info:
+                    texts.append(info)
+            blob = " ".join(texts).lower()
+            if not blob:
+                continue
+            r = set()
+            for role, keys in _ROLE_PATTERNS:
+                if any(k in blob for k in keys):
+                    r.add(role)
+            if "accel" in r and "energy" not in blob:
+                r.discard("accel")
+            if r:
+                roles[int(c.cardId)] = r
+    except Exception:
+        roles = {}
+    _CARD_ROLES = roles
+    return _CARD_ROLES
+
+
+_ATTACK_TEXT: dict = {}
+
+
+def _load_attack_text():
+    global _ATTACK_TEXT
+    if _ATTACK_TEXT:
+        return _ATTACK_TEXT
+    try:
+        from cg.api import all_attack
+        _ATTACK_TEXT = {int(a.attackId): (getattr(a, "text", "") or "")
+                        for a in all_attack()}
+    except Exception:
+        _ATTACK_TEXT = {}
+    return _ATTACK_TEXT
+
+
+def _roles_of(cid) -> set:
+    return _load_card_roles().get(int(cid), set())
+
+
+def _line_incomplete(obs, me_idx, names) -> bool:
+    """手上的进化怪里有"前置不在场上/手里"的吗？= 进化线还没接上。"""
+    cur = obs.get("current") or {}
+    me = (cur.get("players") or [{}])[me_idx] or {}
+    stats = _load_card_stats()
+    for c in (me.get("hand") or []):
+        st = stats.get(int(_get(c, "id") or 0))
+        if not st:
+            continue
+        if (st["stage1"] or st["stage2"]) and st["evolves_from"]:
+            if st["evolves_from"] not in names:
+                return True
+    return False
+
+
+def _play_score(obs, areas, indices, i, me_idx) -> float:
+    """PLAY 选项的语义打分 —— 越大越该先出。"""
+    cid = _resolve_option_ids(obs, [areas[i]], [indices[i]], None)[0]
+    if cid is None:
+        return 0.0
+    roles = _roles_of(cid)
+    if not roles:
+        return 0.0
+    cur = obs.get("current") or {}
+    me = (cur.get("players") or [{}])[me_idx] or {}
+    hand_n = len(me.get("hand") or [])
+    names = _names_in_play(obs, me_idx)
+    st = _load_card_stats().get(int(cid)) or {}
+    sc = 0.0
+    if "discard_cost" in roles and hand_n <= 4:
+        sc -= 6.0                      # 手牌已经很少，别再付弃牌代价
+    if "search" in roles:
+        sc += 5.0 if _line_incomplete(obs, me_idx, names) else 0.5
+    if "draw" in roles:
+        sc += 4.0 if hand_n <= 4 else 1.0
+    if "recover" in roles:
+        sc += 3.0 if names else 0.0
+    if "accel" in roles:
+        act = _active_of(me)
+        need = _MIN_ATK_COST.get(_get(act, "id"), 0) if act else 0
+        if need and _energy_count(act) < need:
+            sc += 3.0
+    if "conditional" in roles:
+        sc -= 2.0                      # 条件牌，不确定时降权
+    if int(st.get("type", -1)) == 3:   # Supporter
+        sc += 1.0
+    return sc
+
+
+def _attack_penalty(attack_id, obs) -> float:
+    """隔回合才能打的招式（如 Palafin ex 的 Giga Impact）降权 —— 返回正数=更差。"""
+    txt = _load_attack_text().get(int(attack_id or 0), "").lower()
+    if not txt:
+        return 0.0
+    if "can’t use" in txt or "can't use" in txt:
+        dmg, _cost = _ATTACK_INFO.get(attack_id, (0, 9))
+        return dmg * 0.5
+    return 0.0
 
 
 def _names_in_play(obs, me_idx):
