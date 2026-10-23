@@ -81,6 +81,10 @@ def main() -> None:
                     help=">0 时用打包后的 main.py 真跑若干局对手池自检")
     ap.add_argument("--verify-opponent", default="agents/greedy.py",
                     help="动态自检时的对手")
+    ap.add_argument("--define", action="append", default=[],
+                    help="把入口里的 ENV.get(NAME, 默认值) **烘成固定值**，形如 "
+                         "PTCG_ROLLOUT_GUARD=1。线上环境没有这些变量，"
+                         "所以变体必须烘进包里而不是靠环境变量。")
     args = ap.parse_args()
 
     agent_path = os.path.join(HERE, args.agent)
@@ -123,6 +127,21 @@ def main() -> None:
     stage = tempfile.mkdtemp(prefix="ptcg_sub_")
     try:
         shutil.copy2(agent_path, os.path.join(stage, "main.py"))
+        if args.define:
+            import re
+            staged = os.path.join(stage, "main.py")
+            text = open(staged).read()
+            for d in args.define:
+                if "=" not in d:
+                    raise SystemExit(f"❌ --define 需要 NAME=VALUE 形式: {d}")
+                name, val = d.split("=", 1)
+                pat = re.compile(r'ENV\.get\(\s*["\']' + re.escape(name.strip())
+                                 + r'["\']\s*,\s*["\'][^"\']*["\']\s*\)')
+                text, n = pat.subn(repr(val.strip()), text)
+                print(f"  🔧 烘焙 {name.strip()} = {val.strip()!r}（替换 {n} 处）")
+                if not n:
+                    raise SystemExit(f"❌ --define {name} 在入口文件里没找到对应的 ENV.get")
+            open(staged, "w").write(text)
         shutil.copy2(deck_path, os.path.join(stage, "deck.csv"))
         shutil.copytree(cg_dir, os.path.join(stage, "cg"))
         for src, rel in extras:

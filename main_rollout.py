@@ -63,6 +63,7 @@ except Exception as _e:                      # pragma: no cover
     _ROLLOUT_OK = False
     _IMPORT_ERR = f"{type(_e).__name__}: {_e}"
 
+
 ENV = os.environ
 MODE = ENV.get("PTCG_ROLLOUT_MODE", "attack")
 WORLDS = int(ENV.get("PTCG_ROLLOUT_WORLDS", "10"))
@@ -85,9 +86,22 @@ BASE_PRIO = None
 #   all  + margin1.5 = 0.733   ← 当前采用
 #   all  + margin4.0 = 0.593
 CANDS = ENV.get("PTCG_ROLLOUT_CANDS", "all")
+# 审计守栏（2026-10-23）：rollout 想偏离到**纯伤害更低的招式**时回退规则。
+# 依据：317 局真实线上对局审计（EXP-0099）—— 该情形在败局里是胜局的 1.54×（z=3.2），
+# 且规则自己从不犯（全是 rollout 偏离）。镜像 A/B 无检出力（0.4900, n=2000），
+# 所以这是**唯一只能用真实场（LB）验证**的改动。
+GUARD = ENV.get("PTCG_ROLLOUT_GUARD", "0") == "1"
+
 # 单局耗时预算。超预算后本局剩余决策全部退化为纯规则 —— 宁可弱，也不要超时判负。
 # 实测：sample_official 约 0.4 s/局，长局卡组可达 2~3 s/局；线上时限未知，取保守值。
 BUDGET_S = float(ENV.get("PTCG_BUDGET_S", "20"))
+# 守栏必须在任何决策之前打开（framework.rollout 是同一个模块对象）
+if GUARD:
+    try:
+        import framework.rollout as _ro_guard_mod
+        _ro_guard_mod.GUARD_PLAIN_ATTACK = True
+    except Exception:
+        pass
 
 
 def _read_deck() -> list[int]:
