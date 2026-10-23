@@ -38,12 +38,19 @@ sys.path.insert(0, ROOT)
 
 import numpy as np  # noqa: E402
 
+from framework.rollout import _get  # noqa: E402
 from framework.features import (  # noqa: E402
     OPTION_FEATURE_KEYS, STATE_FEATURE_KEYS, option_features, state_features,
 )
 from framework.rollout import is_main, rule_action  # noqa: E402
+from framework.plan_features import (  # noqa: E402
+    OPTION_PLAN_KEYS, STATE_PLAN_KEYS, build_plan,
+    option_plan_features, state_plan_features,
+)
 
-N_S, N_O = len(STATE_FEATURE_KEYS), len(OPTION_FEATURE_KEYS)
+N_PLAN_S, N_PLAN_O = len(STATE_PLAN_KEYS), len(OPTION_PLAN_KEYS)
+N_S = len(STATE_FEATURE_KEYS) + N_PLAN_S
+N_O = len(OPTION_FEATURE_KEYS) + N_PLAN_O
 CARD_VOCAB_N = 320          # 最高频的 320 张牌做 one-hot，其余进 "other"
 
 
@@ -95,7 +102,7 @@ def extract(directory, max_games=None, main_only=False):
         files = files[:max_games]
     print(f"  扫描 {len(files)} 个回放 …", flush=True)
     S, O, Y, G, K, AGREE, CID = [], [], [], [], [], [], []
-    stats = collections.Counter()
+    stats = collections.Counter(); pstats = collections.Counter()
     for gi, f in enumerate(files):
         try:
             d = json.load(open(f))
@@ -104,6 +111,26 @@ def extract(directory, max_games=None, main_only=False):
         names = [a.get("Name") or "" for a in ((d.get("info") or {}).get("Agents") or [])]
         if len(names) < 2:
             continue
+        # ① 先扫一遍该局每位 agent **见过自己的所有牌**（回放里自己的手牌可见）
+        seen = collections.defaultdict(set)
+        for st in d.get("steps") or []:
+            for j, ent in enumerate(st):
+                obs = ent.get("observation") or {}
+                cur = obs.get("current") or {}
+                pls = cur.get("players") or []
+                if j >= len(pls) or not pls[j]:
+                    continue
+                pj = pls[j]
+                for zone in ("hand", "discard"):
+                    for c in (pj.get(zone) or []):
+                        if _get(c, "id"):
+                            seen[j].add(_get(c, "id"))
+                for pk in list(pj.get("active") or []) + list(pj.get("bench") or []):
+                    if pk and pk.get("id"):
+                        seen[j].add(pk.get("id"))
+        plans = {j: build_plan(seen[j]) for j in seen}
+        pstats["plan 建好"] += len(plans)
+
         for st in d.get("steps") or []:
             for j, ent in enumerate(st):
                 obs = ent.get("observation") or {}
@@ -113,6 +140,7 @@ def extract(directory, max_games=None, main_only=False):
                     continue
                 if OUR_NAME in (names[j] if j < len(names) else ""):
                     continue                      # 跳过我们自己
+                plan = plans.get(j) or build_plan([])
                 opts = sel.get("option") or []
                 if len(opts) < 2 or not (0 <= act[0] < len(opts)):
                     continue
@@ -120,11 +148,15 @@ def extract(directory, max_games=None, main_only=False):
                 if main_only and not is_m:
                     continue
                 try:
+                    sp = state_plan_features(obs, plan)
                     sf = np.array([state_features(obs).get(k, 0.0)
-                                   for k in STATE_FEATURE_KEYS], np.float32)
+                                   for k in STATE_FEATURE_KEYS] +
+                                  [sp.get(k, 0.0) for k in STATE_PLAN_KEYS], np.float32)
                     ofs = np.stack([
                         np.array([option_features(obs, i).get(k, 0.0)
-                                  for k in OPTION_FEATURE_KEYS], np.float32)
+                                  for k in OPTION_FEATURE_KEYS] +
+                                 [option_plan_features(obs, i, plan).get(k, 0.0)
+                                  for k in OPTION_PLAN_KEYS], np.float32)
                         for i in range(len(opts))
                     ])
                 except Exception:
@@ -143,7 +175,8 @@ def extract(directory, max_games=None, main_only=False):
                 except Exception:
                     AGREE.append(0)
                 stats["MAIN" if is_m else "非MAIN"] += 1
-    print(f"  抽到 {len(S)} 个决策：{dict(stats)}")
+    print(f"  抽到 {len(S)} 个决策：{dict(stats)}；{dict(pstats)}")
+    print(f"  特征维度：state {N_S}（含 plan {N_PLAN_S}）  option {N_O}（含 plan {N_PLAN_O}）")
     return S, O, Y, G, K, AGREE, CID
 
 
