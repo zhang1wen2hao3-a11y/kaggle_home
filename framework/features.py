@@ -266,6 +266,37 @@ def state_features(obs: dict, memory=None) -> dict[str, float]:
     return f
 
 
+def _can_pay(have_types, cost_types) -> bool:
+    """**按属性**判断能否支付一次攻击的能量需求。
+
+    修的是一个真实 bug：原来用 `len(energies) >= len(atk.energies)` 只数**张数**，
+    于是 2 张《超》能量会被判成"付得起 {W}{W}"。属性不匹配时这会系统性高估。
+
+    规则（cg/api 的 `EnergyType`）：`COLORLESS = 0` 可以用任意能量支付，
+    其余每种属性必须**各自够数**。
+    """
+    have = {}
+    for t in (have_types or []):
+        if t is None:
+            continue
+        have[int(t)] = have.get(int(t), 0) + 1
+    need = {}
+    colorless = 0
+    for t in (cost_types or []):
+        if t is None:
+            continue
+        t = int(t)
+        if t == 0:                       # COLORLESS
+            colorless += 1
+        else:
+            need[t] = need.get(t, 0) + 1
+    for t, n in need.items():
+        if have.get(t, 0) < n:
+            return False
+        have[t] -= n
+    return sum(have.values()) >= colorless
+
+
 def _attack_info(pokemon: dict | None) -> dict:
     """算一个宝可梦的攻防数值 —— 卡牌游戏最核心的战术量。
 
@@ -282,23 +313,27 @@ def _attack_info(pokemon: dict | None) -> dict:
     card = _card(pokemon.get("id"))
     if card is None:
         return out
-    have = len(pokemon.get("energies") or [])
-    out["have"] = float(have)
-    costs, dmgs_now = [], []
+    have_list = list(pokemon.get("energies") or [])
+    out["have"] = float(len(have_list))
+    costs, dmgs_now, gaps = [], [], []
     for aid in (card.attacks or []):
         atk = _ATTACK_CACHE.get(aid)
         if atk is None:
             continue
-        cost = len(atk.energies or [])
+        need = list(atk.energies or [])
+        cost = len(need)
         dmg = float(atk.damage or 0)
         costs.append(cost)
         out["dmg_max"] = max(out["dmg_max"], dmg)
-        if cost <= have:
+        if _can_pay(have_list, need):          # ★ 按属性判断，不再只数张数
             dmgs_now.append(dmg)
+        else:
+            gaps.append(max(0, cost - len(have_list)))
     out["dmg_now"] = max(dmgs_now) if dmgs_now else 0.0
     if costs:
         out["min_cost"] = float(min(costs))
-        out["gap"] = max(0.0, out["min_cost"] - have)
+        # 有付不起的招式时，gap 取"最接近付得起"的那个缺口（都付得起则为 0）
+        out["gap"] = float(min(gaps)) if gaps else 0.0
     return out
 
 
@@ -444,6 +479,13 @@ def _option_source_card_id(obs: dict, option: dict) -> int | None:
         return None
     me = players[me_idx]
     area, index = option.get("area"), option.get("index")
+    # ⚠️ PLAY(7) / EVOLVE(9) 选项**只有 index、没有 area**，隐含区就是手牌。
+    #    不兜这一层的话，5 个 `opt_src_*` 特征对每个 PLAY/EVOLVE 恒为 0
+    #    ——其中包括注释里称为"★ 核心 deck-awareness"的 `opt_src_energy_matches`。
+    if area is None and index is not None:
+        t = option.get("type")
+        if t is not None and int(t) in (7, 9):          # PLAY / EVOLVE
+            area = 2
     if area == 2 and index is not None:                 # AreaType.HAND
         hand = me.get("hand") or []
         if 0 <= index < len(hand):
