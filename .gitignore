@@ -42,3 +42,7 @@ access_token
 .env
 epsoide/
 episode/
+
+# 大批量回放（13 GB，2026-10-23 抓的前两名队伍 1364 局）
+epsoide_teams2/
+epsoide_field2/

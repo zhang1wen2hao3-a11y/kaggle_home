@@ -32,6 +32,7 @@ import glob
 import json
 import os
 import sys
+import time
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, ROOT)
@@ -47,10 +48,14 @@ from framework.plan_features import (  # noqa: E402
     OPTION_PLAN_KEYS, STATE_PLAN_KEYS, build_plan,
     option_plan_features, state_plan_features,
 )
+from framework.rule_features import (  # noqa: E402
+    OPTION_RULE_KEYS, option_rule_features, rule_context,
+)
 
 N_PLAN_S, N_PLAN_O = len(STATE_PLAN_KEYS), len(OPTION_PLAN_KEYS)
 N_S = len(STATE_FEATURE_KEYS) + N_PLAN_S
-N_O = len(OPTION_FEATURE_KEYS) + N_PLAN_O
+N_R = len(OPTION_RULE_KEYS)
+N_O = len(OPTION_FEATURE_KEYS) + N_PLAN_O + N_R
 CARD_VOCAB_N = 320          # 最高频的 320 张牌做 one-hot，其余进 "other"
 
 
@@ -85,10 +90,105 @@ def resolve_cid(obs, opt):
     return None
 
 OUR_NAME = "zhang1wen2hao3"
-CACHE = os.path.join(ROOT, "data", "bc_dataset.npz")
+CACHE = os.path.join(ROOT, "data",
+                     "bc_dataset_noanchor.npz" if os.environ.get("BC_NO_ANCHOR") == "1"
+                     else "bc_dataset.npz")
 
 
-def extract(directory, max_games=None, main_only=False):
+def _extract_file(f, gi, main_only):
+    """抽**单个回放**里除我们之外每个 agent 的决策。返回 dict 或 None。
+
+    抽成一个纯函数是为了能用 multiprocessing 并行：单个回放 5 MB，
+    特征抽取是纯 Python 计算，单进程 1.6 s/局，3000 局要 80 分钟。
+    """
+    try:
+        d = json.load(open(f))
+    except Exception:
+        return None
+    names = [a.get("Name") or "" for a in ((d.get("info") or {}).get("Agents") or [])]
+    if len(names) < 2:
+        return None
+    # ① 先扫一遍该局每位 agent **见过自己的所有牌**（回放里自己的手牌可见）
+    seen = collections.defaultdict(set)
+    for st in d.get("steps") or []:
+        for j, ent in enumerate(st):
+            obs = ent.get("observation") or {}
+            cur = obs.get("current") or {}
+            pls = cur.get("players") or []
+            if j >= len(pls) or not pls[j]:
+                continue
+            pj = pls[j]
+            for zone in ("hand", "discard"):
+                for c in (pj.get(zone) or []):
+                    if _get(c, "id"):
+                        seen[j].add(_get(c, "id"))
+            for pk in list(pj.get("active") or []) + list(pj.get("bench") or []):
+                if pk and pk.get("id"):
+                    seen[j].add(pk.get("id"))
+    plans = {j: build_plan(seen[j]) for j in seen}
+
+    out = {"S": [], "O": [], "Y": [], "G": [], "K": [], "AGREE": [],
+           "CID": [], "TY": [], "R": [], "stat": collections.Counter()}
+    for st in d.get("steps") or []:
+        for j, ent in enumerate(st):
+            obs = ent.get("observation") or {}
+            act = ent.get("action")
+            sel = obs.get("select")
+            if sel is None or not act or not obs.get("current"):
+                continue
+            if OUR_NAME in (names[j] if j < len(names) else ""):
+                continue                      # 跳过我们自己
+            plan = plans.get(j) or build_plan([])
+            opts = sel.get("option") or []
+            if len(opts) < 2 or not (0 <= act[0] < len(opts)):
+                continue
+            is_m = is_main(sel)
+            if main_only and not is_m:
+                continue
+            try:
+                rctx = rule_context(obs, sel)
+                sp = state_plan_features(obs, plan)
+                sf = np.array([state_features(obs).get(k, 0.0)
+                               for k in STATE_FEATURE_KEYS] +
+                              [sp.get(k, 0.0) for k in STATE_PLAN_KEYS], np.float32)
+                ofs = np.stack([
+                    np.array([option_features(obs, i).get(k, 0.0)
+                              for k in OPTION_FEATURE_KEYS] +
+                             [option_plan_features(obs, i, plan).get(k, 0.0)
+                              for k in OPTION_PLAN_KEYS] +
+                             [option_rule_features(obs, i, rctx).get(k, 0.0)
+                              for k in OPTION_RULE_KEYS], np.float32)
+                    for i in range(len(opts))
+                ])
+            except Exception:
+                out["stat"]["特征提取失败"] += 1
+                continue
+            if not np.isfinite(sf).all() or not np.isfinite(ofs).all():
+                out["stat"]["含 NaN"] += 1
+                continue
+            ids = [resolve_cid(obs, o) for o in opts]
+            out["S"].append(sf); out["O"].append(ofs)
+            out["Y"].append(int(act[0])); out["CID"].append(ids)
+            out["TY"].append([int(o.get("type", -1)) for o in opts])
+            out["G"].append(gi); out["K"].append(len(opts))
+            # 我们的规则会不会做同样选择（衡量"强 agent 与我们的差异"）
+            try:
+                rb = rule_action(sel)
+                out["AGREE"].append(int(bool(rb) and rb[0] == act[0]))
+                # 记下**我们规则**选的是哪个 option：它是判断"模型是否真的学到东西"的基准线。
+                # 没有这条线，模型 top-1=32% 看着还行，其实和手写规则一模一样。
+                out["R"].append(int(rb[0]) if rb else -1)
+            except Exception:
+                out["AGREE"].append(0); out["R"].append(-1)
+            out["stat"]["MAIN" if is_m else "非MAIN"] += 1
+    return out
+
+
+def _extract_task(args):
+    return _extract_file(*args)
+
+
+def extract(directory, max_games=None, main_only=False, workers=1):
     """directory 支持逗号分隔的多个目录。
 
     ⚠️ `epsoide/`（我们自己的 316 局）也要抽 —— **我们的对手也是强 agent**，
@@ -100,84 +200,36 @@ def extract(directory, max_games=None, main_only=False):
     files = sorted(set(files))
     if max_games:
         files = files[:max_games]
-    print(f"  扫描 {len(files)} 个回放 …", flush=True)
-    S, O, Y, G, K, AGREE, CID = [], [], [], [], [], [], []
-    stats = collections.Counter(); pstats = collections.Counter()
-    for gi, f in enumerate(files):
-        try:
-            d = json.load(open(f))
-        except Exception:
-            continue
-        names = [a.get("Name") or "" for a in ((d.get("info") or {}).get("Agents") or [])]
-        if len(names) < 2:
-            continue
-        # ① 先扫一遍该局每位 agent **见过自己的所有牌**（回放里自己的手牌可见）
-        seen = collections.defaultdict(set)
-        for st in d.get("steps") or []:
-            for j, ent in enumerate(st):
-                obs = ent.get("observation") or {}
-                cur = obs.get("current") or {}
-                pls = cur.get("players") or []
-                if j >= len(pls) or not pls[j]:
+    print(f"  扫描 {len(files)} 个回放（workers={workers}）…", flush=True)
+    tasks = [(f, gi, main_only) for gi, f in enumerate(files)]
+    S, O, Y, G, K, AGREE, CID, TY, R = [], [], [], [], [], [], [], [], []
+    stats = collections.Counter()
+    t0 = time.time()
+    if workers > 1:
+        import multiprocessing as mp
+        with mp.Pool(workers) as pool:
+            it = pool.imap(_extract_task, tasks, chunksize=4)
+            for n, r in enumerate(it):
+                if r is None:
                     continue
-                pj = pls[j]
-                for zone in ("hand", "discard"):
-                    for c in (pj.get(zone) or []):
-                        if _get(c, "id"):
-                            seen[j].add(_get(c, "id"))
-                for pk in list(pj.get("active") or []) + list(pj.get("bench") or []):
-                    if pk and pk.get("id"):
-                        seen[j].add(pk.get("id"))
-        plans = {j: build_plan(seen[j]) for j in seen}
-        pstats["plan 建好"] += len(plans)
-
-        for st in d.get("steps") or []:
-            for j, ent in enumerate(st):
-                obs = ent.get("observation") or {}
-                act = ent.get("action")
-                sel = obs.get("select")
-                if sel is None or not act or not obs.get("current"):
-                    continue
-                if OUR_NAME in (names[j] if j < len(names) else ""):
-                    continue                      # 跳过我们自己
-                plan = plans.get(j) or build_plan([])
-                opts = sel.get("option") or []
-                if len(opts) < 2 or not (0 <= act[0] < len(opts)):
-                    continue
-                is_m = is_main(sel)
-                if main_only and not is_m:
-                    continue
-                try:
-                    sp = state_plan_features(obs, plan)
-                    sf = np.array([state_features(obs).get(k, 0.0)
-                                   for k in STATE_FEATURE_KEYS] +
-                                  [sp.get(k, 0.0) for k in STATE_PLAN_KEYS], np.float32)
-                    ofs = np.stack([
-                        np.array([option_features(obs, i).get(k, 0.0)
-                                  for k in OPTION_FEATURE_KEYS] +
-                                 [option_plan_features(obs, i, plan).get(k, 0.0)
-                                  for k in OPTION_PLAN_KEYS], np.float32)
-                        for i in range(len(opts))
-                    ])
-                except Exception:
-                    stats["特征提取失败"] += 1
-                    continue
-                if not np.isfinite(sf).all() or not np.isfinite(ofs).all():
-                    stats["含 NaN"] += 1
-                    continue
-                ids = [resolve_cid(obs, o) for o in opts]
-                S.append(sf); O.append(ofs); Y.append(int(act[0])); CID.append(ids)
-                G.append(gi); K.append(len(opts))
-                # 我们的规则会不会做同样选择（衡量"强 agent 与我们的差异"）
-                try:
-                    rb = rule_action(sel)
-                    AGREE.append(int(bool(rb) and rb[0] == act[0]))
-                except Exception:
-                    AGREE.append(0)
-                stats["MAIN" if is_m else "非MAIN"] += 1
-    print(f"  抽到 {len(S)} 个决策：{dict(stats)}；{dict(pstats)}")
-    print(f"  特征维度：state {N_S}（含 plan {N_PLAN_S}）  option {N_O}（含 plan {N_PLAN_O}）")
-    return S, O, Y, G, K, AGREE, CID
+                S += r["S"]; O += r["O"]; Y += r["Y"]; G += r["G"]; K += r["K"]
+                AGREE += r["AGREE"]; CID += r["CID"]; TY += r["TY"]; R += r["R"]
+                stats.update(r["stat"])
+                if (n + 1) % 100 == 0:
+                    print(f"    {n + 1}/{len(files)} 局  {time.time() - t0:.0f}s  "
+                          f"{len(S)} 决策", flush=True)
+    else:
+        for t in tasks:
+            r = _extract_file(*t)
+            if r is None:
+                continue
+            S += r["S"]; O += r["O"]; Y += r["Y"]; G += r["G"]; K += r["K"]
+            AGREE += r["AGREE"]; CID += r["CID"]; TY += r["TY"]; R += r["R"]
+            stats.update(r["stat"])
+    print(f"  抽到 {len(S)} 个决策：{dict(stats)}  用时 {time.time() - t0:.0f}s")
+    print(f"  特征维度：state {N_S}（含 plan {N_PLAN_S}）  "
+          f"option {N_O}（含 plan {N_PLAN_O} + rule {N_R}）")
+    return S, O, Y, G, K, AGREE, CID, TY, R
 
 
 def main() -> None:
@@ -189,6 +241,13 @@ def main() -> None:
     ap.add_argument("--lr", type=float, default=1e-3)
     ap.add_argument("--holdout", type=float, default=0.2)
     ap.add_argument("--reuse-cache", action="store_true")
+    ap.add_argument("--frac", type=float, default=1.0,
+                    help="只用训练集中这一比例的**局**（画学习曲线用）")
+    ap.add_argument("--tag", default="", help="日志标记")
+    ap.add_argument("--workers", type=int, default=1, help="并行抽取进程数")
+    ap.add_argument("--hidden", type=int, default=128, help="MLP 隐层宽度（容量诊断用）")
+    ap.add_argument("--label", choices=["teacher", "rule", "deviate"], default="teacher",
+                    help="学谁：teacher=强 agent（真 BC）；rule=我们自己的规则（特征充分性诊断）")
     args = ap.parse_args()
 
     import torch
@@ -201,18 +260,23 @@ def main() -> None:
         S = list(z["S"]); O = list(z["O"]); Y = list(z["Y"])
         G = list(z["G"]); K = list(z["K"]); A = list(z["AGREE"])
         CID = [list(x) for x in z["CID"]] if "CID" in z.files else [[] for _ in S]
-        print(f"  复用缓存：{len(S)} 个决策")
+        TY = [list(x) for x in z["TY"]] if "TY" in z.files else None
+        R = [int(x) for x in z["R"]] if "R" in z.files else None
+        print(f"  复用缓存：{len(S)} 个决策"
+              f"{'' if TY is not None else '（老缓存无选项类型，跳过语义指标）'}")
     else:
         print("=" * 74)
         print(f"从强对手回放抽 BC 数据：{args.dir}  main_only={args.main_only}")
         print("=" * 74)
-        S, O, Y, G, K, A, CID = extract(args.dir, args.max_games, args.main_only)
+        S, O, Y, G, K, A, CID, TY, R = extract(args.dir, args.max_games,
+                                               args.main_only, args.workers)
         if not S:
             raise SystemExit("没抽到数据")
         os.makedirs(os.path.dirname(CACHE), exist_ok=True)
         np.savez_compressed(CACHE, S=np.array(S), O=np.array(O, dtype=object),
                             Y=np.array(Y), G=np.array(G), K=np.array(K),
-                            AGREE=np.array(A), CID=np.array(CID, dtype=object))
+                            AGREE=np.array(A), CID=np.array(CID, dtype=object),
+                            TY=np.array(TY, dtype=object), R=np.array(R))
         CID = [list(x) for x in np.array(CID, dtype=object)]
         print(f"  已缓存到 {os.path.relpath(CACHE, ROOT)}")
 
@@ -222,12 +286,72 @@ def main() -> None:
     n_ho = max(1, int(len(games) * args.holdout))
     ho = set(games[:n_ho].tolist())
     tr_idx = [i for i in range(len(S)) if G[i] not in ho]
+    if args.frac < 1.0:
+        # ⚠️ 按**局**采样（不是按决策），否则同一局的决策会跨训练/测试泄漏
+        tr_games = sorted({int(G[i]) for i in tr_idx})
+        rng2 = np.random.RandomState(1)
+        keep = set(rng2.permutation(tr_games)[:max(1, int(len(tr_games) * args.frac))].tolist())
+        tr_idx = [i for i in tr_idx if int(G[i]) in keep]
+        print(f"  [frac={args.frac}] 只保留 {len(keep)} 局训练数据")
     ho_idx = [i for i in range(len(S)) if G[i] in ho]
     print(f"  按局切分：train {len(tr_idx)} 决策 / {len(games) - n_ho} 局；"
           f"holdout {len(ho_idx)} 决策 / {n_ho} 局")
     print(f"  **强 agent 与我们的规则一致率** = {np.mean(A):.1%}"
           f"（越低说明他们的策略越不同）")
     print(f"  随机基线 top-1 ≈ 1/E[k] = {np.mean([1.0 / k for k in K]):.1%}")
+
+    def _rule_scores(idx):
+        """手写规则在同一批决策上的 index 一致率与语义一致率（模型的对照线）。"""
+        ok = sem = n = 0
+        for i in idx:
+            r = R[i] if R is not None else -1
+            if r is None or r < 0 or r >= K[i]:
+                continue
+            n += 1
+            ok += int(r == Y[i])
+            if TY is not None:
+                sem += int((TY[i][r], CID[i][r]) == (TY[i][Y[i]], CID[i][Y[i]]))
+        return (ok / max(n, 1), sem / max(n, 1), n)
+
+    if R is not None and TY is not None:
+        _ri, _rs, _rn = _rule_scores(ho_idx)
+        print(f"  **手写规则基线**（同一 holdout，{_rn} 决策）："
+              f"index 一致率 {_ri:.1%}  语义一致率 {_rs:.1%}")
+
+    if args.label == "deviate":
+        # 「偏离检测」：把每个决策压成两项 —— 规则的选项 vs 强 agent 的选项，
+        # 问特征能不能分辨强 agent 更偏好哪一个。50% = 纯噪声（判据 ≥55%）。
+        # ⚠️ 必须配 no-anchor 缓存：锚特征会让模型无脑选规则那项，直接 0%。
+        _S, _O, _Y, _K, _G, _CID = [], [], [], [], [], []
+        _keep = _ho = _rulewin = 0
+        for i in range(len(S)):
+            r = R[i] if R is not None else -1
+            y = Y[i]
+            if r is None or r < 0 or r >= K[i] or r == y:
+                continue
+            _keep += 1
+            pair = [r, y]                       # 固定顺序：0=规则，1=强 agent
+            _S.append(S[i]); _O.append(O[i][pair])
+            _CID.append([CID[i][r], CID[i][y]])
+            _Y.append(1); _K.append(2); _G.append(G[i])
+        S, O, Y, K, G, CID = _S, _O, _Y, _K, _G, _CID
+        tr_idx = [i for i in range(len(S)) if G[i] not in ho]
+        ho_idx = [i for i in range(len(S)) if G[i] in ho]
+        print(f"  [label=deviate] {len(S)} 个「规则 vs 强 agent」二选一"
+              f"（train {len(tr_idx)} / holdout {len(ho_idx)}）；随机 = 50%")
+
+    if args.label == "rule":
+        # 特征充分性诊断：规则是 (obs, sel) 的**确定性函数**，理想情况可学到接近 100%。
+        # 如果连自己的规则都学不到，说明缺的是特征，堆数据没用。
+        _keep = [i for i in range(len(S)) if R is not None and 0 <= R[i] < K[i]]
+        S = [S[i] for i in _keep]; O = [O[i] for i in _keep]
+        CID = [CID[i] for i in _keep]; TY = [TY[i] for i in _keep]
+        Y = [R[i] for i in _keep]; G = [G[i] for i in _keep]; K = [K[i] for i in _keep]
+        A = [A[i] for i in _keep]; R = [R[i] for i in _keep]
+        tr_idx = [i for i in range(len(S)) if G[i] not in ho]
+        ho_idx = [i for i in range(len(S)) if G[i] in ho]
+        print(f"  [label=rule] 改为模仿手写规则：{len(S)} 个决策"
+              f"（train {len(tr_idx)} / holdout {len(ho_idx)}）")
 
     # ---- 卡牌词表（按出现频次取前 CARD_VOCAB_N 张）
     freq = collections.Counter()
@@ -269,13 +393,14 @@ def main() -> None:
     import math
     print(f"  均匀预测的 loss 参考值 = ln(E[k]) ≈ {math.log(mean_k):.3f}")
 
-    model = OptionScorer(N_S, n_eff)
+    model = OptionScorer(N_S, n_eff, hidden=args.hidden)
     opt = torch.optim.Adam(model.parameters(), lr=args.lr)
     def batches(idx, bs=64):
         order = np.random.permutation(len(idx))
         for i in range(0, len(order), bs):
             yield [idx[j] for j in order[i:i + bs]]
 
+    hc = ht = hc3 = hs = hs3 = 0
     for ep in range(args.epochs):
         model.train()
         tot = corr = 0; loss_sum = 0.0
@@ -294,21 +419,38 @@ def main() -> None:
             opt.step()
             loss_sum += float(loss) * len(chunk)
         # holdout
+        # ⚠️ top-1（严格 index 相同）会低估策略质量：手里两张同名卡拉哪张都是对的动作。
+        # 所以同时报"语义 top-1"（type+cardId 相同）和"语义 top-3"。
         model.eval()
-        hc = ht = 0
+        hc = ht = hc3 = hs = hs3 = 0
         with torch.no_grad():
             for i in ho_idx:
                 st = torch.from_numpy(state_of(i)); of = torch.from_numpy(with_cards(i))
                 sc = model.scores(st, of)
-                hc += int(torch.argmax(sc).item() == Y[i]); ht += 1
+                p = int(torch.argmax(sc).item())
+                hc += int(p == Y[i]); ht += 1
+                top3 = torch.topk(sc, min(3, sc.shape[0])).indices.tolist()
+                hc3 += int(Y[i] in top3)
+                if TY is not None:
+                    sy = (TY[i][Y[i]], CID[i][Y[i]])
+                    hs += int((TY[i][p], CID[i][p]) == sy)
+                    hs3 += int(any((TY[i][t], CID[i][t]) == sy for t in top3))
+        sem = (f"  语义 top-1={hs / max(ht, 1):.1%} 语义 top-3={hs3 / max(ht, 1):.1%}"
+               if TY is not None else "")
         print(f"  epoch {ep + 1}/{args.epochs}  loss={loss_sum / max(tot, 1):.4f}  "
-              f"train top-1={corr / max(tot, 1):.1%}  **holdout top-1={hc / max(ht, 1):.1%}**",
-              flush=True)
+              f"train top-1={corr / max(tot, 1):.1%}  **holdout top-1={hc / max(ht, 1):.1%}**"
+              f"  top-3={hc3 / max(ht, 1):.1%}{sem}", flush=True)
 
     torch.save(model.state_dict(), os.path.join(ROOT, "models", "bc_policy.pt"))
-    print(f"\n最终 holdout top-1 = {hc / max(ht, 1):.1%}"
-          f"（随机 {np.mean([1.0 / k for k in K]):.1%}；判据 ≥60%）")
-    print("模型已存 models/bc_policy.pt")
+    if args.epochs > 0:
+        print(f"\n最终 holdout top-1 = {hc / max(ht, 1):.1%}  top-3 = {hc3 / max(ht, 1):.1%}"
+              + (f"  语义 top-1 = {hs / max(ht, 1):.1%}  语义 top-3 = {hs3 / max(ht, 1):.1%}"
+                 if TY is not None and ht else "")
+              + (f"  ｜ 手写规则：index {_ri:.1%} 语义 {_rs:.1%}"
+                 if R is not None and TY is not None else "")
+              + f"（随机 {np.mean([1.0 / k for k in K]):.1%}；判据 ≥60%）")
+    else:
+        print("\n(--epochs 0：只重建缓存，不训练)")
 
 
 if __name__ == "__main__":
