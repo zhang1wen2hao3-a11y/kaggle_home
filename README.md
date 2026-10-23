@@ -432,6 +432,10 @@ PTCG 的**攻击会结束回合**。把 ATTACK 排在优先级首位，agent 就
 ├── tools/                 # 诊断工具（做实验前先过一遍）
 │   ├── check_agent.py     #   agent 自检：真 rollout 次数 / 被吞掉的异常 / 配置是否真生效
 │   ├── inspect_subdecisions.py  # 子决策盘点：占比、选择空间、是否退化、选项解析成具体牌
+│   ├── audit_decisions.py #   **真实回放行为审计**：在 317 局线上对局里数"可判定型错误"，
+│   │                      #   并按胜局/败局每千决策归一化 —— 找 bug 的第一站
+│   ├── bc_critic_gate.py  #   偏离门控离线标定（BC 那条线的收尾诊断，结论见 别再试.md D13）
+│   ├── gen_field_doc.py   #   从 cg/api.py 自动生成 引擎字段清单.md
 │   └── measure_cost.py    #   单局耗时 / 预算是否被打穿 / 还剩多少算力余量
 │
 ├── decks/                 # 25 套 archetype 卡组

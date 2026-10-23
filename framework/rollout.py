@@ -858,6 +858,73 @@ def _stats(vals):
     return {"mean": m, "sd": sd, "n": len(v)}
 
 
+# ============================================================ 审计守栏（2026-10-23）
+# 来源：`tools/audit_decisions.py` 在 317 局**真实线上对局**里数出来的唯一一个
+# 「与败局显著相关」的决策错误 —— rollout 会偏离到一个**纯伤害更低**的招式：
+#     胜局 9.9‰  vs  败局 15.3‰（1.54×），共 226 次 / 135 局；
+#     而且"规则自己犯"= 0，说明规则从来都挑伤害最高的纯伤害招式，全是 rollout 偏离造成的。
+# 其余审计（END 却可攻击、撤退、浪费贴能量、错过进化、有牌不打）在胜/败局里几乎无差异
+# （0.79~1.07×），所以**只守这一条**，不做大范围守栏。
+GUARD_PLAIN_ATTACK = False
+GUARD_HITS = 0          # 守栏实际触发次数（诊断用：不确认它真的触发过，A/B 等于空跑）
+
+_ATK_TABLE: dict = {}
+
+
+def _attack_table() -> dict:
+    """attackId -> (damage, cost_types, 是否无特效)。"""
+    global _ATK_TABLE
+    if _ATK_TABLE:
+        return _ATK_TABLE
+    t: dict = {}
+    try:
+        from cg.api import all_attack
+        for a in all_attack():
+            t[int(a.attackId)] = (
+                int(getattr(a, "damage", 0) or 0),
+                [int(x) for x in (getattr(a, "energies", None) or [])],
+                not (getattr(a, "text", "") or "").strip())
+    except Exception:
+        pass
+    _ATK_TABLE = t
+    return t
+
+
+def _guard_better_attack(sel, obs, cand_idx) -> bool:
+    """候选是不是"纯伤害招式，但不是付得起里伤害最高的那个"。
+
+    ⚠️ 两条判定纪律（都是踩过的坑）：
+      1. **按属性**判可付性（`_can_pay`），不是数能量张数 —— 否则 2 张超能量会被判成付得起{斗}{斗}
+      2. 只比**无特效**招式 —— 0 伤害招式常常「抽 3 张 / 放伤害指示物」，那不是劣选
+    """
+    from framework.features import _can_pay
+    opts = (sel or {}).get("option") or []
+    if not (0 <= cand_idx < len(opts)):
+        return False
+    tab = _attack_table()
+    mine = tab.get(int(opts[cand_idx].get("attackId", -1)))
+    if not mine or not mine[2] or mine[0] <= 0:
+        return False
+    cur = obs.get("current") or {}
+    players = cur.get("players") or []
+    j = int(cur.get("yourIndex", 0))
+    me = players[j] if len(players) > j else {}
+    act = None
+    for pk in (me.get("active") or []):
+        if pk:
+            act = pk
+            break
+    have = list((act or {}).get("energies") or [])
+    best = 0
+    for o in opts:
+        if int(o.get("type", -1)) != int(OptionType.ATTACK):
+            continue
+        ai = tab.get(int(o.get("attackId", -1)))
+        if ai and ai[2] and ai[0] > best and _can_pay(have, ai[1]):
+            best = ai[0]
+    return best > mine[0]
+
+
 def choose_action(obs: dict, *, filler, my_deck, n_worlds: int = 10,
                   margin: float = 1.0, min_pairs: int = 4,
                   max_steps: int = 800, memory=None,
@@ -949,6 +1016,12 @@ def choose_action(obs: dict, *, filler, my_deck, n_worlds: int = 10,
             best_a, best_z = a, z
 
     if best_a is not None and best_z >= margin:
+        if GUARD_PLAIN_ATTACK and _guard_better_attack(sel, obs, best_a):
+            global GUARD_HITS
+            GUARD_HITS += 1
+            info["reason"] = "审计守栏：rollout 想换成纯伤害更低的招式 → 回退规则"
+            info["guarded"] = True
+            return base, info
         info["chosen"] = [best_a]
         info["reason"] = f"rollout 更优 (z={best_z:.2f} >= {margin})"
         return [best_a], info
