@@ -207,14 +207,13 @@ def main() -> None:
         if len(rew) > me:
             won = rew[me] > max([r for j, r in enumerate(rew) if j != me] or [0])
             outcomes["胜" if won else "负"] += 1
-        for st in d.get("steps") or []:
-            if me >= len(st):
+        # ⚠️ action 记在**下一步同座位**（见 framework/replay.py），同步配对会让审计结论全错
+        from framework.replay import iter_decisions
+        for _t, j, obs, act in iter_decisions(d.get("steps") or []):
+            if j != me or not obs.get("current"):
                 continue
-            ent = st[me]
-            obs = ent.get("observation") or {}
-            act = ent.get("action")
             sel = obs.get("select")
-            if sel is None or not act or not obs.get("current"):
+            if sel is None or not act:
                 continue
             total_dec += 1
             if won is True:

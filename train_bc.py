@@ -129,10 +129,10 @@ def _extract_file(f, gi, main_only):
 
     out = {"S": [], "O": [], "Y": [], "G": [], "K": [], "AGREE": [],
            "CID": [], "TY": [], "R": [], "stat": collections.Counter()}
-    for st in d.get("steps") or []:
-        for j, ent in enumerate(st):
-            obs = ent.get("observation") or {}
-            act = ent.get("action")
+    # ⚠️ 必须用 framework.replay.iter_decisions：回放的 action 记在**下一步同座位**，
+    #    同步配对会让 34% 的标签越界、其余整体错位一位（EXP-0104 修正）
+    from framework.replay import iter_decisions
+    for _t, j, obs, act in iter_decisions(d.get("steps") or []):
             sel = obs.get("select")
             if sel is None or not act or not obs.get("current"):
                 continue
@@ -441,7 +441,15 @@ def main() -> None:
               f"train top-1={corr / max(tot, 1):.1%}  **holdout top-1={hc / max(ht, 1):.1%}**"
               f"  top-3={hc3 / max(ht, 1):.1%}{sem}", flush=True)
 
-    torch.save(model.state_dict(), os.path.join(ROOT, "models", "bc_policy.pt"))
+    # ⚠️ 只存 state_dict 是不够的：推理时必须复现同一套**特征标准化参数**与**卡牌词表**，
+    #    否则同一个模型在 agent 里会得到完全不同的分数（这类不一致是静默的）。
+    torch.save({
+        "state_dict": model.state_dict(),
+        "mu_s": mu_s, "sd_s": sd_s, "mu_o": mu_o, "sd_o": sd_o,
+        "vocab": vocab, "other": int(other), "n_state": int(N_S), "n_opt": int(n_eff),
+        "label": args.label, "no_anchor": os.environ.get("BC_NO_ANCHOR") == "1",
+        "cands": "all-options",
+    }, os.path.join(ROOT, "models", "bc_policy.pt"))
     if args.epochs > 0:
         print(f"\n最终 holdout top-1 = {hc / max(ht, 1):.1%}  top-3 = {hc3 / max(ht, 1):.1%}"
               + (f"  语义 top-1 = {hs / max(ht, 1):.1%}  语义 top-3 = {hs3 / max(ht, 1):.1%}"
