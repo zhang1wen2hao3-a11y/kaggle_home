@@ -1,0 +1,106 @@
+[
+  {
+    "cluster": 1,
+    "rep": "b702e251",
+    "hashes": [
+      "b5ba8fa1",
+      "b702e251"
+    ],
+    "matches": 95,
+    "our_wins": 58,
+    "our_win_rate": 0.6105263157894737,
+    "file": "b702e251__35_能量_Snover×4_+_Mega_Abomasnow_ex×4_+.csv",
+    "label": "[35 能量] Snover×4 + Mega Abomasnow ex×4 + Mega Signal×4 + Lillie's Determination×4"
+  },
+  {
+    "cluster": 2,
+    "rep": "39d19fe3",
+    "hashes": [
+      "39d19fe3",
+      "0c3d1fdc"
+    ],
+    "matches": 21,
+    "our_wins": 8,
+    "our_win_rate": 0.38095238095238093,
+    "file": "39d19fe3__33_能量_Snover×4_+_Mega_Abomasnow_ex×4_+.csv",
+    "label": "[33 能量] Snover×4 + Mega Abomasnow ex×4 + Team Rocket's Petrel×4 + Lillie's Determination×4"
+  },
+  {
+    "cluster": 3,
+    "rep": "7e398437",
+    "hashes": [
+      "7e398437"
+    ],
+    "matches": 13,
+    "our_wins": 3,
+    "our_win_rate": 0.23076923076923078,
+    "file": "7e398437__14_能量_Teal_Mask_Ogerpon_ex×4_+_Bug_Cat.csv",
+    "label": "[14 能量] Teal Mask Ogerpon ex×4 + Bug Catching Set×4 + Ultra Ball×4 + Lillie's Determination×4"
+  },
+  {
+    "cluster": 4,
+    "rep": "a41346a0",
+    "hashes": [
+      "9b307a18",
+      "674ec310",
+      "b38175af",
+      "a41346a0",
+      "07bedfff"
+    ],
+    "matches": 12,
+    "our_wins": 7,
+    "our_win_rate": 0.5833333333333334,
+    "file": "a41346a0__10_能量_Dreepy×4_+_Drakloak×4_+_BuddyBu.csv",
+    "label": "[10 能量] Dreepy×4 + Drakloak×4 + Buddy-Buddy Poffin×4 + Crushing Hammer×4"
+  },
+  {
+    "cluster": 5,
+    "rep": "94eca685",
+    "hashes": [
+      "94eca685",
+      "e6e914a5"
+    ],
+    "matches": 10,
+    "our_wins": 4,
+    "our_win_rate": 0.4,
+    "file": "94eca685__10_能量_Dreepy×4_+_Drakloak×4_+_BuddyBu.csv",
+    "label": "[10 能量] Dreepy×4 + Drakloak×4 + Buddy-Buddy Poffin×4 + Crushing Hammer×4"
+  },
+  {
+    "cluster": 6,
+    "rep": "f5f8201b",
+    "hashes": [
+      "f5f8201b"
+    ],
+    "matches": 8,
+    "our_wins": 2,
+    "our_win_rate": 0.25,
+    "file": "f5f8201b__2_能量_Telepath_Psychic_Energy×4_+_Abra×.csv",
+    "label": "[2 能量] Telepath Psychic Energy×4 + Abra×4 + Kadabra×4 + Rare Candy×4"
+  },
+  {
+    "cluster": 7,
+    "rep": "5d3a7bf5",
+    "hashes": [
+      "5d3a7bf5"
+    ],
+    "matches": 8,
+    "our_wins": 5,
+    "our_win_rate": 0.625,
+    "file": "5d3a7bf5__28_能量_Snover×4_+_Mega_Abomasnow_ex×4_+.csv",
+    "label": "[28 能量] Snover×4 + Mega Abomasnow ex×4 + Mega Signal×4 + Lillie's Determination×4"
+  },
+  {
+    "cluster": 8,
+    "rep": "f6e81b08",
+    "hashes": [
+      "77a53ffc",
+      "f6e81b08"
+    ],
+    "matches": 7,
+    "our_wins": 2,
+    "our_win_rate": 0.2857142857142857,
+    "file": "f6e81b08__13_能量_Riolu×4_+_Mega_Lucario_ex×4_+_Ul.csv",
+    "label": "[13 能量] Riolu×4 + Mega Lucario ex×4 + Ultra Ball×4 + Premium Power Pro×4"
+  }
+]
