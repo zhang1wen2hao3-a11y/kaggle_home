@@ -1,0 +1,23 @@
+{
+ "tag": "combo5",
+ "scheme": "ridge_id",
+ "text_rows": {
+  "cards": {
+   "new_rows": 164,
+   "exact_twin": 0
+  },
+  "attacks": {
+   "new_rows": 199,
+   "exact_twin": 17
+  },
+  "skills": {
+   "new_rows": 49,
+   "exact_twin": 1
+  }
+ },
+ "sizes": [
+  1448,
+  1772,
+  497
+ ]
+}
