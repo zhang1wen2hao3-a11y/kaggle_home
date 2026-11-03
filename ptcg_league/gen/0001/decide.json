@@ -1,0 +1,29 @@
+{
+ "agent_id": null,
+ "archetype_scores": {},
+ "at": "2026-10-29T22:13:00",
+ "branch": "g0001_7e39_port_plain",
+ "deck": "/home/zhang/code/kaggle/the-pokemon-company/decks/pool_field/teal_mask_ogerpon_ex_applin__7e39.csv",
+ "detail": {
+  "screen": {
+   "ci_high": 0.5239,
+   "ci_low": 0.4265,
+   "errors": 0,
+   "n": 400,
+   "score": 0.475
+  }
+ },
+ "duplicate_of": null,
+ "gen": 1,
+ "league_opponents": [
+  "bc:agent_sue124",
+  "bc:agent_RtoABC2",
+  "bc:deck_26c6"
+ ],
+ "model_sha": "06194138bdb3e2b59b82bb46a92cc23c2e5eeb765f4e9b0aacfaf9c56c38f0b6",
+ "parent_id": "lg_boot:port_plain",
+ "reason": "screen_score=0.4750<0.52",
+ "rules_sha": "1140e40f13483ee889450811ec8035e6ba6e923ccfd21938feb5888bd41a82e1",
+ "similarity": 0.0,
+ "verdict": "reject"
+}

@@ -1,0 +1,6 @@
+{
+ "bundle": "/home/zhang/code/kaggle/the-pokemon-company/ptcg_league/pools/evo/g0002_7e39_port_plain/bundle",
+ "ckpt": "/home/zhang/code/kaggle/the-pokemon-company/ptcg_league/pools/evo/g0002_7e39_port_plain/final.bin",
+ "deck": "/home/zhang/code/kaggle/the-pokemon-company/decks/pool_field/teal_mask_ogerpon_ex_applin__7e39.csv",
+ "model_sha": "ecd70463f714851da924cbb0c34d45294fca1794994afe73ad3c17cc1df0bdd6"
+}

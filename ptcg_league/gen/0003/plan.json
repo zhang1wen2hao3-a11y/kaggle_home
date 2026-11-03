@@ -1,0 +1,38 @@
+{
+ "branch": "g0003_7e39_port_plain",
+ "checkpoint_interval": 25,
+ "ckpt_dir": "/home/zhang/code/kaggle/the-pokemon-company/ptcg_league/pools/evo/g0003_7e39_port_plain",
+ "ckpt_out": "/home/zhang/code/kaggle/the-pokemon-company/ptcg_league/pools/evo/g0003_7e39_port_plain/final.bin",
+ "deck": "/home/zhang/code/kaggle/the-pokemon-company/decks/pool_field/teal_mask_ogerpon_ex_applin__7e39.csv",
+ "deck_pool": "decks/pool_field",
+ "deck_weights_file": "decks/weights_real.txt",
+ "gen": 3,
+ "init_bin": "/home/zhang/code/kaggle/the-pokemon-company/port_repo/native/pt_model_field.bin",
+ "init_ckpt": "/home/zhang/code/kaggle/the-pokemon-company/build/port_plain/model.pt",
+ "league_ckpts": [
+  "/home/zhang/code/kaggle/the-pokemon-company/bc_pool/agent_sue124_.bin",
+  "/home/zhang/code/kaggle/the-pokemon-company/bc_pool/deck_2617_grookey.bin",
+  "/home/zhang/code/kaggle/the-pokemon-company/bc_pool/deck_f5f8_.bin",
+  "/home/zhang/code/kaggle/the-pokemon-company/ptcg_league/pools/evo/g0002_7e39_port_plain/final.bin"
+ ],
+ "league_opponents": [
+  "bc:agent_sue124",
+  "bc:deck_2617_grookey",
+  "bc:deck_f5f8",
+  "sp:g0002_7e39_port_plain"
+ ],
+ "league_pct": 0.1,
+ "lr": 0.0002,
+ "matches": 8192,
+ "minibatch": 512,
+ "parent_id": "lg_boot:port_plain",
+ "probe_opponents": [],
+ "rules_sha": "40fa0de19a92ab22e677e1590e014a3c069f4248eb4e0cd28f72b86e089a976a",
+ "rules_version": 4,
+ "run_name": "lg_g0003_7e39_port_plain",
+ "seed": 20284773,
+ "started": "2026-10-31T09:47:36",
+ "steps": 1392640,
+ "target_archetype": "",
+ "total_agents": 512
+}

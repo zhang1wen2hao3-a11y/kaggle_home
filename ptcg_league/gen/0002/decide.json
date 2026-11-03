@@ -1,0 +1,40 @@
+{
+ "agent_id": "sp:g0002_7e39_port_plain",
+ "archetype_scores": {},
+ "at": "2026-10-30T01:03:23",
+ "branch": "g0002_7e39_port_plain",
+ "deck": "/home/zhang/code/kaggle/the-pokemon-company/decks/pool_field/teal_mask_ogerpon_ex_applin__7e39.csv",
+ "detail": {
+  "probe": {
+   "base": 0.85,
+   "cand": 0.9025,
+   "ci_high": 0.0979,
+   "ci_low": 0.0071,
+   "losses": 33,
+   "mean": 0.0525,
+   "n": 400,
+   "wins": 54
+  },
+  "screen": {
+   "ci_high": 0.5512,
+   "ci_low": 0.4537,
+   "errors": 0,
+   "n": 400,
+   "score": 0.5025
+  }
+ },
+ "duplicate_of": null,
+ "eval_dir": "/home/zhang/code/kaggle/the-pokemon-company/ptcg_league/pools/league/sp_g0002_7e39_port_plain",
+ "gen": 2,
+ "league_opponents": [
+  "bc:agent_sue124",
+  "bc:deck_f5f8",
+  "bc:deck_26c6"
+ ],
+ "model_sha": "ecd70463f714851da924cbb0c34d45294fca1794994afe73ad3c17cc1df0bdd6",
+ "parent_id": "lg_boot:port_plain",
+ "reason": "总体 0.5025<0.52，但shuppet 对位配对提升 +0.0525 CI 下界 +0.0071>0（n=400，±54/33）",
+ "rules_sha": "f69b708097c3ce1c57f49d223cd07e6170b4e966a7754e57a659feefb198cd44",
+ "similarity": 0.0,
+ "verdict": "specialist"
+}

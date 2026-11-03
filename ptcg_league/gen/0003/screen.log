@@ -1,0 +1,9 @@
+
+$ /home/zhang/code/kaggle/the-pokemon-company/tools/onejob.sh league-eval -- /home/zhang/code/kaggle/the-pokemon-company/tools/py /home/zhang/code/kaggle/the-pokemon-company/ptcg_league/eval_pair.py --cand /home/zhang/code/kaggle/the-pokemon-company/ptcg_league/pools/evo/g0003_7e39_port_plain/bundle --opp lg_boot:port_plain=/home/zhang/code/kaggle/the-pokemon-company/ptcg_league/pools/init/init_port_plain --matches 400 --workers 6 --seed-base 931000 --out /home/zhang/code/kaggle/the-pokemon-company/ptcg_league/gen/0003/screen.json
+[2026-10-31T11:27:43]
+[onejob:league-eval] pid=50072 已用 42%（可用 4352 MB；天花板 90% = 6802 MB）
+⚠️ 内存预算 3.2 GB（上限 90%，已用 3.1 GB） → 面板数从 6 降到 4
+候选 /home/zhang/code/kaggle/the-pokemon-company/ptcg_league/pools/evo/g0003_7e39_port_plain/bundle  总 400 场 Bo3  得分 0.5300 CI [0.4810,0.5784]  异常 0  439s
+  vs lg_boot:port_plain        400 场  0.5300  [0.4810,0.5784]  异常 0
+→ /home/zhang/code/kaggle/the-pokemon-company/ptcg_league/gen/0003/screen.json
+[onejob:league-eval] 退出 rc=0 用时 439s  收尾已用 37%（启动时 42%）

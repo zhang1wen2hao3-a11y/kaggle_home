@@ -1,0 +1,33 @@
+{
+ "branch": "g0001_7e39_port_plain",
+ "checkpoint_interval": 25,
+ "ckpt_dir": "/home/zhang/code/kaggle/the-pokemon-company/ptcg_league/pools/evo/g0001_7e39_port_plain",
+ "ckpt_out": "/home/zhang/code/kaggle/the-pokemon-company/ptcg_league/pools/evo/g0001_7e39_port_plain/final.bin",
+ "deck": "/home/zhang/code/kaggle/the-pokemon-company/decks/pool_field/teal_mask_ogerpon_ex_applin__7e39.csv",
+ "deck_pool": "decks/pool_field",
+ "deck_weights_file": "decks/weights_real.txt",
+ "gen": 1,
+ "init_bin": "/home/zhang/code/kaggle/the-pokemon-company/port_repo/native/pt_model_field.bin",
+ "init_ckpt": "/home/zhang/code/kaggle/the-pokemon-company/build/port_plain/model.pt",
+ "league_ckpts": [
+  "/home/zhang/code/kaggle/the-pokemon-company/bc_pool/agent_sue124_.bin",
+  "/home/zhang/code/kaggle/the-pokemon-company/bc_pool/agent_RtoABC2_.bin",
+  "/home/zhang/code/kaggle/the-pokemon-company/bc_pool/deck_26c6_.bin"
+ ],
+ "league_opponents": [
+  "bc:agent_sue124",
+  "bc:agent_RtoABC2",
+  "bc:deck_26c6"
+ ],
+ "league_pct": 0.12,
+ "lr": 0.0005,
+ "matches": 2048,
+ "minibatch": 512,
+ "parent_id": "lg_boot:port_plain",
+ "rules_sha": "1140e40f13483ee889450811ec8035e6ba6e923ccfd21938feb5888bd41a82e1",
+ "run_name": "lg_g0001_7e39_port_plain",
+ "seed": 20268935,
+ "started": "2026-10-29T21:16:29",
+ "steps": 348160,
+ "total_agents": 512
+}

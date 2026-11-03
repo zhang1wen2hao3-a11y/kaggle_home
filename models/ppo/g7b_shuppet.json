@@ -1,0 +1,45 @@
+{
+ "agent_id": "opp:g7b_shuppet",
+ "kind": "ppo",
+ "bin": "models/ppo/g7b_shuppet.bin",
+ "sha256": "f356ddc18667cf5eeaa785f17d5cbe8a220101a31d1e5153631809f41c0b6f56",
+ "size": 18205408,
+ "deck": "shuppet_dhelmise__0d86",
+ "deck_id": 143,
+ "recipe": {
+  "anchor": "shuppet_dhelmise__0d86",
+  "deck_weights": "decks/weights_real.txt",
+  "banks": [
+   "league_g0003/bank_0.bin",
+   "league_g0003/bank_1.bin"
+  ],
+  "league_pct": 0.08,
+  "timesteps": 400000,
+  "total_agents": 512,
+  "minibatch": 512,
+  "lr": 0.0002,
+  "seed": 424242
+ },
+ "train": {
+  "epochs": 13,
+  "sps": 928.0,
+  "ep_len": 171.0,
+  "lgw": 0.273,
+  "mir": 0.867,
+  "d0": 0.19,
+  "endD": 0.245,
+  "endB": 0.012,
+  "endP": 0.742,
+  "kl": 0.0064
+ },
+ "gates": {
+  "anchor_resolved": "shuppet_dhelmise__0d86: 143",
+  "deck_weights": "v3 185/185 ESS 28.9",
+  "tl0": 1.0,
+  "to0": 0.05,
+  "tl1": 0.0,
+  "to1": 0.01
+ },
+ "caveat": "d0=0.19 / lgw 0.073-0.273 / endD 0.245 ⇒ 学习者用 shuppet 仍输给自家 bank 81%，离『人类水平 shuppet』很远；作为『强 shuppet 陪练』大概率不合格，需实测确认",
+ "created": "2026-11-01"
+}

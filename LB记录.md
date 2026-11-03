@@ -218,3 +218,60 @@ determinization / margin / 子决策 / 续弈策略 / depth-2 / 卡组池），*
   所以两者分数差**不能纯归因于卡组**；只能看"方向是否与本地预测一致"。
 * 每局 4.3 分/局（稳定后）⇒ 从 3 局爬到 60 局大约需要数小时。
 
+
+---
+
+## 2026-10-26 23:00 快照（**首次用 CLI 全量拉榜**）
+
+`kaggle competitions leaderboard -c the-pokemon-company-ptcg-ai-battle-challenge-playground -d`
+公开榜文件时间戳：`2026-10-26T14:12:03`
+
+| 项 | 值 |
+|---|---|
+| 总队伍 | **539** |
+| 分数范围 | −231.8 ~ **1298.0**（中位 677.6） |
+| **我们** | **1051.1 → 第 33 名（前 6.1%）** |
+| ≥1100 分 | 21 支 |
+| 差榜首 | **−246.9** |
+
+前 5：Dipam Chakraborty **1298.0**（10-26）/ RtoABC2 1282.9 / やる気元気ミワハルキ 1266.4 / ktr 1249.2 / Ondrej Kubicek 1249.1
+
+我们的计分窗口（`kaggle competitions submissions`）：
+
+| ref | 文件 | 日期 | publicScore |
+|---|---|---|---|
+| 57586502 | `ptcg_public_port_alakazam.tar.gz` | 10-24 | **1051.1** |
+| 57574351 | `ptcg_public_port.tar.gz` | 10-23 | 939.6 |
+
+⚠️ 注意 **1051.1 ≠ 之前记的 1063.3** —— Elo 在窗口里持续漂移，**不动的代价就是掉分**。
+⚠️ 另：`SubmissionCount` 全部显示 2（只有 2 份被计分），**不能用它推断别人的投入量**。
+
+### 顺带拿到的两条正解
+
+1. **可以读榜**（之前一直以为不行）—— 见 `下一步.md` §17.9
+2. **可以抓真实对局**：`kaggle competitions episodes <submission_id>` 列我方对局（该提交共 **253 局**），
+   `kaggle competitions replay <episode_id>` 下载单局，里面**有对手队名 + 双方完整 60 张卡表 + 胜负**。
+   这就是 1st place 那天"看谁在冒头"的数据源，我们之前误以为没有。
+
+### 已知对手卡组（抽自真实 replay，10-26）
+
+| 队伍 | 榜单 | 卡组 |
+|---|---|---|
+| Dipam Chakraborty | #1 (1298.0) | `dreepy_drakloak__3eaa` |
+| sue124 | #7 (1219.3) | `shuppet_dhelmise__0d86` |
+
+---
+
+## 2026-10-27 12:18 第二臂提交（grookey）
+
+| ref | 文件 | 卡组 | 状态 | publicScore |
+|---|---|---|---|---|
+| **57700763** | `ptcg_port_grookey.tar.gz` | `grookey_thwackey__2617` | PENDING → 待读 | 待读 |
+| 57586502 | `ptcg_public_port_alakazam.tar.gz` | `dunsparce_abra__9d6e` | COMPLETE | **1046.3**（原 1051.1） |
+| 57574351 | `ptcg_public_port.tar.gz` | Ogerpon 7e39 | COMPLETE | 944.4（原 939.6） |
+
+**两臂唯一变量 = `deck.csv`**，权重同源（`model.pt` sha256 `7c88c57d42115e1c6ef0`），
+是本文件开头要求的"同批次两臂"。队分 = max(1046.3, 944.4, 新读数)，**提交零下行**。
+
+⚠️ 读数时刻：2026-10-27 12:20。alakazam 从 1051.1 掉到 1046.3（−4.8），
+再次说明**停在窗口里也会漂**，不同时刻的读数不可直接相减。

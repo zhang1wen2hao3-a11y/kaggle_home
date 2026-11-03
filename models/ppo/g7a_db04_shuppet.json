@@ -1,0 +1,44 @@
+{
+ "agent_id": "opp:g7a_db04_shuppet",
+ "kind": "ppo",
+ "bin": "models/ppo/g7a_db04_shuppet.bin",
+ "sha256": "1af0c2682cbaa948cc6de6758b022895aabd79f0c1bbff9beb457665cd8456fb",
+ "size": 18205408,
+ "deck": "dunsparce_abra__db04",
+ "deck_id": 66,
+ "recipe": {
+  "anchor": "dunsparce_abra__db04",
+  "deck_weights": "decks/weights_shuppet31.txt",
+  "shuppet_share": 0.313,
+  "ess": 15.1,
+  "banks": [
+   "league_g0003/bank_0.bin",
+   "league_g0003/bank_1.bin"
+  ],
+  "league_pct": 0.08,
+  "timesteps": 400000,
+  "total_agents": 512,
+  "minibatch": 512,
+  "lr": 0.0002,
+  "seed": 424242,
+  "threads": 8
+ },
+ "train": {
+  "epochs": 13,
+  "sps": 931.0,
+  "ep_len": 163.0,
+  "lgw": 0.919,
+  "mir": 0.821,
+  "d0": 0.8,
+  "endD": 0.2,
+  "kl": 0.0049
+ },
+ "gates": {
+  "anchor_resolved": "dunsparce_abra__db04: 66",
+  "deck_weights": "v3 185/185 ESS 15.1 min 7.4e-05 max 0.156",
+  "tl0": 1.0,
+  "to0": 0.03
+ },
+ "caveat": "对手仍是 7e39 训练的 bank 在打 shuppet 牌 ⇒ 学的是'打弱 shuppet 驾驶者'；真天梯 0-23 未必能修",
+ "created": "2026-11-01"
+}

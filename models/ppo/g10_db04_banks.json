@@ -1,0 +1,48 @@
+{
+ "agent_id": "opp:g10_db04_banks",
+ "kind": "ppo",
+ "bin": "models/ppo/g10_db04_banks.bin",
+ "sha256": "58d66067912c8ab3e2284dcf706dcdfe06139ecc7a4864fc29e716d27f9188d8",
+ "size": 18205408,
+ "deck": "dunsparce_abra__db04",
+ "deck_id": 66,
+ "parent": "g6_db04（confirm 0.6056）",
+ "recipe": {
+  "anchor": "dunsparce_abra__db04",
+  "deck_weights": "port_repo/decks/weights_real.txt",
+  "banks": [
+   "models/ppo/g5_db04.bin（A 档，学习者0.205）",
+   "models/ppo/g8_shuppet_bc.bin（C 档，学习者0.630）"
+  ],
+  "league_pct": 0.08,
+  "timesteps": 400000,
+  "total_agents": 512,
+  "minibatch": 512,
+  "lr": 0.0002,
+  "seed": 424242
+ },
+ "train": {
+  "epochs": 13,
+  "sps": 1765.0,
+  "ep_len": 158.0,
+  "lgw": 0.824,
+  "lgw_prev": 0.707,
+  "d0": 0.72,
+  "d0_prev": 0.65,
+  "mir": 0.803,
+  "ent": 0.39,
+  "kl": 0.0076,
+  "endD": 0.06,
+  "endP": 0.881
+ },
+ "gates": {
+  "anchor_resolved": "dunsparce_abra__db04: 66",
+  "deck_weights": "v3 185/185",
+  "tl0": 1.0,
+  "to0": 0.02,
+  "tl1": 0.0,
+  "to1": 0.04
+ },
+ "ab_design": "只换 bank：G6 用 league_g0003 的两个（g0003 那代），G10 用池里实测的 A 档 g5 + C 档 g8",
+ "created": "2026-11-01"
+}

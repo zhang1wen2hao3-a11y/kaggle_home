@@ -1,0 +1,13 @@
+name	filter	frames	val_frames	base_val_acc	val_acc	train_acc	val_loss	bin	bin_sha16	date	source
+agent_Raihan_	agent:Raihan	22046	4588	0.511	0.628	0.701	0.9362	agent_Raihan_.bin	6ac085d616cb2837	2026-10-29	aggregate_log
+agent_RtoABC2_	agent:RtoABC2	16864	3291	0.345	0.759	0.819	0.7870	agent_RtoABC2_.bin	55a92f023c205cd2	2026-10-29	aggregate_log
+agent_miwa_full	?	0	0							2026-10-30	aggregate_log
+agent_sue124_	agent:sue124	19830	4175	0.421	0.668	0.727	0.8676	agent_sue124_.bin	296ac04e0f03d5d4	2026-10-29	aggregate_log
+db04pilot	?	4182	1189	0.546	0.667	0.824	1.0581	db04pilot.bin	cdc90d4a5f8e9695	2026-11-01	pt.json
+deck_0d86_	deck:0d86	170997	33881	0.447	0.731	0.767	0.6960	deck_0d86_.bin	2bbb456e391902a4	2026-10-29	aggregate_log
+deck_0d86_w	deck:0d86	170997	33881	0.439	0.726	0.801	0.7399			2026-10-30	pt.json
+deck_2617_grookey	deck:2617	13329	3420	0.611	0.745	0.846	0.8059	deck_2617_grookey.bin	8a907986cfff7d16	2026-10-30	pt.json
+deck_26c6_	deck:26c6	135184	25952	0.628	0.810	0.851	0.5167	deck_26c6_.bin	8ba672af36818af2	2026-10-29	aggregate_log
+deck_f5f8_	deck:f5f8	76862	16093	0.523	0.696	0.717	0.9025	deck_f5f8_.bin	0ba858f7fdf6d80f	2026-10-29	aggregate_log
+grookey	deck:2617	13329	3420	0.601	0.740	0.846	0.8310	grookey.bin	b75c46c6446b327c	2026-10-31	pt.json
+miwa	agent:ミワハルキ	254526	52221	0.547	0.750	0.807	0.6699	miwa.bin	86355d4dfc12f91a	2026-10-31	pt.json

@@ -33,6 +33,9 @@ backup.ipync
 *.pt
 *.pth
 *.onnx
+*.json
+*.bin
+*.txt
 
 # ==== 凭据：永远不要提交 ====
 kaggle.json
@@ -46,3 +49,16 @@ episode/
 # 大批量回放（13 GB，2026-10-23 抓的前两名队伍 1364 局）
 epsoide_teams2/
 epsoide_field2/
+port_repo/
+
+# ==== 二进制 agent 泳池（每份 20 MB，本地重建即可，不进 git）====
+bc_pool/
+build/agents/
+ptcg_league/pools/
+
+# ==== 已用 `git add -f` 显式跟踪的例外（改这里不会生效，需 -f）====
+#   data/*.tsv *.csv（测量结果：our_games / ladder_games / arena_matches /
+#                    bc_frame_labels / league_agents / matchup_matrix / seat_sidecar）
+#   models/ppo/*.json *.log（每次训练的元数据与日志）
+#   decks/pool_field/_manifest.json、bc_pool/registry.tsv
+#   ptcg_league/{gen,state,reports}（联赛状态与开环计划）

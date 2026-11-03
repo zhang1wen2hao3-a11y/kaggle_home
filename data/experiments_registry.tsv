@@ -1,0 +1,5 @@
+when	arena	policy_id	policy_sha256	deck_id	deck_hash	training_decks	training_opponents	opponent_policy_id	opponent_deck_id	matchup_win_rate	ci_low	ci_high	n_matches	errors	evaluation_seed	seat_distribution	note
+2026-11-02 22:15	policy_axis	g5_db04	1e364b330b9ca625	dunsparce_abra__db04	db042305	dunsparce_abra__db04	bank_0.bin,bank_1.bin	port	dunsparce_abra__db04	0.5550	0.5305	0.5792	1600	5	900000	n/a	g5_db04 vs port 同卡组
+2026-11-02 22:15	policy_axis	g6_db04	f0b631d5af939ca4	dunsparce_abra__db04	db042305	dunsparce_abra__db04	bank_0.bin,bank_1.bin	port	dunsparce_abra__db04	0.6056	0.5815	0.6293	1600	4	900000	n/a	g6_db04 vs port 同卡组
+2026-11-02 22:15	policy_axis	g9_db04	36f1fbfcdca0ab0b	dunsparce_abra__db04	db042305	dunsparce_abra__db04	bank_0.bin,bank_1.bin	port	dunsparce_abra__db04	0.6131	0.5890	0.6367	1600	3	900000	n/a	g9_db04 vs port 同卡组
+2026-11-02 22:15	policy_axis	g10_db04_banks	82b927186aec69ee	dunsparce_abra__db04	db042305	dunsparce_abra__db04	g5_db04.bin（A 档，学习者0.205）,g8_shuppet_bc.bin（C 档，学习者0.630）	port	dunsparce_abra__db04	0.5981	0.5739	0.6219	1600	2	900000	n/a	g10_db04_banks vs port 同卡组

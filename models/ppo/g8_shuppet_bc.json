@@ -1,0 +1,46 @@
+{
+ "agent_id": "opp:g8_shuppet_bc",
+ "kind": "ppo",
+ "bin": "models/ppo/g8_shuppet_bc.bin",
+ "sha256": "04b504ffd5a34d35780549a0084ad1c3aaa436d131782ff739895f092130c08c",
+ "size": 18205408,
+ "deck": "shuppet_dhelmise__0d86",
+ "deck_id": 143,
+ "parent": "bc_pool/deck_0d86_.bin（BC shuppet，val 73.1%，170,997 帧）",
+ "recipe": {
+  "anchor": "shuppet_dhelmise__0d86",
+  "deck_weights": "port_repo/decks/weights_real.txt",
+  "banks": [
+   "league_g0003/bank_0.bin",
+   "league_g0003/bank_1.bin"
+  ],
+  "league_pct": 0.08,
+  "timesteps": 400000,
+  "total_agents": 512,
+  "minibatch": 512,
+  "lr": 0.0002,
+  "seed": 424242
+ },
+ "train": {
+  "epochs": 13,
+  "sps": 1770.0,
+  "ep_len": 184.0,
+  "lgw": 0.7,
+  "d0": 0.62,
+  "d0_prev": 0.72,
+  "endD": 0.089,
+  "ent": 0.529,
+  "kl": 0.0048,
+  "mir": 0.84
+ },
+ "gates": {
+  "anchor_resolved": "shuppet_dhelmise__0d86: 143",
+  "deck_weights": "v3 185/185",
+  "tl0": 1.0,
+  "to0": 0.05,
+  "tl1": 0.0,
+  "to1": 0.02
+ },
+ "vs_g7b": "d0 0.19→0.62~0.72、lgw 0.27→0.70~0.87、endD 0.245→0.089 ⇒『端口权重对 shuppet 先验错』成立",
+ "created": "2026-11-01"
+}

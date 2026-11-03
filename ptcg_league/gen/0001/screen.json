@@ -1,0 +1,33 @@
+{
+ "cand": "/home/zhang/code/kaggle/the-pokemon-company/ptcg_league/pools/evo/g0001_7e39_port_plain/bundle",
+ "elapsed_s": 452.4,
+ "overall": {
+  "ci_high": 0.5239,
+  "ci_low": 0.4265,
+  "draws": 0,
+  "errors": 0,
+  "n": 400,
+  "score": 0.475,
+  "wins": 190
+ },
+ "per_opp": {
+  "lg_boot:port_plain": {
+   "ci_high": 0.5239,
+   "ci_low": 0.4265,
+   "draws": 0,
+   "errors": 0,
+   "n": 400,
+   "score": 0.475,
+   "wins": 190
+  }
+ },
+ "protocol": {
+  "matches": 400,
+  "per_opp": {
+   "lg_boot:port_plain": 400
+  },
+  "seed_base": 911000,
+  "unit": "bo3_match",
+  "workers": 7
+ }
+}

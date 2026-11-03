@@ -1,0 +1,28 @@
+agent_id	deck_id	deck_hash	policy_checkpoint	parent_checkpoint	training_opponents	rating_league	matchup_profile	source	status	learner_win_vs_it
+bc:agent_Raihan	dreepy_drakloak__ea39	b10fe355	/home/zhang/code/kaggle/the-pokemon-company/bc_pool/agent_Raihan_.bin					bc	opponent	0.8049999999999999
+bc:agent_RtoABC2	beldum_metang__e1f9	4e0fb90a	/home/zhang/code/kaggle/the-pokemon-company/bc_pool/agent_RtoABC2_.bin					bc	opponent	0.91
+bc:agent_sue124	shuppet_dhelmise__0d86	ce3e8e0f	/home/zhang/code/kaggle/the-pokemon-company/bc_pool/agent_sue124_.bin					bc	opponent	0.99
+bc:deck_0d86	shuppet_dhelmise__0d86	ce3e8e0f	/home/zhang/code/kaggle/the-pokemon-company/bc_pool/deck_0d86_.bin					bc	opponent	0.76
+bc:deck_0d86_w	shuppet_dhelmise__0d86	ce3e8e0f	/home/zhang/code/kaggle/the-pokemon-company/bc_pool/deck_0d86_w.pt					bc	opponent	
+bc:deck_2617_grookey	grookey_thwackey__2617	873cdbbe	/home/zhang/code/kaggle/the-pokemon-company/bc_pool/deck_2617_grookey.bin					bc	opponent	0.33999999999999997
+bc:deck_26c6	slowpoke_slowking__26c6	a5bcec39	/home/zhang/code/kaggle/the-pokemon-company/bc_pool/deck_26c6_.bin					bc	opponent	0.975
+bc:deck_f5f8	abra_kadabra__f5f8	ae65e909	/home/zhang/code/kaggle/the-pokemon-company/bc_pool/deck_f5f8_.bin					bc	opponent	0.5449999999999999
+bc:grookey	grookey_thwackey__2617	873cdbbe	/home/zhang/code/kaggle/the-pokemon-company/bc_pool/grookey.bin					bc	opponent	0.32999999999999996
+bc:miwa	shuppet_dhelmise__0d86	ce3e8e0f	/home/zhang/code/kaggle/the-pokemon-company/bc_pool/miwa.bin					bc	opponent	0.865
+init:port_plain	teal_mask_ogerpon_ex_applin__7e39	63cc023d	/home/zhang/code/kaggle/the-pokemon-company/build/port_plain/model.pt					init	opponent	
+lg_boot:port_plain	teal_mask_ogerpon_ex_applin__7e39	63cc023d	/home/zhang/code/kaggle/the-pokemon-company/build/port_plain/model.pt					init	best	0.4981
+opp:db04pilot	dunsparce_abra__db04	5412e240	/home/zhang/code/kaggle/the-pokemon-company/bc_pool/db04pilot.pt					bc	opponent	0.305
+opp:g0001	teal_mask_ogerpon_ex_applin__7e39	63cc023d	/home/zhang/code/kaggle/the-pokemon-company/ptcg_league/pools/evo/g0001_7e39_port_plain/final.bin					ppo_general	opponent	0.52
+opp:g0002	teal_mask_ogerpon_ex_applin__7e39	63cc023d	/home/zhang/code/kaggle/the-pokemon-company/ptcg_league/pools/evo/g0002_7e39_port_plain/final.bin					ppo_general	opponent	
+opp:g0003	teal_mask_ogerpon_ex_applin__7e39	63cc023d	/tmp/ag_g0003/model.pt					ppo_general	opponent	0.49
+opp:g10_db04_banks	dunsparce_abra__db04	5412e240	/home/zhang/code/kaggle/the-pokemon-company/build/agents/g10_db04_banks/model.pt	g6_db04（confirm 0.6056）	models/ppo/g5_db04.bin（A 档，学习者0.205）,models/ppo/g8_shuppet_bc.bin（C 档，学习者0.630）			ppo_general	opponent	
+opp:g4a	teal_mask_ogerpon_ex_applin__7e39	63cc023d	/tmp/ag_g4A/model.pt					ppo_general	opponent	0.5
+opp:g4b	teal_mask_ogerpon_ex_applin__7e39	63cc023d	/tmp/ag_g4B/model.pt					ppo_general	opponent	0.495
+opp:g4c	teal_mask_ogerpon_ex_applin__7e39	63cc023d	/tmp/ag_g4C/model.pt					ppo_general	opponent	0.485
+opp:g5_db04	dunsparce_abra__db04	5412e240	/tmp/ag_g5_db04/model.pt		league_g0003/bank_0.bin,league_g0003/bank_1.bin			ppo_general	opponent	0.205
+opp:g6_db04	dunsparce_abra__db04	5412e240	/tmp/ag_g6_db04/model.pt	g5_db04（models/ppo/g5_db04.bin）	league_g0003/bank_0.bin,league_g0003/bank_1.bin			ppo_general	opponent	
+opp:g7a_db04_shuppet	dunsparce_abra__db04	5412e240	/tmp/ag_g7a/model.pt		league_g0003/bank_0.bin,league_g0003/bank_1.bin			ppo_general	opponent	
+opp:g7b_shuppet	shuppet_dhelmise__0d86	ce3e8e0f	/tmp/ag_g7b/model.pt		league_g0003/bank_0.bin,league_g0003/bank_1.bin			ppo_general	opponent	
+opp:g8_shuppet	shuppet_dhelmise__0d86	ce3e8e0f	/home/zhang/code/kaggle/the-pokemon-company/build/agents/g8_shuppet/model.pt					ppo_general	opponent	0.63
+opp:g9_db04	dunsparce_abra__db04	5412e240	/home/zhang/code/kaggle/the-pokemon-company/build/agents/g9_db04/model.pt	g6_db04（confirm 0.6056）	league_g0003/bank_0.bin,league_g0003/bank_1.bin			ppo_general	opponent	
+sp:g0002_7e39_port_plain	teal_mask_ogerpon_ex_applin__7e39	63cc023d	/home/zhang/code/kaggle/the-pokemon-company/ptcg_league/pools/evo/g0002_7e39_port_plain/final.bin					ppo_specialist	specialist	0.53

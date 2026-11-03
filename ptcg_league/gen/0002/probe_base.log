@@ -1,0 +1,40 @@
+
+$ /home/zhang/code/kaggle/the-pokemon-company/tools/onejob.sh league-eval -- /home/zhang/code/kaggle/the-pokemon-company/tools/py /home/zhang/code/kaggle/the-pokemon-company/ptcg_league/eval_pair.py --cand /home/zhang/code/kaggle/the-pokemon-company/ptcg_league/pools/init/init_port_plain --opp bc:agent_sue124=/home/zhang/code/kaggle/the-pokemon-company/ptcg_league/pools/init/bc_agent_sue124 --opp bc:deck_0d86=/home/zhang/code/kaggle/the-pokemon-company/ptcg_league/pools/init/bc_deck_0d86 --matches 400 --workers 6 --seed-base 925000 --out /home/zhang/code/kaggle/the-pokemon-company/ptcg_league/state/probe_base.json
+[2026-10-30T00:49:13]
+[onejob:league-eval] pid=25434 已用 18%（可用 6187 MB；天花板 90% = 6802 MB）
+面板 6 个（内存预算 5.0 GB，上限 90%）
+[onejob:league-eval] 99% > 90%（可用 14 MB）—— 考虑停掉非必要进程
+[onejob:league-eval] 99% > 90%（可用 3 MB）—— 考虑停掉非必要进程
+[onejob:league-eval] 94% > 90%（可用 383 MB）—— 考虑停掉非必要进程
+[onejob:league-eval] 96% > 90%（可用 249 MB）—— 考虑停掉非必要进程
+[onejob:league-eval] 96% > 90%（可用 289 MB）—— 考虑停掉非必要进程
+[onejob:league-eval] 96% > 90%（可用 287 MB）—— 考虑停掉非必要进程
+[onejob:league-eval] 96% > 90%（可用 287 MB）—— 考虑停掉非必要进程
+[onejob:league-eval] 96% > 90%（可用 282 MB）—— 考虑停掉非必要进程
+[onejob:league-eval] 96% > 90%（可用 276 MB）—— 考虑停掉非必要进程
+[onejob:league-eval] 96% > 90%（可用 276 MB）—— 考虑停掉非必要进程
+[onejob:league-eval] 96% > 90%（可用 276 MB）—— 考虑停掉非必要进程
+[onejob:league-eval] 96% > 90%（可用 276 MB）—— 考虑停掉非必要进程
+[onejob:league-eval] 96% > 90%（可用 275 MB）—— 考虑停掉非必要进程
+[onejob:league-eval] 96% > 90%（可用 283 MB）—— 考虑停掉非必要进程
+[onejob:league-eval] 96% > 90%（可用 283 MB）—— 考虑停掉非必要进程
+[onejob:league-eval] 96% > 90%（可用 283 MB）—— 考虑停掉非必要进程
+[onejob:league-eval] 96% > 90%（可用 283 MB）—— 考虑停掉非必要进程
+[onejob:league-eval] 96% > 90%（可用 281 MB）—— 考虑停掉非必要进程
+[onejob:league-eval] 96% > 90%（可用 281 MB）—— 考虑停掉非必要进程
+[onejob:league-eval] 96% > 90%（可用 282 MB）—— 考虑停掉非必要进程
+[onejob:league-eval] 96% > 90%（可用 281 MB）—— 考虑停掉非必要进程
+[onejob:league-eval] 96% > 90%（可用 280 MB）—— 考虑停掉非必要进程
+[onejob:league-eval] 96% > 90%（可用 280 MB）—— 考虑停掉非必要进程
+[onejob:league-eval] 96% > 90%（可用 287 MB）—— 考虑停掉非必要进程
+[onejob:league-eval] 96% > 90%（可用 285 MB）—— 考虑停掉非必要进程
+[onejob:league-eval] 96% > 90%（可用 281 MB）—— 考虑停掉非必要进程
+[onejob:league-eval] 96% > 90%（可用 282 MB）—— 考虑停掉非必要进程
+[onejob:league-eval] 96% > 90%（可用 282 MB）—— 考虑停掉非必要进程
+[onejob:league-eval] 96% > 90%（可用 279 MB）—— 考虑停掉非必要进程
+[onejob:league-eval] 96% > 90%（可用 280 MB）—— 考虑停掉非必要进程
+候选 /home/zhang/code/kaggle/the-pokemon-company/ptcg_league/pools/init/init_port_plain  总 400 场 Bo3  得分 0.8500 CI [0.8117,0.8817]  异常 0  836s
+  vs bc:agent_sue124           200 场  0.9800  [0.9497,0.9922]  异常 0
+  vs bc:deck_0d86              200 场  0.7200  [0.6541,0.7776]  异常 0
+→ /home/zhang/code/kaggle/the-pokemon-company/ptcg_league/state/probe_base.json
+[onejob:league-eval] 退出 rc=0 用时 850s  收尾已用 10%（启动时 18%）

@@ -1,0 +1,44 @@
+{
+ "agent_id": "opp:g9_db04",
+ "kind": "ppo",
+ "bin": "models/ppo/g9_db04.bin",
+ "sha256": "875f56d12dec5fcf522b7d6015772f8f9b0f80779644eeee166f930f770f7a6e",
+ "size": 18205408,
+ "deck": "dunsparce_abra__db04",
+ "deck_id": 66,
+ "parent": "g6_db04（confirm 0.6056）",
+ "recipe": {
+  "anchor": "dunsparce_abra__db04",
+  "deck_weights": "port_repo/decks/weights_real.txt",
+  "banks": [
+   "league_g0003/bank_0.bin",
+   "league_g0003/bank_1.bin"
+  ],
+  "league_pct": 0.08,
+  "timesteps": 400000,
+  "total_agents": 512,
+  "minibatch": 512,
+  "lr": 0.0002,
+  "seed": 424242
+ },
+ "train": {
+  "epochs": 13,
+  "sps": 1778.0,
+  "ep_len": 167.0,
+  "lgw": 0.818,
+  "d0": 0.65,
+  "mir": 0.827,
+  "ent": 0.373,
+  "kl": 0.007,
+  "endD": 0.043
+ },
+ "gates": {
+  "anchor_resolved": "dunsparce_abra__db04: 66",
+  "deck_weights": "v3 185/185",
+  "tl0": 1.0,
+  "to0": 0.02,
+  "tl1": 0.0,
+  "to1": 0.05
+ },
+ "created": "2026-11-01"
+}

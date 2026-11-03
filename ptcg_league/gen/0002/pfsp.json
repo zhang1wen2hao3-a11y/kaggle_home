@@ -1,0 +1,25 @@
+{
+ "best": "lg_boot:port_plain",
+ "n_opponents": 8,
+ "p": {
+  "bc:agent_Raihan": 0.5,
+  "bc:agent_RtoABC2": 0.5,
+  "bc:agent_sue124": 0.5,
+  "bc:deck_0d86": 0.5,
+  "bc:deck_26c6": 0.5,
+  "bc:deck_f5f8": 0.5,
+  "lg_boot:port_plain": 0.5025,
+  "sp:g0002_7e39_port_plain": 0.5
+ },
+ "updated": "2026-10-30T01:03:24",
+ "w": {
+  "bc:agent_Raihan": 0.14285765306304665,
+  "bc:agent_RtoABC2": 0.14285765306304665,
+  "bc:agent_sue124": 0.07142882653152333,
+  "bc:deck_0d86": 0.07142882653152333,
+  "bc:deck_26c6": 0.14285765306304665,
+  "bc:deck_f5f8": 0.14285765306304665,
+  "lg_boot:port_plain": 0.14285408162172006,
+  "sp:g0002_7e39_port_plain": 0.14285765306304665
+ }
+}

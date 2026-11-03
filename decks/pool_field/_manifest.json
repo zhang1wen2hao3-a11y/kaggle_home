@@ -1,0 +1,2248 @@
+{
+ "decks": [
+  {
+   "name": "teal_mask_ogerpon_ex_applin__7e39",
+   "hash": "7e398437",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_port": 121,
+    "epsoide_dipam": 2,
+    "epsoide_field": 3,
+    "epsoide": 13,
+    "epsoide_teams2": 42
+   },
+   "occ_field": {
+    "epsoide_port": 42,
+    "epsoide_dipam": 2,
+    "epsoide_field": 3,
+    "epsoide": 13,
+    "epsoide_teams2": 42
+   }
+  },
+  {
+   "name": "mega_lucario_ex_riolu__886d",
+   "hash": "886dae52",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_port": 1,
+    "epsoide": 2
+   },
+   "occ_field": {
+    "epsoide_port": 1,
+    "epsoide": 2
+   }
+  },
+  {
+   "name": "munkidori_marnie_s_impidimp__9776",
+   "hash": "9776cca9",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_port": 1,
+    "epsoide_field": 1,
+    "epsoide": 1,
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_port": 1,
+    "epsoide_field": 1,
+    "epsoide": 1,
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "mega_kangaskhan_ex_dwebble__4e3f",
+   "hash": "4e3f4c89",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_port": 1
+   },
+   "occ_field": {
+    "epsoide_port": 1
+   }
+  },
+  {
+   "name": "mega_lucario_ex_solrock__77a5",
+   "hash": "77a53ffc",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_port": 2,
+    "epsoide": 2,
+    "epsoide_teams2": 2
+   },
+   "occ_field": {
+    "epsoide_port": 2,
+    "epsoide": 2,
+    "epsoide_teams2": 2
+   }
+  },
+  {
+   "name": "mega_kangaskhan_ex_dwebble__7e79",
+   "hash": "7e79ad8f",
+   "has_new_cards": 1,
+   "occ_all": {
+    "epsoide_port": 3,
+    "epsoide_dipam": 6,
+    "epsoide_field": 7,
+    "epsoide_teams2": 29
+   },
+   "occ_field": {
+    "epsoide_port": 3,
+    "epsoide_dipam": 6,
+    "epsoide_field": 7,
+    "epsoide_teams2": 29
+   }
+  },
+  {
+   "name": "dwebble_crustle__2276",
+   "hash": "2276b5bb",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_port": 1
+   },
+   "occ_field": {
+    "epsoide_port": 1
+   }
+  },
+  {
+   "name": "dunsparce_abra__9d6e",
+   "hash": "9d6ea740",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_port": 2,
+    "epsoide_dipam": 1,
+    "epsoide_field": 1,
+    "epsoide": 1,
+    "epsoide_teams2": 36
+   },
+   "occ_field": {
+    "epsoide_port": 2,
+    "epsoide_dipam": 1,
+    "epsoide_field": 1,
+    "epsoide": 1,
+    "epsoide_teams2": 36
+   }
+  },
+  {
+   "name": "dunsparce_abra__0bf5",
+   "hash": "0bf5955c",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_port": 2,
+    "epsoide": 1,
+    "epsoide_teams2": 18
+   },
+   "occ_field": {
+    "epsoide_port": 2,
+    "epsoide": 1,
+    "epsoide_teams2": 18
+   }
+  },
+  {
+   "name": "abra_kadabra__f5f8",
+   "hash": "f5f8201b",
+   "has_new_cards": 1,
+   "occ_all": {
+    "epsoide_port": 1,
+    "epsoide_field": 2,
+    "epsoide": 8,
+    "epsoide_teams2": 532
+   },
+   "occ_field": {
+    "epsoide_port": 1,
+    "epsoide_field": 2,
+    "epsoide": 8,
+    "epsoide_teams2": 532
+   }
+  },
+  {
+   "name": "abra_kadabra__41dd",
+   "hash": "41dd56e4",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_port": 1,
+    "epsoide_teams2": 3
+   },
+   "occ_field": {
+    "epsoide_port": 1,
+    "epsoide_teams2": 3
+   }
+  },
+  {
+   "name": "dreepy_drakloak__07be",
+   "hash": "07bedfff",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_port": 1,
+    "epsoide": 1,
+    "epsoide_teams2": 2
+   },
+   "occ_field": {
+    "epsoide_port": 1,
+    "epsoide": 1,
+    "epsoide_teams2": 2
+   }
+  },
+  {
+   "name": "shuppet_dhelmise__0d86",
+   "hash": "0d86f3a5",
+   "has_new_cards": 1,
+   "occ_all": {
+    "epsoide_port": 4,
+    "epsoide_dipam": 8,
+    "epsoide_field": 44,
+    "epsoide_teams2": 1000
+   },
+   "occ_field": {
+    "epsoide_port": 4,
+    "epsoide_dipam": 8,
+    "epsoide_field": 44,
+    "epsoide_teams2": 1000
+   }
+  },
+  {
+   "name": "grookey_thwackey__2617",
+   "hash": "2617a1c6",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_port": 4,
+    "epsoide_dipam": 3,
+    "epsoide_field": 1,
+    "epsoide_teams2": 92
+   },
+   "occ_field": {
+    "epsoide_port": 4,
+    "epsoide_dipam": 3,
+    "epsoide_field": 1,
+    "epsoide_teams2": 92
+   }
+  },
+  {
+   "name": "teal_mask_ogerpon_ex_applin__5c8e",
+   "hash": "5c8ebe71",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_port": 1
+   },
+   "occ_field": {
+    "epsoide_port": 1
+   }
+  },
+  {
+   "name": "dudunsparce_abra__121f",
+   "hash": "121f363d",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_port": 1,
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_port": 1,
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "mega_lucario_ex_solrock__b757",
+   "hash": "b757bc8a",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_port": 2
+   },
+   "occ_field": {
+    "epsoide_port": 2
+   }
+  },
+  {
+   "name": "riolu_lunatone__d974",
+   "hash": "d9746bca",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_port": 1
+   },
+   "occ_field": {
+    "epsoide_port": 1
+   }
+  },
+  {
+   "name": "dreepy_drakloak__ea39",
+   "hash": "ea39ccb1",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_port": 1,
+    "epsoide_dipam": 3,
+    "epsoide_field": 27,
+    "epsoide": 1,
+    "epsoide_teams2": 105
+   },
+   "occ_field": {
+    "epsoide_port": 1,
+    "epsoide_dipam": 3,
+    "epsoide_field": 27,
+    "epsoide": 1,
+    "epsoide_teams2": 105
+   }
+  },
+  {
+   "name": "steven_s_beldum_steven_s_metagross_ex__9d5d",
+   "hash": "9d5d52f5",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_port": 1,
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_port": 1,
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "teal_mask_ogerpon_ex_applin__678a",
+   "hash": "678a8cfa",
+   "has_new_cards": 1,
+   "occ_all": {
+    "epsoide_port": 1
+   },
+   "occ_field": {
+    "epsoide_port": 1
+   }
+  },
+  {
+   "name": "munkidori_marnie_s_impidimp__c20a",
+   "hash": "c20a8a46",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_port": 1,
+    "epsoide_field": 2,
+    "epsoide": 2,
+    "epsoide_teams2": 2
+   },
+   "occ_field": {
+    "epsoide_port": 1,
+    "epsoide_field": 2,
+    "epsoide": 2,
+    "epsoide_teams2": 2
+   }
+  },
+  {
+   "name": "teal_mask_ogerpon_ex_applin__e938",
+   "hash": "e9380f9a",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_port": 1,
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_port": 1,
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "dreepy_drakloak__72ad",
+   "hash": "72ad1ca2",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_port": 1
+   },
+   "occ_field": {
+    "epsoide_port": 1
+   }
+  },
+  {
+   "name": "dreepy_drakloak__3eaa",
+   "hash": "3eaaf117",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_dipam": 109,
+    "epsoide_teams2": 5
+   },
+   "occ_field": {
+    "epsoide_teams2": 5
+   }
+  },
+  {
+   "name": "riolu_mega_lucario_ex__34c4",
+   "hash": "34c4b54b",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_dipam": 1,
+    "epsoide": 2
+   },
+   "occ_field": {
+    "epsoide_dipam": 1,
+    "epsoide": 2
+   }
+  },
+  {
+   "name": "dwebble_crustle__072b",
+   "hash": "072bc4ef",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_dipam": 1,
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_dipam": 1,
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "dreepy_drakloak__b381",
+   "hash": "b38175af",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_dipam": 2,
+    "epsoide_field": 5,
+    "epsoide": 3,
+    "epsoide_teams2": 44
+   },
+   "occ_field": {
+    "epsoide_dipam": 2,
+    "epsoide_field": 5,
+    "epsoide": 3,
+    "epsoide_teams2": 44
+   }
+  },
+  {
+   "name": "beldum_metang__e1f9",
+   "hash": "e1f9bfbd",
+   "has_new_cards": 1,
+   "occ_all": {
+    "epsoide_dipam": 2,
+    "epsoide_field": 27,
+    "epsoide": 4,
+    "epsoide_teams2": 109
+   },
+   "occ_field": {
+    "epsoide_dipam": 2,
+    "epsoide_field": 27,
+    "epsoide": 4,
+    "epsoide_teams2": 109
+   }
+  },
+  {
+   "name": "dreepy_drakloak__5244",
+   "hash": "52449886",
+   "has_new_cards": 1,
+   "occ_all": {
+    "epsoide_dipam": 1,
+    "epsoide_field": 1,
+    "epsoide_teams2": 32
+   },
+   "occ_field": {
+    "epsoide_dipam": 1,
+    "epsoide_field": 1,
+    "epsoide_teams2": 32
+   }
+  },
+  {
+   "name": "abra_kadabra__e8ee",
+   "hash": "e8eef8d8",
+   "has_new_cards": 1,
+   "occ_all": {
+    "epsoide_dipam": 31,
+    "epsoide_field": 29,
+    "epsoide_teams2": 141
+   },
+   "occ_field": {
+    "epsoide_dipam": 31,
+    "epsoide_field": 29,
+    "epsoide_teams2": 141
+   }
+  },
+  {
+   "name": "dreepy_drakloak__fca0",
+   "hash": "fca0abdb",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_dipam": 1,
+    "epsoide_field": 1,
+    "epsoide": 1,
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_dipam": 1,
+    "epsoide_field": 1,
+    "epsoide": 1,
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "slowpoke_slowking__26c6",
+   "hash": "26c6e843",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_dipam": 12,
+    "epsoide_field": 24,
+    "epsoide_teams2": 1000
+   },
+   "occ_field": {
+    "epsoide_dipam": 12,
+    "epsoide_field": 24,
+    "epsoide_teams2": 1000
+   }
+  },
+  {
+   "name": "duraludon_archaludon_ex__1890",
+   "hash": "1890eaa0",
+   "has_new_cards": 1,
+   "occ_all": {
+    "epsoide_dipam": 1,
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_dipam": 1,
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "teal_mask_ogerpon_ex_hero_s_cape__5d47",
+   "hash": "5d478ffd",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_dipam": 1
+   },
+   "occ_field": {
+    "epsoide_dipam": 1
+   }
+  },
+  {
+   "name": "beldum_metang__a47a",
+   "hash": "a47a7971",
+   "has_new_cards": 1,
+   "occ_all": {
+    "epsoide_dipam": 17
+   },
+   "occ_field": {
+    "epsoide_dipam": 17
+   }
+  },
+  {
+   "name": "beldum_metang__f91d",
+   "hash": "f91d57e2",
+   "has_new_cards": 1,
+   "occ_all": {
+    "epsoide_dipam": 10
+   },
+   "occ_field": {
+    "epsoide_dipam": 10
+   }
+  },
+  {
+   "name": "mega_kangaskhan_ex_dwebble__0fd0",
+   "hash": "0fd0f64c",
+   "has_new_cards": 1,
+   "occ_all": {
+    "epsoide_dipam": 1
+   },
+   "occ_field": {
+    "epsoide_dipam": 1
+   }
+  },
+  {
+   "name": "froakie_dudunsparce__ff17",
+   "hash": "ff171f10",
+   "has_new_cards": 1,
+   "occ_all": {
+    "epsoide_dipam": 1
+   },
+   "occ_field": {
+    "epsoide_dipam": 1
+   }
+  },
+  {
+   "name": "beldum_metang__832d",
+   "hash": "832d36ec",
+   "has_new_cards": 1,
+   "occ_all": {
+    "epsoide_dipam": 1,
+    "epsoide": 4,
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_dipam": 1,
+    "epsoide": 4,
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "riolu_mega_lucario_ex__41a8",
+   "hash": "41a8cb09",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_dipam": 1
+   },
+   "occ_field": {
+    "epsoide_dipam": 1
+   }
+  },
+  {
+   "name": "dreepy_drakloak__a413",
+   "hash": "a41346a0",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_field": 3,
+    "epsoide": 5,
+    "epsoide_teams2": 61
+   },
+   "occ_field": {
+    "epsoide_field": 3,
+    "epsoide": 5,
+    "epsoide_teams2": 61
+   }
+  },
+  {
+   "name": "snover_mega_abomasnow_ex__b702",
+   "hash": "b702e251",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_field": 2,
+    "epsoide": 411,
+    "epsoide_teams2": 12
+   },
+   "occ_field": {
+    "epsoide_field": 2,
+    "epsoide": 93,
+    "epsoide_teams2": 12
+   }
+  },
+  {
+   "name": "grookey_thwackey__7d48",
+   "hash": "7d48f29a",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_field": 1,
+    "epsoide_teams2": 10
+   },
+   "occ_field": {
+    "epsoide_field": 1,
+    "epsoide_teams2": 10
+   }
+  },
+  {
+   "name": "riolu_mega_lucario_ex__efb2",
+   "hash": "efb28f8f",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_field": 1,
+    "epsoide_teams2": 3
+   },
+   "occ_field": {
+    "epsoide_field": 1,
+    "epsoide_teams2": 3
+   }
+  },
+  {
+   "name": "mega_lucario_ex_makuhita__b383",
+   "hash": "b38303cc",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_field": 1
+   },
+   "occ_field": {
+    "epsoide_field": 1
+   }
+  },
+  {
+   "name": "teal_mask_ogerpon_ex_bayleef__0116",
+   "hash": "01165588",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_field": 1
+   },
+   "occ_field": {
+    "epsoide_field": 1
+   }
+  },
+  {
+   "name": "dreepy_drakloak__9b30",
+   "hash": "9b307a18",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 2
+   },
+   "occ_field": {
+    "epsoide": 2
+   }
+  },
+  {
+   "name": "dreepy_drakloak__674e",
+   "hash": "674ec310",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 1,
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide": 1,
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "dwebble_crustle__3172",
+   "hash": "317242e8",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 1,
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide": 1,
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "staryu_mega_starmie_ex__93bf",
+   "hash": "93bff5f2",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 1,
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide": 1,
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "snover_mega_abomasnow_ex__9a2a",
+   "hash": "9a2aa710",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 3,
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide": 3,
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "snorunt_mega_froslass_ex__d666",
+   "hash": "d6663cef",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 6
+   },
+   "occ_field": {
+    "epsoide": 6
+   }
+  },
+  {
+   "name": "dwebble_crustle__d5ca",
+   "hash": "d5ca3292",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 1
+   },
+   "occ_field": {
+    "epsoide": 1
+   }
+  },
+  {
+   "name": "teal_mask_ogerpon_ex_hero_s_cape__d2b5",
+   "hash": "d2b5387e",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 1
+   },
+   "occ_field": {
+    "epsoide": 1
+   }
+  },
+  {
+   "name": "mega_lucario_ex_solrock__b395",
+   "hash": "b3957313",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 4,
+    "epsoide_teams2": 6
+   },
+   "occ_field": {
+    "epsoide": 4,
+    "epsoide_teams2": 6
+   }
+  },
+  {
+   "name": "shuppet_dhelmise__fe82",
+   "hash": "fe823348",
+   "has_new_cards": 1,
+   "occ_all": {
+    "epsoide": 1
+   },
+   "occ_field": {
+    "epsoide": 1
+   }
+  },
+  {
+   "name": "dreepy_drakloak__94ec",
+   "hash": "94eca685",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 7,
+    "epsoide_teams2": 14
+   },
+   "occ_field": {
+    "epsoide": 7,
+    "epsoide_teams2": 14
+   }
+  },
+  {
+   "name": "staryu_mega_starmie_ex__f7b8",
+   "hash": "f7b8f3f2",
+   "has_new_cards": 1,
+   "occ_all": {
+    "epsoide": 1
+   },
+   "occ_field": {
+    "epsoide": 1
+   }
+  },
+  {
+   "name": "dwebble_crustle__29db",
+   "hash": "29dbac69",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 2,
+    "epsoide_teams2": 4
+   },
+   "occ_field": {
+    "epsoide": 2,
+    "epsoide_teams2": 4
+   }
+  },
+  {
+   "name": "riolu_mega_lucario_ex__4ef3",
+   "hash": "4ef35b27",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 2,
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide": 2,
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "dreepy_drakloak__a8e9",
+   "hash": "a8e9f7d4",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 1
+   },
+   "occ_field": {
+    "epsoide": 1
+   }
+  },
+  {
+   "name": "teal_mask_ogerpon_ex_hero_s_cape__5e60",
+   "hash": "5e60b8c7",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 3,
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide": 3,
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "dwebble_crustle__7477",
+   "hash": "74776977",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 2,
+    "epsoide_teams2": 4
+   },
+   "occ_field": {
+    "epsoide": 2,
+    "epsoide_teams2": 4
+   }
+  },
+  {
+   "name": "snover_mega_abomasnow_ex__39d1",
+   "hash": "39d19fe3",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 19,
+    "epsoide_teams2": 10
+   },
+   "occ_field": {
+    "epsoide": 19,
+    "epsoide_teams2": 10
+   }
+  },
+  {
+   "name": "dreepy_drakloak__2539",
+   "hash": "25393c12",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 1
+   },
+   "occ_field": {
+    "epsoide": 1
+   }
+  },
+  {
+   "name": "snorunt_mega_froslass_ex__0df1",
+   "hash": "0df1aec2",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 1
+   },
+   "occ_field": {
+    "epsoide": 1
+   }
+  },
+  {
+   "name": "dreepy_drakloak__0de4",
+   "hash": "0de466b8",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 1
+   },
+   "occ_field": {
+    "epsoide": 1
+   }
+  },
+  {
+   "name": "lugia_ex_mega_heracross_ex__ad29",
+   "hash": "ad29dcc8",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 2
+   },
+   "occ_field": {
+    "epsoide": 2
+   }
+  },
+  {
+   "name": "snover_mega_abomasnow_ex__4f21",
+   "hash": "4f21406e",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 3
+   },
+   "occ_field": {
+    "epsoide": 3
+   }
+  },
+  {
+   "name": "abra_kadabra__e7b9",
+   "hash": "e7b90b34",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 2
+   },
+   "occ_field": {
+    "epsoide": 2
+   }
+  },
+  {
+   "name": "mega_lucario_ex_riolu__fa86",
+   "hash": "fa86f043",
+   "has_new_cards": 1,
+   "occ_all": {
+    "epsoide": 6,
+    "epsoide_teams2": 2
+   },
+   "occ_field": {
+    "epsoide": 6,
+    "epsoide_teams2": 2
+   }
+  },
+  {
+   "name": "dreepy_drakloak__dc56",
+   "hash": "dc56126e",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 2
+   },
+   "occ_field": {
+    "epsoide": 2
+   }
+  },
+  {
+   "name": "snover_mega_abomasnow_ex__2e6f",
+   "hash": "2e6f652d",
+   "has_new_cards": 1,
+   "occ_all": {
+    "epsoide": 5,
+    "epsoide_teams2": 2
+   },
+   "occ_field": {
+    "epsoide": 5,
+    "epsoide_teams2": 2
+   }
+  },
+  {
+   "name": "riolu_mega_lucario_ex__130f",
+   "hash": "130f1378",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 5
+   },
+   "occ_field": {
+    "epsoide": 5
+   }
+  },
+  {
+   "name": "snorunt_mega_froslass_ex__0787",
+   "hash": "07872c34",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 2
+   },
+   "occ_field": {
+    "epsoide": 2
+   }
+  },
+  {
+   "name": "dreepy_drakloak__c3f8",
+   "hash": "c3f8dd4b",
+   "has_new_cards": 1,
+   "occ_all": {
+    "epsoide": 3
+   },
+   "occ_field": {
+    "epsoide": 3
+   }
+  },
+  {
+   "name": "snover_mega_abomasnow_ex__83f1",
+   "hash": "83f13de6",
+   "has_new_cards": 1,
+   "occ_all": {
+    "epsoide": 1
+   },
+   "occ_field": {
+    "epsoide": 1
+   }
+  },
+  {
+   "name": "cynthia_s_gible_cynthia_s_gabite__148e",
+   "hash": "148e570b",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 4,
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide": 4,
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "dreepy_drakloak__6083",
+   "hash": "60833b83",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 2,
+    "epsoide_teams2": 4
+   },
+   "occ_field": {
+    "epsoide": 2,
+    "epsoide_teams2": 4
+   }
+  },
+  {
+   "name": "dreepy_drakloak__e6e9",
+   "hash": "e6e914a5",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 3,
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide": 3,
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "snover_mega_abomasnow_ex__4d77",
+   "hash": "4d77d338",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 1
+   },
+   "occ_field": {
+    "epsoide": 1
+   }
+  },
+  {
+   "name": "teal_mask_ogerpon_ex_zarude__803f",
+   "hash": "803ffa09",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 1
+   },
+   "occ_field": {
+    "epsoide": 1
+   }
+  },
+  {
+   "name": "snover_mega_abomasnow_ex__c351",
+   "hash": "c351fbff",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 1
+   },
+   "occ_field": {
+    "epsoide": 1
+   }
+  },
+  {
+   "name": "iron_thorns_ex_pikachu_ex__6db9",
+   "hash": "6db92276",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 1
+   },
+   "occ_field": {
+    "epsoide": 1
+   }
+  },
+  {
+   "name": "snover_mega_abomasnow_ex__38dc",
+   "hash": "38dcbcdf",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 2
+   },
+   "occ_field": {
+    "epsoide": 2
+   }
+  },
+  {
+   "name": "raging_bolt_ex_teal_mask_ogerpon_ex__99d8",
+   "hash": "99d8dd14",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 5,
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide": 5,
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "snover_mega_abomasnow_ex__276a",
+   "hash": "276a29fb",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 1
+   },
+   "occ_field": {
+    "epsoide": 1
+   }
+  },
+  {
+   "name": "duraludon_archaludon_ex__6d21",
+   "hash": "6d2192ca",
+   "has_new_cards": 1,
+   "occ_all": {
+    "epsoide": 2
+   },
+   "occ_field": {
+    "epsoide": 2
+   }
+  },
+  {
+   "name": "snover_mega_abomasnow_ex__5d3a",
+   "hash": "5d3a7bf5",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 8,
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide": 8,
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "dunsparce_dudunsparce__3f1c",
+   "hash": "3f1c8d5b",
+   "has_new_cards": 1,
+   "occ_all": {
+    "epsoide": 1
+   },
+   "occ_field": {
+    "epsoide": 1
+   }
+  },
+  {
+   "name": "snover_mega_abomasnow_ex__3f9e",
+   "hash": "3f9ebae6",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 1
+   },
+   "occ_field": {
+    "epsoide": 1
+   }
+  },
+  {
+   "name": "mega_lucario_ex_riolu__dabf",
+   "hash": "dabf5dd8",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 1
+   },
+   "occ_field": {
+    "epsoide": 1
+   }
+  },
+  {
+   "name": "duskull_kadabra__8486",
+   "hash": "8486074f",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 4,
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide": 4,
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "duraludon_archaludon_ex__ba3e",
+   "hash": "ba3e4d88",
+   "has_new_cards": 1,
+   "occ_all": {
+    "epsoide": 2,
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide": 2,
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "snover_mega_abomasnow_ex__cc74",
+   "hash": "cc7467b7",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 1,
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide": 1,
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "grookey_thwackey__b96f",
+   "hash": "b96f69c9",
+   "has_new_cards": 1,
+   "occ_all": {
+    "epsoide": 6
+   },
+   "occ_field": {
+    "epsoide": 6
+   }
+  },
+  {
+   "name": "riolu_mega_lucario_ex__02b8",
+   "hash": "02b800a9",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 1
+   },
+   "occ_field": {
+    "epsoide": 1
+   }
+  },
+  {
+   "name": "riolu_mega_lucario_ex__f6e8",
+   "hash": "f6e81b08",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 5
+   },
+   "occ_field": {
+    "epsoide": 5
+   }
+  },
+  {
+   "name": "riolu_mega_lucario_ex__02e8",
+   "hash": "02e8ad38",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 3
+   },
+   "occ_field": {
+    "epsoide": 3
+   }
+  },
+  {
+   "name": "snover_mega_abomasnow_ex__c4cb",
+   "hash": "c4cb6f33",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 2
+   },
+   "occ_field": {
+    "epsoide": 2
+   }
+  },
+  {
+   "name": "n_s_zorua_n_s_zoroark_ex__1cd8",
+   "hash": "1cd8389f",
+   "has_new_cards": 1,
+   "occ_all": {
+    "epsoide": 1
+   },
+   "occ_field": {
+    "epsoide": 1
+   }
+  },
+  {
+   "name": "dreepy_drakloak__8adb",
+   "hash": "8adba72b",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 2,
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide": 2,
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "kyogre_snover__097b",
+   "hash": "097b28b8",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 1
+   },
+   "occ_field": {
+    "epsoide": 1
+   }
+  },
+  {
+   "name": "riolu_mega_lucario_ex__e53a",
+   "hash": "e53ab9db",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 1
+   },
+   "occ_field": {
+    "epsoide": 1
+   }
+  },
+  {
+   "name": "snover_mega_abomasnow_ex__0c3d",
+   "hash": "0c3d1fdc",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 2
+   },
+   "occ_field": {
+    "epsoide": 2
+   }
+  },
+  {
+   "name": "dreepy_dragapult_ex__cc8e",
+   "hash": "cc8ee75f",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 1
+   },
+   "occ_field": {
+    "epsoide": 1
+   }
+  },
+  {
+   "name": "snover_mega_abomasnow_ex__b5ba",
+   "hash": "b5ba8fa1",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 1
+   },
+   "occ_field": {
+    "epsoide": 1
+   }
+  },
+  {
+   "name": "kyogre_snover__d538",
+   "hash": "d53812af",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 1
+   },
+   "occ_field": {
+    "epsoide": 1
+   }
+  },
+  {
+   "name": "snover_mega_abomasnow_ex__c03b",
+   "hash": "c03b39ac",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 2
+   },
+   "occ_field": {
+    "epsoide": 2
+   }
+  },
+  {
+   "name": "duraludon_archaludon_ex__bcf0",
+   "hash": "bcf07050",
+   "has_new_cards": 1,
+   "occ_all": {
+    "epsoide": 1,
+    "epsoide_teams2": 2
+   },
+   "occ_field": {
+    "epsoide": 1,
+    "epsoide_teams2": 2
+   }
+  },
+  {
+   "name": "throh_riolu__f8d4",
+   "hash": "f8d43f07",
+   "has_new_cards": 1,
+   "occ_all": {
+    "epsoide": 1
+   },
+   "occ_field": {
+    "epsoide": 1
+   }
+  },
+  {
+   "name": "snover_mega_abomasnow_ex__3b31",
+   "hash": "3b3182a9",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 1
+   },
+   "occ_field": {
+    "epsoide": 1
+   }
+  },
+  {
+   "name": "dreepy_drakloak__14f3",
+   "hash": "14f37e48",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 1
+   },
+   "occ_field": {
+    "epsoide": 1
+   }
+  },
+  {
+   "name": "dunsparce_abra__5b12",
+   "hash": "5b12918b",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 1
+   },
+   "occ_field": {
+    "epsoide": 1
+   }
+  },
+  {
+   "name": "dudunsparce_dunsparce__053b",
+   "hash": "053b4950",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 1
+   },
+   "occ_field": {
+    "epsoide": 1
+   }
+  },
+  {
+   "name": "kadabra_duskull__6bc9",
+   "hash": "6bc9642e",
+   "has_new_cards": 1,
+   "occ_all": {
+    "epsoide": 1,
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide": 1,
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "snover_mega_abomasnow_ex__7e5d",
+   "hash": "7e5d2b15",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 1
+   },
+   "occ_field": {
+    "epsoide": 1
+   }
+  },
+  {
+   "name": "kyogre_snover__a66e",
+   "hash": "a66e1bea",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 1
+   },
+   "occ_field": {
+    "epsoide": 1
+   }
+  },
+  {
+   "name": "riolu_mega_lucario_ex__226f",
+   "hash": "226f6c8d",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide": 1
+   },
+   "occ_field": {
+    "epsoide": 1
+   }
+  },
+  {
+   "name": "dreepy_drakloak__a1c2",
+   "hash": "a1c291d9",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "abra_kadabra__3f45",
+   "hash": "3f451509",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_teams2": 10
+   },
+   "occ_field": {
+    "epsoide_teams2": 10
+   }
+  },
+  {
+   "name": "abra_kadabra__c21e",
+   "hash": "c21ec78a",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_teams2": 30
+   },
+   "occ_field": {
+    "epsoide_teams2": 30
+   }
+  },
+  {
+   "name": "dreepy_drakloak__5a43",
+   "hash": "5a43ad29",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_teams2": 22
+   },
+   "occ_field": {
+    "epsoide_teams2": 22
+   }
+  },
+  {
+   "name": "dunsparce_dudunsparce__dd63",
+   "hash": "dd63244c",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_teams2": 2
+   },
+   "occ_field": {
+    "epsoide_teams2": 2
+   }
+  },
+  {
+   "name": "riolu_mega_lucario_ex__08e2",
+   "hash": "08e2d389",
+   "has_new_cards": 1,
+   "occ_all": {
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "duraludon_archaludon_ex__da1d",
+   "hash": "da1d56e3",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_teams2": 5
+   },
+   "occ_field": {
+    "epsoide_teams2": 5
+   }
+  },
+  {
+   "name": "dreepy_drakloak__c981",
+   "hash": "c981661c",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_teams2": 4
+   },
+   "occ_field": {
+    "epsoide_teams2": 4
+   }
+  },
+  {
+   "name": "dunsparce_dudunsparce__3407",
+   "hash": "3407a54f",
+   "has_new_cards": 1,
+   "occ_all": {
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "dudunsparce_dunsparce__1661",
+   "hash": "16613e5a",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_teams2": 2
+   },
+   "occ_field": {
+    "epsoide_teams2": 2
+   }
+  },
+  {
+   "name": "snover_mega_abomasnow_ex__72f0",
+   "hash": "72f0a5fe",
+   "has_new_cards": 1,
+   "occ_all": {
+    "epsoide_teams2": 2
+   },
+   "occ_field": {
+    "epsoide_teams2": 2
+   }
+  },
+  {
+   "name": "mega_kangaskhan_ex_dwebble__0382",
+   "hash": "03822cc7",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_teams2": 4
+   },
+   "occ_field": {
+    "epsoide_teams2": 4
+   }
+  },
+  {
+   "name": "chandelure_litwick__5026",
+   "hash": "50262613",
+   "has_new_cards": 1,
+   "occ_all": {
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "duraludon_archaludon_ex__1b96",
+   "hash": "1b96bdb3",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "mega_kangaskhan_ex_dwebble__e700",
+   "hash": "e700912e",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "dreepy_drakloak__78a9",
+   "hash": "78a9fa7e",
+   "has_new_cards": 1,
+   "occ_all": {
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "larvitar_tyranitar__b35e",
+   "hash": "b35e9f14",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "great_tusk_stonjourner__8f42",
+   "hash": "8f42b3c3",
+   "has_new_cards": 1,
+   "occ_all": {
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "cornerstone_mask_ogerpon_ex_dwebble__59cf",
+   "hash": "59cf6c7b",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "dwebble_bunnelby__3696",
+   "hash": "3696e650",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "munkidori_marnie_s_impidimp__e2e0",
+   "hash": "e2e03fe8",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "dreepy_drakloak__ef60",
+   "hash": "ef609e75",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "riolu_mega_lucario_ex__ce3a",
+   "hash": "ce3a2aa1",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_teams2": 2
+   },
+   "occ_field": {
+    "epsoide_teams2": 2
+   }
+  },
+  {
+   "name": "dunsparce_abra__7c22",
+   "hash": "7c22f808",
+   "has_new_cards": 1,
+   "occ_all": {
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "iron_thorns_ex_tapu_koko_ex__2334",
+   "hash": "23342855",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "girafarig_enamorus__903f",
+   "hash": "903f8635",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_teams2": 2
+   },
+   "occ_field": {
+    "epsoide_teams2": 2
+   }
+  },
+  {
+   "name": "dunsparce_abra__546f",
+   "hash": "546f57dd",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "dreepy_drakloak__59ad",
+   "hash": "59adbceb",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "beldum_metang__bd1c",
+   "hash": "bd1cb94a",
+   "has_new_cards": 1,
+   "occ_all": {
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "duraludon_archaludon_ex__5ac3",
+   "hash": "5ac353c4",
+   "has_new_cards": 1,
+   "occ_all": {
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "snover_mega_abomasnow_ex__8077",
+   "hash": "80778e68",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "dreepy_drakloak__2228",
+   "hash": "2228c15e",
+   "has_new_cards": 1,
+   "occ_all": {
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "shuppet_banette__f2af",
+   "hash": "f2af1f77",
+   "has_new_cards": 1,
+   "occ_all": {
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "dwebble_crustle__d7cf",
+   "hash": "d7cfbff9",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "dwebble_crustle__ca60",
+   "hash": "ca60839c",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "dreepy_drakloak__5012",
+   "hash": "5012d602",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_teams2": 2
+   },
+   "occ_field": {
+    "epsoide_teams2": 2
+   }
+  },
+  {
+   "name": "dreepy_drakloak__0001",
+   "hash": "000106cf",
+   "has_new_cards": 1,
+   "occ_all": {
+    "epsoide_teams2": 4
+   },
+   "occ_field": {
+    "epsoide_teams2": 4
+   }
+  },
+  {
+   "name": "duraludon_archaludon_ex__0963",
+   "hash": "0963c2da",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_teams2": 2
+   },
+   "occ_field": {
+    "epsoide_teams2": 2
+   }
+  },
+  {
+   "name": "dreepy_drakloak__9aec",
+   "hash": "9aecc34c",
+   "has_new_cards": 1,
+   "occ_all": {
+    "epsoide_teams2": 2
+   },
+   "occ_field": {
+    "epsoide_teams2": 2
+   }
+  },
+  {
+   "name": "dunsparce_abra__9080",
+   "hash": "90801089",
+   "has_new_cards": 1,
+   "occ_all": {
+    "epsoide_teams2": 11
+   },
+   "occ_field": {
+    "epsoide_teams2": 11
+   }
+  },
+  {
+   "name": "abra_kadabra__c425",
+   "hash": "c425b257",
+   "has_new_cards": 1,
+   "occ_all": {
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "charcadet_ceruledge_ex__b6cf",
+   "hash": "b6cfce41",
+   "has_new_cards": 1,
+   "occ_all": {
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "abra_kadabra__2279",
+   "hash": "2279692d",
+   "has_new_cards": 1,
+   "occ_all": {
+    "epsoide_teams2": 2
+   },
+   "occ_field": {
+    "epsoide_teams2": 2
+   }
+  },
+  {
+   "name": "riolu_mega_lucario_ex__f5c5",
+   "hash": "f5c51b7b",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "gastly_mega_gengar_ex__eb56",
+   "hash": "eb5608bd",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "staryu_mega_starmie_ex__38d1",
+   "hash": "38d1bdd7",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "dreepy_drakloak__c894",
+   "hash": "c8940bfa",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "abra_kadabra__f06b",
+   "hash": "f06bd3d5",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "dreepy_drakloak__c73f",
+   "hash": "c73f3bad",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "munkidori_dwebble__bc2f",
+   "hash": "bc2f0ee6",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "iono_s_voltorb_iono_s_tadbulb__7dc2",
+   "hash": "7dc29ba6",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "riolu_mega_lucario_ex__c6ca",
+   "hash": "c6ca3985",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "abra_kadabra__23c8",
+   "hash": "23c8074f",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "cinderace_mega_kangaskhan_ex__1eb0",
+   "hash": "1eb0f5c7",
+   "has_new_cards": 1,
+   "occ_all": {
+    "epsoide_teams2": 4
+   },
+   "occ_field": {
+    "epsoide_teams2": 4
+   }
+  },
+  {
+   "name": "dreepy_drakloak__4aeb",
+   "hash": "4aebe7a4",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "dwebble_crustle__4bf5",
+   "hash": "4bf59ca5",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "dunsparce_dudunsparce__caea",
+   "hash": "caea6dab",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_teams2": 2
+   },
+   "occ_field": {
+    "epsoide_teams2": 2
+   }
+  },
+  {
+   "name": "dunsparce_abra__db04",
+   "hash": "db042305",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "hop_s_snorlax_hop_s_cramorant__7c66",
+   "hash": "7c66748d",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "dreepy_drakloak__e622",
+   "hash": "e622f208",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "dudunsparce_abra__05a3",
+   "hash": "05a3832a",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_teams2": 2
+   },
+   "occ_field": {
+    "epsoide_teams2": 2
+   }
+  },
+  {
+   "name": "abra_kadabra__0118",
+   "hash": "011842b3",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "dunsparce_dudunsparce__ceb2",
+   "hash": "ceb24736",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "slowpoke_mega_kangaskhan_ex__7357",
+   "hash": "7357a8b9",
+   "has_new_cards": 1,
+   "occ_all": {
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_teams2": 1
+   }
+  },
+  {
+   "name": "dwebble_crustle__1079",
+   "hash": "107955a6",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_teams2": 1
+   },
+   "occ_field": {
+    "epsoide_teams2": 1
+   }
+  }
+ ],
+ "weights": {
+  "ours": {
+   "n_seen": 24,
+   "n_written": 185,
+   "top_share": 0.5454545454545454,
+   "ess": 3.332291152461443
+  },
+  "mid": {
+   "n_seen": 90,
+   "n_written": 185,
+   "top_share": 0.29430379746835444,
+   "ess": 10.324806874977725
+  },
+  "lbfeed": {
+   "n_seen": 21,
+   "n_written": 185,
+   "top_share": 0.2391304347826087,
+   "ess": 7.1030033151381815
+  },
+  "top": {
+   "n_seen": 22,
+   "n_written": 185,
+   "top_share": 0.2897196261682243,
+   "ess": 7.232504166824138
+  }
+ }
+}

@@ -1,0 +1,19 @@
+
+$ /home/zhang/code/kaggle/the-pokemon-company/tools/onejob.sh league-eval -- /home/zhang/code/kaggle/the-pokemon-company/tools/py /home/zhang/code/kaggle/the-pokemon-company/ptcg_league/eval_pair.py --cand /home/zhang/code/kaggle/the-pokemon-company/ptcg_league/pools/evo/g0003_7e39_port_plain/bundle --opp bc:agent_Raihan=/home/zhang/code/kaggle/the-pokemon-company/ptcg_league/pools/init/bc_agent_Raihan --opp bc:agent_RtoABC2=/home/zhang/code/kaggle/the-pokemon-company/ptcg_league/pools/init/bc_agent_RtoABC2 --opp bc:agent_sue124=/home/zhang/code/kaggle/the-pokemon-company/ptcg_league/pools/init/bc_agent_sue124 --opp bc:deck_0d86=/home/zhang/code/kaggle/the-pokemon-company/ptcg_league/pools/init/bc_deck_0d86 --opp bc:deck_26c6=/home/zhang/code/kaggle/the-pokemon-company/ptcg_league/pools/init/bc_deck_26c6 --opp bc:deck_f5f8=/home/zhang/code/kaggle/the-pokemon-company/ptcg_league/pools/init/bc_deck_f5f8 --opp init:port_plain=/home/zhang/code/kaggle/the-pokemon-company/ptcg_league/pools/init/init_port_plain --opp bc:deck_0d86_w=/home/zhang/code/kaggle/the-pokemon-company/ptcg_league/pools/init/bc_deck_0d86_w --opp bc:deck_2617_grookey=/home/zhang/code/kaggle/the-pokemon-company/ptcg_league/pools/init/bc_deck_2617_grookey --opp bc:grookey=/home/zhang/code/kaggle/the-pokemon-company/ptcg_league/pools/init/bc_grookey --opp bc:miwa=/home/zhang/code/kaggle/the-pokemon-company/ptcg_league/pools/init/bc_miwa --matches 550 --workers 6 --seed-base 933000 --out /home/zhang/code/kaggle/the-pokemon-company/ptcg_league/gen/0003/anchor.json
+[2026-10-31T12:02:47]
+[onejob:league-eval] pid=57298 已用 34%（可用 4937 MB；天花板 90% = 6802 MB）
+⚠️ 内存预算 3.8 GB（上限 90%，已用 2.6 GB） → 面板数从 6 降到 5
+候选 /home/zhang/code/kaggle/the-pokemon-company/ptcg_league/pools/evo/g0003_7e39_port_plain/bundle  总 550 场 Bo3  得分 0.7382 CI [0.6999,0.7732]  异常 0  697s
+  vs bc:agent_Raihan            50 场  0.7800  [0.6476,0.8725]  异常 0
+  vs bc:agent_RtoABC2           50 场  0.9400  [0.8378,0.9794]  异常 0
+  vs bc:agent_sue124            50 场  1.0000  [0.9287,1.0000]  异常 0
+  vs bc:deck_0d86               50 场  0.7400  [0.6045,0.8413]  异常 0
+  vs bc:deck_26c6               50 场  1.0000  [0.9287,1.0000]  异常 0
+  vs bc:deck_f5f8               50 场  0.6000  [0.4618,0.7239]  异常 0
+  vs init:port_plain            50 场  0.6400  [0.5014,0.7586]  异常 0
+  vs bc:deck_0d86_w             50 场  0.7400  [0.6045,0.8413]  异常 0
+  vs bc:deck_2617_grookey       50 场  0.4200  [0.2938,0.5577]  异常 0
+  vs bc:grookey                 50 场  0.4200  [0.2938,0.5577]  异常 0
+  vs bc:miwa                    50 场  0.8400  [0.7149,0.9166]  异常 0
+→ /home/zhang/code/kaggle/the-pokemon-company/ptcg_league/gen/0003/anchor.json
+[onejob:league-eval] 退出 rc=0 用时 698s  收尾已用 34%（启动时 34%）

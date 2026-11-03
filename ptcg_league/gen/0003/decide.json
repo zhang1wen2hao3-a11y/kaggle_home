@@ -1,0 +1,81 @@
+{
+ "agent_id": null,
+ "archetype_scores": {
+  "abra_kadabra": {
+   "n": 50,
+   "score": 0.6
+  },
+  "beldum_metang": {
+   "n": 50,
+   "score": 0.94
+  },
+  "dreepy_drakloak": {
+   "n": 50,
+   "score": 0.78
+  },
+  "grookey_thwackey": {
+   "n": 100,
+   "score": 0.42
+  },
+  "ours": {
+   "n": 50,
+   "score": 0.64
+  },
+  "shuppet_dhelmise": {
+   "n": 200,
+   "score": 0.83
+  },
+  "slowpoke_slowking": {
+   "n": 50,
+   "score": 1.0
+  }
+ },
+ "at": "2026-10-31T12:14:25",
+ "branch": "g0003_7e39_port_plain",
+ "deck": "/home/zhang/code/kaggle/the-pokemon-company/decks/pool_field/teal_mask_ogerpon_ex_applin__7e39.csv",
+ "detail": {
+  "anchor": {
+   "ci_high": 0.7732,
+   "ci_low": 0.6999,
+   "errors": 0,
+   "n": 550,
+   "score": 0.7382
+  },
+  "anchor_base": {
+   "ci_high": 0.7732,
+   "ci_low": 0.6999,
+   "errors": 0,
+   "n": 550,
+   "score": 0.7382
+  },
+  "anchor_regress": 0.0,
+  "confirm": {
+   "ci_high": 0.5226,
+   "ci_low": 0.4737,
+   "errors": 0,
+   "n": 1600,
+   "score": 0.4981
+  },
+  "screen": {
+   "ci_high": 0.5784,
+   "ci_low": 0.481,
+   "errors": 0,
+   "n": 400,
+   "score": 0.53
+  }
+ },
+ "duplicate_of": null,
+ "gen": 3,
+ "league_opponents": [
+  "bc:agent_sue124",
+  "bc:deck_2617_grookey",
+  "bc:deck_f5f8",
+  "sp:g0002_7e39_port_plain"
+ ],
+ "model_sha": "1251f5d2c6b263a2f105405a260fde4962b97979899cdac91b244e0aef06ffdb",
+ "parent_id": "lg_boot:port_plain",
+ "reason": "h2h_ci=[0.4737,0.5226] 跨 0.50，不能宣称提升（n=1600 的 CI 半宽约 ±0.025）",
+ "rules_sha": "40fa0de19a92ab22e677e1590e014a3c069f4248eb4e0cd28f72b86e089a976a",
+ "similarity": 0.0,
+ "verdict": "reject"
+}

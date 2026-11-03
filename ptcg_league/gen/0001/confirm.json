@@ -1,0 +1,12 @@
+{
+ "overall": {
+  "ci_high": 0.5239,
+  "ci_low": 0.4265,
+  "draws": 0,
+  "errors": 0,
+  "n": 400,
+  "score": 0.475,
+  "wins": 190
+ },
+ "skipped": "screen_failed"
+}

@@ -1,0 +1,93 @@
+{
+ "agent_id": "sp:abra_g11a",
+ "role": "League Specialist（**不是 Champion**）",
+ "parent": "g6_db04（models/ppo/g6_db04.bin）",
+ "final_checkpoint": "models/ppo/g11a_cross_deck_specialist.bin",
+ "policy_sha256": "53800a4c10bc613a",
+ "deck_id": "dunsparce_abra__db04",
+ "deck_path": "decks/pool_field/dunsparce_abra__db04.csv",
+ "deck_sha256": "ef140860a9c11822",
+ "training_opponent": {
+  "policy": "bc_abra76k（BC 专精 abra，76k 帧）",
+  "policy_sha256": "e12bbe5c501fbd51",
+  "deck": "abra_kadabra__f5f8",
+  "deck_id": 10,
+  "bank_slots": 1,
+  "league_pct": 0.3,
+  "pinned_by": "--bank-decks"
+ },
+ "config": {
+  "anchor": "dunsparce_abra__db04",
+  "deck_weights": "weights_real.txt",
+  "timesteps": 400000,
+  "total_agents": 512,
+  "minibatch": 512,
+  "lr": 0.0002,
+  "seed": 424242,
+  "threads": 8,
+  "bank_slots": 1,
+  "league_pct": 0.3
+ },
+ "training_health": {
+  "lgw_start": 0.5,
+  "lgw_end": 0.878,
+  "d0_end": 0.73,
+  "mir_end": 0.754,
+  "ep_len_end": 177,
+  "kl_end": 0.0067,
+  "note": "lgw 0.88 偏高（陪练偏易），但泛化评估仍显示学习有效"
+ },
+ "gates": {
+  "bank_decks_pinned": "abra_kadabra__f5f8: 10",
+  "banks_loaded": "1 league banks @ 0.3000 rows each",
+  "tl0": 1.0,
+  "to0": 0.01,
+  "tl1": 0.0,
+  "to1": "0.26-0.37 ⇒ 绑牌生效"
+ },
+ "evaluation": {
+  "vs_training_opponent": {
+   "rate": 0.9075,
+   "baseline": 0.76,
+   "paired": {
+    "delta": 14.5,
+    "lo": 7.1,
+    "hi": 21.9,
+    "n": 200
+   }
+  },
+  "vs_generic_abra": {
+   "rate": 0.8225,
+   "baseline": 0.735,
+   "paired": {
+    "delta": 9.5,
+    "lo": 1.3,
+    "hi": 17.7,
+    "n": 200
+   }
+  },
+  "vs_db04_mirror": {
+   "rate": 0.5875,
+   "baseline": 0.6056,
+   "paired": {
+    "delta": -1.8,
+    "lo": -5.3,
+    "hi": 1.7,
+    "n": 1600
+   }
+  },
+  "vs_shuppet": {
+   "rate": 0.02,
+   "baseline": 0.045,
+   "paired": {
+    "delta": -3.0,
+    "lo": -6.4,
+    "hi": 0.4,
+    "n": 200
+   }
+  }
+ },
+ "status": "Promoted to League Specialist（对 abra 对位改善已验证；**未验证天梯 EV 提升**）",
+ "missing": "训练中间 checkpoint 未取回（GPU 上 experiments/native-g11a_cross_deck_specialist/state_*.bin）",
+ "created": "2026-11-03"
+}

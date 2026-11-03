@@ -1,0 +1,76 @@
+{
+ "awaiting": null,
+ "awaiting_gen": null,
+ "current_best": "lg_boot:port_plain",
+ "gen": 3,
+ "history": [
+  {
+   "action": "reject",
+   "at": "2026-10-29T22:13:00",
+   "branch": "g0001_7e39_port_plain",
+   "gen": 1,
+   "reason": "screen_score=0.4750<0.52"
+  },
+  {
+   "action": "specialist",
+   "agent_id": "sp:g0002_7e39_port_plain",
+   "at": "2026-10-30T01:03:23",
+   "gen": 2
+  },
+  {
+   "action": "reject",
+   "at": "2026-10-31T12:14:25",
+   "branch": "g0003_7e39_port_plain",
+   "gen": 3,
+   "reason": "h2h_ci=[0.4737,0.5226] 跨 0.50，不能宣称提升（n=1600 的 CI 半宽约 ±0.025）"
+  }
+ ],
+ "pfsp": {
+  "p": {
+   "bc:agent_Raihan": 0.8049999999999999,
+   "bc:agent_RtoABC2": 0.91,
+   "bc:agent_sue124": 0.99,
+   "bc:deck_0d86": 0.76,
+   "bc:deck_2617_grookey": 0.33999999999999997,
+   "bc:deck_26c6": 0.975,
+   "bc:deck_f5f8": 0.5449999999999999,
+   "bc:grookey": 0.32999999999999996,
+   "bc:miwa": 0.865,
+   "lg_boot:port_plain": 0.4981,
+   "opp:db04pilot": 0.305,
+   "opp:g0001": 0.52,
+   "opp:g0003": 0.49,
+   "opp:g4a": 0.5,
+   "opp:g4b": 0.495,
+   "opp:g4c": 0.485,
+   "opp:g5_db04": 0.205,
+   "opp:g8_shuppet": 0.63,
+   "sp:g0002_7e39_port_plain": 0.53
+  },
+  "rule": "p(1-p)",
+  "updated": "2026-11-01T20:57:46",
+  "w": {
+   "bc:agent_Raihan": 0.04357838478073893,
+   "bc:agent_RtoABC2": 0.04357838478073893,
+   "bc:agent_sue124": 0.04357838478073893,
+   "bc:deck_0d86": 0.043888826160564866,
+   "bc:deck_2617_grookey": 0.053994805868589665,
+   "bc:deck_26c6": 0.04357838478073893,
+   "bc:deck_f5f8": 0.05966738852612979,
+   "bc:grookey": 0.05320076460581629,
+   "bc:miwa": 0.04357838478073893,
+   "lg_boot:port_plain": 0.06015377248617751,
+   "opp:db04pilot": 0.05100512020496567,
+   "opp:g0001": 0.06005839369340456,
+   "opp:g0003": 0.06013057926274759,
+   "opp:g4a": 0.060154641119195267,
+   "opp:g4b": 0.06014862565508335,
+   "opp:g4c": 0.06010050194218799,
+   "opp:g5_db04": 0.04357838478073893,
+   "opp:g8_shuppet": 0.05608818737953766,
+   "sp:g0002_7e39_port_plain": 0.059938084411166166
+  }
+ },
+ "saved": "2026-11-03T05:46:05",
+ "shutdown": null
+}

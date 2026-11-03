@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# 本项目所有 python 工具都必须用 py310（它装了 torch/numpy；系统 python3 没有）。
+# 用法：./tools/py tools/bc_train.py --npz ...
+#       ./tools/py -u tools/bc_materialize.py --materialize ...
+PY=/home/zhang/miniforge3/envs/py310/bin/python
+[ -x "$PY" ] || { echo "✗ 找不到 $PY" >&2; exit 127; }
+exec "$PY" "$@"

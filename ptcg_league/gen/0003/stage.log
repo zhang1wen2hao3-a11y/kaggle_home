@@ -1,0 +1,11 @@
+
+$ /home/zhang/code/kaggle/the-pokemon-company/tools/py /home/zhang/code/kaggle/the-pokemon-company/tools/stage_ckpt.py /home/zhang/code/kaggle/the-pokemon-company/ptcg_league/pools/evo/g0003_7e39_port_plain/final.bin --out /home/zhang/code/kaggle/the-pokemon-company/ptcg_league/pools/evo/g0003_7e39_port_plain/bundle --bundle build/port_plain --deck /home/zhang/code/kaggle/the-pokemon-company/decks/pool_field/teal_mask_ogerpon_ex_applin__7e39.csv --force
+[2026-10-31T11:27:41]
+转换 blob → pt: native/tools/native_weights.py import /home/zhang/code/kaggle/the-pokemon-company/ptcg_league/pools/evo/g0003_7e39_port_plain/final.bin /home/zhang/code/kaggle/the-pokemon-company/ptcg_league/pools/evo/g0003_7e39_port_plain/bundle/model.pt
+  e/zhang/code/kaggle/the-pokemon-company/ptcg_league/pools/evo/g0003_7e39_port_plain/final.bin -> /home/zhang/code/kaggle/the-pokemon-company/ptcg_league/pools/evo/g0003_7e39_port_plain/bundle/model.pt
+✅ /home/zhang/code/kaggle/the-pokemon-company/ptcg_league/pools/evo/g0003_7e39_port_plain/bundle
+   model.pt -> /home/zhang/code/kaggle/the-pokemon-company/ptcg_league/pools/evo/g0003_7e39_port_plain/bundle/model.pt
+   deck.csv  60 张（前 8：[1, 1227, 1231, 1071, 1, 1094, 1, 96]）
+   其余 7 项软链到 /home/zhang/code/kaggle/the-pokemon-company/build/port_plain
+
+评测：./run.sh tools/eval_gate.py --agent /home/zhang/code/kaggle/the-pokemon-company/ptcg_league/pools/evo/g0003_7e39_port_plain/bundle --band ours --matches 400

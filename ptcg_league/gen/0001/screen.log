@@ -1,0 +1,7 @@
+
+$ /home/zhang/code/kaggle/the-pokemon-company/tools/py /home/zhang/code/kaggle/the-pokemon-company/ptcg_league/eval_pair.py --cand /home/zhang/code/kaggle/the-pokemon-company/ptcg_league/pools/evo/g0001_7e39_port_plain/bundle --opp lg_boot:port_plain=/home/zhang/code/kaggle/the-pokemon-company/ptcg_league/pools/init/init_port_plain --matches 400 --workers 8 --seed-base 911000 --out /home/zhang/code/kaggle/the-pokemon-company/ptcg_league/gen/0001/screen.json
+[2026-10-29T22:05:14]
+⚠️ 可用内存 4.6 GB → 面板数从 8 降到 7（再多会 swap，表现为单步 120 s 超时）
+候选 /home/zhang/code/kaggle/the-pokemon-company/ptcg_league/pools/evo/g0001_7e39_port_plain/bundle  总 400 场 Bo3  得分 0.4750 CI [0.4265,0.5239]  异常 0  452s
+  vs lg_boot:port_plain        400 场  0.4750  [0.4265,0.5239]  异常 0
+→ /home/zhang/code/kaggle/the-pokemon-company/ptcg_league/gen/0001/screen.json
