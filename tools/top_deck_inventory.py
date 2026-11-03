@@ -83,6 +83,8 @@ def main():
     ap.add_argument("--out", default="data/top_decks.tsv")
     ap.add_argument("--deck-dir", default="decks/top")
     ap.add_argument("--workers", type=int, default=2)
+    ap.add_argument("--pairs-out", default="",
+                    help="同时导出「卡组×卡组」对局矩阵（真人之间的实际胜负），长表")
     a = ap.parse_args()
 
     dirs = [d if os.path.isabs(d) else os.path.join(ROOT, d) for d in a.dirs]
@@ -159,6 +161,26 @@ def main():
         print(f"\n不在池里的卡组 {len(new_decks)} 副，已导出到 {a.deck_dir}/：")
         for t, n, wr, f in new_decks[:20]:
             print(f"  {t}  {n} 局  胜率 {wr:.3f}  → {f}")
+    if a.pairs_out:
+        pair = collections.defaultdict(lambda: [0, 0])     # (a,b) → [a 赢, n]
+        for r in rows:
+            if r["win"] < 0:
+                continue
+            t0, t1 = r["tags"]
+            if t0 == t1:
+                continue
+            pair[(t0, t1)][1] += 1
+            pair[(t0, t1)][0] += 1 if r["win"] == 0 else 0
+            pair[(t1, t0)][1] += 1
+            pair[(t1, t0)][0] += 1 if r["win"] == 1 else 0
+        po = os.path.join(ROOT, a.pairs_out)
+        os.makedirs(os.path.dirname(po) or ".", exist_ok=True)
+        with open(po, "w") as fh:
+            fh.write("deck_a\tdeck_b\twins_a\tn\twinrate\n")
+            for (x, y), (w, n) in sorted(pair.items(), key=lambda kv: -kv[1][1]):
+                fh.write(f"{x}\t{y}\t{w}\t{n}\t{w / n:.4f}\n")
+        print(f"对局矩阵 → {a.pairs_out}（{len(pair) // 2} 对）")
+
     print(f"\n表 → {a.out}")
 
 
