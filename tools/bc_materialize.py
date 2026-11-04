@@ -134,11 +134,16 @@ def load_agent(device: str) -> SearchAgent:
                        cfg=None, seed=0, device=device, data_dir=str(AG))
 
 
-def iter_game_frames(path: pathlib.Path, agents_pool: dict, want_seats=None, keep_fn=None):
+def iter_game_frames(path: pathlib.Path, agents_pool: dict, want_seats=None, keep_fn=None,
+                     fast=False):
     """按帧序推进 tracker，产出 (seat, obs, act, logits_1d, n_opt)。
 
     用 agent.agent(obs) 推进内部状态（强制选择/forced_run 与生产完全一致），
     然后用同一 tracker 做一次 encode+forward 拿 logits。
+
+    fast=True：走**免前向**路径（见下方注释的两条等价依据）。它与默认路径
+    产出的 (X, y, n_opt, remap) 应当逐字节一致 —— 用 tools/bc_materialize.py
+    自带的自检（--self-check）验证，不要凭感觉。
     """
     import hashlib as _hl
     d = json.loads(path.read_text())
@@ -166,6 +171,49 @@ def iter_game_frames(path: pathlib.Path, agents_pool: dict, want_seats=None, kee
         call["player"] = j
         call["step"] = t
         try:
+            if fast:
+                # ── 免前向推进（2026-11-04）────────────────────────────────
+                # 依据两条已核实的等价关系：
+                #  ① agent() 的状态只有两样：tracker（只被 obs 更新）与 forced_run
+                #     （只被"这一帧是否被迫"决定，与它自己选了哪个动作无关）。
+                #  ② forward_eval 的合法性 = masked_fill(opt_mask == 0, -1e9)，
+                #     而 remap_target 读的就是同一个 opt_mask ⇒ 判定合法性**不需要前向**。
+                # 于是每帧那次 9.35 ms 的 forward 完全是多余的（实测 encode 仅 0.38 ms）。
+                a.tracker.update(call)
+                sel = call.get("select") or {}
+                if a._forced(sel) is not None:
+                    a.forced_run += 1
+                else:
+                    a.forced_run = 0
+                n_opt = len(sel.get("option") or [])
+                if n_opt <= 1:
+                    continue
+                if keep_fn is not None and not keep_fn(j, t):
+                    continue
+                _encode(a.row[0], call, [], False, a.forced_run, tracker=a.tracker)
+                row = a.row[0]
+                a0 = int(act[0])
+                mask = _eslice(row, "opt_mask")
+                if a0 >= len(mask):
+                    out.append((j, t, n_opt, None, len(act), None, row.copy(), 0,
+                                deck8[j], agents[j] if j < len(agents) else "",
+                                int(rew[j] > 0) if j < len(rew) else 0))
+                    continue
+                remap_flag = 0
+                if mask[a0] <= 0:               # 非代表索引 -> 重映射到等价类代表
+                    rep = remap_target(a0, call["current"], sel, row)
+                    if rep is None:
+                        out.append((j, t, n_opt, None, len(act), None, row.copy(), 0,
+                                    deck8[j], agents[j] if j < len(agents) else "",
+                                    int(rew[j] > 0) if j < len(rew) else 0))
+                        continue
+                    a0 = rep
+                    remap_flag = 1
+                out.append((j, t, n_opt, a0, len(act), None, row.copy(), remap_flag,
+                            deck8[j], agents[j] if j < len(agents) else "",
+                            int(rew[j] > 0) if j < len(rew) else 0))
+                continue
+
             a.agent(call)                   # 推进 tracker / forced_run
             sel = call.get("select") or {}
             n_opt = len(sel.get("option") or [])
@@ -213,6 +261,14 @@ def main() -> int:
     ap.add_argument("--max-games", type=int, default=0, help="最多处理多少局（0=全部）")
     ap.add_argument("--deck-prefix", default="", help="只保留**出手方**卡组匹配的帧（如 0d86）")
     ap.add_argument("--agent-re", default="", help="只保留**出手方**名字匹配的帧（正则）")
+    ap.add_argument("--no-policy-scan", action="store_true",
+                    help="免前向推进（物化不需要策略前向：合法性读 row 的 opt_mask，"
+                         "tracker/forced_run 只由观测决定）。预计 ~20x 加速，"
+                         "先用 --self-check 验证与默认路径逐字节一致")
+    ap.add_argument("--check-frames", type=int, default=4000,
+                    help="--self-check 至少要比对多少帧")
+    ap.add_argument("--self-check", action="store_true",
+                    help="在 --max-games 指定的局上同时跑两条路径并逐帧比对（不落盘）")
     ap.add_argument("--shuffle-games", action="store_true",
                     help="随机打散局序再取前 --max-games 局（避免总是取时间最早的 N 局）")
     a = ap.parse_args()
@@ -303,6 +359,68 @@ def main() -> int:
             print(f"【参考值】此前单局单座位各测 40/60 帧得 52.5% / 58.3%，"
                   f"本次为多局多座位合并，若落在 50–70% 区间即视为管线一致")
 
+    if a.self_check:
+        # 逐帧比对「默认路径」与「免前向路径」。判据是**逐字节一致**，不是"差不多"。
+        import time as _tm
+        import numpy as _np
+        # 注意：`paths` 是"含目标帧"的局（deck OR agent 命中），而 keep_fn 是 AND，
+        # 所以靠前的局可能一帧都不产出 —— 必须跑到攒够帧数为止，否则会得出"0 帧一致"的假通过。
+        # 先按 **AND** 判据预筛（deck 前缀 且 agent 正则），否则会在"只命中 agent"的局上
+        # 白跑整局扫描 —— 实测靠前的是 Miwa 打 0d86 的局，几十局一帧都不产出。
+        _dp, _pt = a.deck_prefix, pat
+        cnt = collections.Counter()
+        for (f_, _s, _e), (d_, ag_) in per_frame.items():
+            if _dp and not d_.startswith(_dp):
+                continue
+            if _pt and not _pt.search(ag_ or ""):
+                continue
+            cnt[f_] += 1
+        todo = [r for r in paths if cnt.get(r, 0) > 0]
+        want_frames = max(500, a.check_frames)
+        print(f"\n自检：{len(todo)} 局含目标帧（AND 预筛后），攒够 {want_frames:,} 帧后停")
+        pool_slow = {0: load_agent(a.device), 1: load_agent(a.device)}
+        pool_fast = {0: load_agent(a.device), 1: load_agent(a.device)}
+        bad = 0
+        nfr = 0
+        t_slow = t_fast = 0.0
+        for rel in todo:
+            if nfr >= want_frames:
+                break
+            pth = ROOT / rel
+            if not pth.exists():
+                continue
+            kf = make_keep(rel)
+            t0 = _tm.perf_counter()
+            rs, _ = iter_game_frames(pth, pool_slow, keep_fn=kf, fast=False)
+            t1 = _tm.perf_counter()
+            rf, _ = iter_game_frames(pth, pool_fast, keep_fn=kf, fast=True)
+            t2 = _tm.perf_counter()
+            t_slow += t1 - t0
+            t_fast += t2 - t1
+            if len(rs) != len(rf):
+                print(f"  ✗ {rel}: 帧数不同 默认 {len(rs)} vs 免前向 {len(rf)}")
+                bad += 1
+                continue
+            for x, y in zip(rs, rf):
+                # 元组字段：(seat, t, n_opt, act0, actlen, logits, row, remap, deck, agent, won)
+                same = (x[0] == y[0] and x[1] == y[1] and x[2] == y[2] and
+                        x[3] == y[3] and x[4] == y[4] and x[7] == y[7] and
+                        x[8] == y[8] and x[9] == y[9] and x[10] == y[10] and
+                        _np.array_equal(x[6], y[6]))
+                if not same:
+                    bad += 1
+                    if bad <= 3:
+                        print(f"  ✗ {rel} t={x[1]} seat={x[0]}: "
+                              f"act0 {x[3]}vs{y[3]} remap {x[7]}vs{y[7]} "
+                              f"row_equal={_np.array_equal(x[6], y[6])}")
+                nfr += 1
+        sp_ = nfr / max(t_slow, 1e-9)
+        fp_ = nfr / max(t_fast, 1e-9)
+        print(f"  比对 {nfr:,} 帧，不一致 {bad} 帧")
+        print(f"  默认 {sp_:.1f} 帧/秒 · 免前向 {fp_:.1f} 帧/秒 ⇒ 加速 {fp_ / max(sp_, 1e-9):.1f}×")
+        print("  " + ("✅ 两条路径逐帧一致" if bad == 0 else "✗ 有差异，禁止使用 --no-policy-scan"))
+        return 0 if bad == 0 else 1
+
     if a.materialize:
         import numpy as _np
         todo = paths[: a.max_games] if a.max_games else paths
@@ -319,10 +437,13 @@ def main() -> int:
             pth = ROOT / rel
             if not pth.exists():
                 continue
-            arch = deck_archetype(files[rel])
+            # ⚠️ 不能用 deck_archetype(files[rel])：files[rel] 是"该文件第一个座位"的卡组，
+            #    不是出手方的。实测后果：单玩家单卡组的数据集被标成 33~37 种原型
+            #    （arch 列错、deck 列对）。arch 一律按每帧出手方的 deck8 现算。
             sp = split_of(rel, a.val_pct)
             try:
-                recs, _ = iter_game_frames(pth, pool, keep_fn=make_keep(rel))
+                recs, _ = iter_game_frames(pth, pool, keep_fn=make_keep(rel),
+                                           fast=a.no_policy_scan)
             except Exception as e:                     # noqa: BLE001
                 print(f"  [{n}/{len(todo)}] {rel} 失败 {type(e).__name__}")
                 continue
@@ -339,7 +460,7 @@ def main() -> int:
                 xf.write(row.astype(_np.float32, copy=False).tobytes()); nframes += 1
                 ys.append(act0); ns.append(n_opt)
                 decks.append(dk); agents_c.append(ag_); wons.append(wn)
-                archs.append(arch); splits.append(sp)
+                archs.append(deck_archetype(dk)); splits.append(sp)
                 keep_n += 1
             if n % 10 == 0 or n == len(todo):
                 print(f"  [{n}/{len(todo)}] 累计 {nframes:,} 帧  ({rel.split('/')[-1][:34]})")
