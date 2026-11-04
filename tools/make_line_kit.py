@@ -47,13 +47,17 @@ grep -q "n_track" "$REPO/native/ptcg/binding.c" 2>/dev/null \
   || { echo "✗ $REPO 没有 deck-seat 补丁（binding.c 里找不到 n_track）⇒ --track-decks 会静默失效"; exit 1; }
 echo "✓ 训练仓库已有 v2 座位计数补丁"
 
-mkdir -p "$REPO/decks/pool_field" "$REPO/tools" "$REPO/init" "$HERE/banks_used"
+mkdir -p "$REPO/decks/pool_field" "$REPO/tools" "$REPO/init" "$HERE/banks_used" "$REPO/native"
 for f in decks/pool_field/*.csv; do cp -f "$f" "$REPO/decks/pool_field/"; done
 cp -f decks/@DWFNAME@ "$REPO/decks/@DWFNAME@"
 cp -f tools/db04_line.sh "$REPO/tools/db04_line.sh"; chmod +x "$REPO/tools/db04_line.sh"
 cp -f banks/*.bin "$HERE/banks_used/"
 cp -f init/@INITNAME@ "$REPO/init/@INITNAME@"
-echo "✓ 已铺：卡组(anchor) + decks/@DWFNAME@ + tools/db04_line.sh + init/@INITNAME@ + bank(s)"
+# 关键：把打包机上的 tables blob 原样装上。卡组池加了新卡组后（anchor 不在旧池里），
+# GPU 机器自己那份 blob 还是旧 185 行，不覆盖就会在 resolve_anchor_indices 处报
+# “pool 行 ≠ blob 行”。blob 随包走，deck id 才永远和打包机一致。
+cp -f native/ptcg_tables_field.bin "$REPO/native/ptcg_tables_field.bin"
+echo "✓ 已铺：卡组(anchor) + decks/@DWFNAME@ + tables blob + tools/db04_line.sh + init/@INITNAME@ + bank(s)"
 
 cd "$REPO"
 RUN_ENV="PYTHON=$PY INIT=$REPO/init/@INITNAME@ OUT=@OUT@ RUN=@RUN@ \

@@ -2217,6 +2217,28 @@
    "occ_field": {
     "epsoide_teams2": 1
    }
+  },
+  {
+   "name": "z_dragapult_dreepy_petit__0904",
+   "hash": "0904e46f",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_petit": 1223
+   },
+   "occ_field": {
+    "epsoide_petit": 1223
+   }
+  },
+  {
+   "name": "z_ogerpon_toolbox_miwa__e1d7",
+   "hash": "e1d754a7",
+   "has_new_cards": 0,
+   "occ_all": {
+    "epsoide_miwa": 1077
+   },
+   "occ_field": {
+    "epsoide_miwa": 1077
+   }
   }
  ],
  "weights": {
