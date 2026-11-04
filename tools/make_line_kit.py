@@ -83,7 +83,7 @@ fi
 
 RUNBOOK = """{run}：卡组线一代（anchor = {anchor}）
 ==================================================
-父权重 `{initname}`，对手卡组分布 `{dwfname}`，2 个冻结 bank（{banksnote}）@ league-pct 0.08，
+父权重 `{initname}`，对手卡组分布 `{dwfname}`，{nbank} 个冻结 bank（{banksnote}）@ league-pct {lpct}（合计 {banktotal}，须 <0.5），
 T=400k、AG=512、MB=512、lr=2e-4、SEED=424242、THREADS=8（与历史各代逐项相同，便于对照）。
 
 ## 这一代要回答什么
@@ -98,9 +98,9 @@ PTCG_REPO=/root/ptcg_train_kit/port_repo bash apply.sh          # 只预检，�
 PTCG_REPO=/root/ptcg_train_kit/port_repo bash apply.sh --run    # 预检通过直接开训
 ```
 
-预检会打印：`pool_field == tables blob`（185/185）、`anchor → deck id`、
+预检会打印：`pool_field == tables blob`、`anchor → deck id`、
 `weights version=3 / 生效副数 / ESS`、**anchor 权重（必须 >0，否则训练器 REJECTED）**、
-镜像对局率、父权重 18,205,408 B、两个 bank、仓库有没有 v2 座位补丁。
+镜像对局率、父权重 18,205,408 B、{nbank} 个 bank 且逐位 PINNED、仓库有没有 v2 座位补丁。
 
 ## 预期与硬门槛
 
@@ -144,6 +144,11 @@ def main():
                          "默认从 dist/league_g0003.tar.gz 取")
     ap.add_argument("--banks-note", default="", help="RUNBOOK 里说明这对 bank 是什么")
     ap.add_argument("--bank-decks", default="", help="与 --banks 逐位对应的卡组名，'-' 不绑定（需 --bank-decks 补丁）")
+    ap.add_argument("--stage-full-pool", action="store_true",
+                    help="把 decks/pool_field 全部 187 副都打进包（约 34 KB）。"
+                         "默认只带 anchor+track，靠目标机已有池子补齐；"
+                         "但 blob 是 187 行的，目标池若有漂移会 fail-fast。"
+                         "要保证 pool==blob，用这个开关。")
     ap.add_argument("--league-pct", type=float, default=0.08, help="每个 bank 占的行比例（1 个 bank 时可到 0.49）")
     ap.add_argument("--purpose", default="", help="RUNBOOK 里这一代要回答的问题")
     ap.add_argument("--extra", default="", help="RUNBOOK 结尾追加的判据说明")
@@ -182,6 +187,11 @@ def main():
     shutil.copyfile(os.path.join(ROOT, "tools", "db04_line.sh"),
                     os.path.join(stage, "tools", "db04_line.sh"))
     os.chmod(os.path.join(stage, "tools", "db04_line.sh"), 0o755)
+    if a.stage_full_pool:
+        for f in sorted(os.listdir(os.path.join(REPO, "decks", "pool_field"))):
+            if f.endswith(".csv"):
+                shutil.copyfile(os.path.join(REPO, "decks", "pool_field", f),
+                                os.path.join(stage, "decks", "pool_field", f))
     shutil.copyfile(deck_csv, os.path.join(stage, "decks", "pool_field", a.anchor + ".csv"))
     # TRACK 里用到的卡组也带过去（apply.sh 会把池里缺的补进去，顺序不变就不会错位）
     for name in [x.strip() for x in track.split(",") if x.strip()]:
@@ -230,12 +240,15 @@ def main():
     open(os.path.join(stage, "RUNBOOK.md"), "w", encoding="utf-8").write(
         RUNBOOK.format(run=a.run, anchor=a.anchor, initname=initname, dwfname=dwfname,
                        out=out, tag=tag, purpose=a.purpose or "（未填写）", extra=a.extra,
-                       banksnote=banks_note))
+                       banksnote=banks_note, nbank=_nbank,
+                       lpct=f"{a.league_pct:g}", banktotal=f"{a.league_pct*_nbank:.2f}"))
 
     man = []
-    for rel in (["tools/db04_line.sh"] +
-                [f"decks/pool_field/{n}.csv" for n in [a.anchor] + [x.strip() for x in track.split(",")
-                                                                   if x.strip() and x.strip() != a.anchor]] +
+    _pool_rels = ([f"decks/pool_field/{f}" for f in sorted(os.listdir(os.path.join(stage, "decks", "pool_field")))
+                   if f.endswith(".csv")] if a.stage_full_pool else
+                  [f"decks/pool_field/{n}.csv" for n in [a.anchor] + [x.strip() for x in track.split(",")
+                                                                     if x.strip() and x.strip() != a.anchor]])
+    for rel in (["tools/db04_line.sh"] + _pool_rels +
                 [f"decks/{dwfname}", f"init/{initname}"] + [f"banks/bank_{i}.bin" for i in range(_nbank)] + [
                  "native/ptcg_tables_field.bin"]):
         f = os.path.join(stage, rel)
