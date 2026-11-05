@@ -52,7 +52,7 @@ FIELD_OPPS = {
     "dreepy_3eaa": "build/agents/c_dreepy",
 }
 DEFAULT_RULES = dict(min_delta=0.02, patience=2, max_rounds=8,
-                     matches_per_cell=250, seed_base=950000)
+                     matches_per_cell=250, seed_base=950000, h2h_cell=400)
 
 
 def state_path(name):
@@ -85,7 +85,7 @@ def cmd_init(a):
     st = dict(name=a.names, rules=rules,
               sides=dict(A=dict(agent=a.a, model=a.a, best_ev=None, flat=0),
                          B=dict(agent=a.b, model=a.b, best_ev=None, flat=0)),
-              turn="A", round=0, history=[], verdict=None)
+              turn="A", round=0, history=[], verdict=None, primary=a.primary)
     save(a.names, st)
     print(f"✅ {state_path(a.names)}")
     print(f"   A = {a.a}   B = {a.b}   先训 A（B 冻结当 bank）")
@@ -131,6 +131,17 @@ def cmd_pack(a):
           f"--bin <拉回的.bin>")
 
 
+def _h2h(cand_dir, opp_label, opp_dir, n, seed, out):
+    """候选 vs 指定对手的配对评估 → 胜率。用于衡量"陪练侧有没有变强"。"""
+    cmd = [PY, GUARD, "--cand", cand_dir, "--opp", f"{opp_label}={opp_dir}",
+           "--matches", str(n), "--workers", "0", "--seed-base", str(seed),
+           "--out", out, "--logdir", os.path.join(ROOT, "logs/dual", opp_label)]
+    run(cmd)
+    d = json.load(open(out))
+    v = d["per_opp"][opp_label]
+    return v["score"], v["n"], v["ci_low"], v["ci_high"]
+
+
 def cmd_collect(a):
     st = load(a.names)
     if st.get("verdict"):
@@ -168,16 +179,34 @@ def cmd_collect(a):
         raise SystemExit("✗ 评估失败")
     d = json.load(open(out))
     ev = sum(FIELD[k] * d["per_opp"][k]["score"] for k in FIELD) / sum(FIELD.values())
-    prev = st["sides"][side]["best_ev"]
-    delta = None if prev is None else ev - prev
+
+    # 陪练侧重在"更会打主侧"：额外量一次头对头。主侧仍以 field_ev 为主判据。
+    primary = st.get("primary", "A")
+    h2h = None
+    if side != primary:
+        opp = st["sides"][primary]
+        h2h_out = os.path.join(ROOT, "logs/dual", f"{run_name}_h2h.json")
+        try:
+            h2h = _h2h(ag_dir, f"vs_{primary}", opp["agent"], st["rules"]["h2h_cell"],
+                       st["rules"]["seed_base"], h2h_out)[0]
+        except SystemExit:
+            h2h = None
+
+    metric = ev if side == primary else (h2h if h2h is not None else ev)
+    key = "best_ev" if side == primary else "best_h2h"
+    prev = st["sides"][side].get(key)
+    delta = None if prev is None else metric - prev
     improved = (prev is None) or (delta is not None and delta >= st["rules"]["min_delta"])
     st["sides"][side]["flat"] = 0 if improved else st["sides"][side]["flat"] + 1
     if improved:
-        st["sides"][side].update(best_ev=ev, agent=ag_dir, model=f"models/ppo/{run_name}.bin",
-                                 best_round=rnd)
+        st["sides"][side].update({key: metric, "agent": ag_dir,
+                                  "model": f"models/ppo/{run_name}.bin", "best_round": rnd})
+    st["sides"][side]["last_ev"] = ev
+    if h2h is not None:
+        st["sides"][side]["last_h2h"] = h2h
     st["round"] = rnd
-    st["history"].append(dict(round=rnd, side=side, ev=ev, delta=delta,
-                              improved=improved, agent=ag_dir,
+    st["history"].append(dict(round=rnd, side=side, metric=metric, ev=ev, h2h=h2h,
+                              delta=delta, improved=improved, agent=ag_dir,
                               per_opp={k: round(v["score"], 4) for k, v in d["per_opp"].items()}))
     # 停止判据
     flat = {s: st["sides"][s]["flat"] for s in ("A", "B")}
@@ -188,7 +217,10 @@ def cmd_collect(a):
     else:
         st["turn"] = other
     save(a.names, st)
+    tag = "field_ev" if side == primary else "h2h(打主侧)"
     print(f"\n本轮 {side}: field_ev {ev:.4f}"
+          + (f"  头对头 {h2h:.4f}" if h2h is not None else "")
+          + f"  → 判据 {tag} {metric:.4f}"
           + (f"（Δ {delta:+.4f}）" if delta is not None else "（首轮，作为基准）"))
     print(f"   {'✅ 有提升' if improved else '⚠️ 没提升（flat=' + str(st['sides'][side]['flat']) + '）'}")
     print(f"   flat = {flat}")
@@ -208,10 +240,11 @@ def cmd_status(a):
         d = st["sides"][s]
         print(f"  {s}: best_ev={d['best_ev']}  flat={d['flat']}  model={d['model']}")
     if st["history"]:
-        print(f"\n{'轮':>3}{'侧':>3}{'field_ev':>10}{'Δ':>9}  判定")
+        print(f"\n{'轮':>3}{'侧':>3}{'field_ev':>10}{'头对头':>9}{'Δ判据':>10}  判定")
         for h in st["history"]:
             dl = "" if h["delta"] is None else f"{h['delta']:+.4f}"
-            print(f"{h['round']:>3}{h['side']:>3}{h['ev']:>10.4f}{dl:>9}  "
+            hh = f"{h['h2h']:.4f}" if h.get("h2h") is not None else "-"
+            print(f"{h['round']:>3}{h['side']:>3}{h['ev']:>10.4f}{hh:>9}{dl:>10}  "
                   f"{'✅' if h['improved'] else '⚠️ 无提升'}")
     if st.get("verdict"):
         print(f"\n🛑 {st['verdict']}")
@@ -223,6 +256,8 @@ def main():
     sub = ap.add_subparsers(dest="cmd", required=True)
     i = sub.add_parser("init"); i.add_argument("--names", required=True)
     i.add_argument("--a", required=True); i.add_argument("--b", required=True)
+    i.add_argument("--primary", default="A", choices=["A", "B"],
+                   help="我们要提交的那一侧（判据用 field_ev）；另一侧用『打主侧的头对头』")
     for k in DEFAULT_RULES:
         i.add_argument(f"--{k.replace('_','-')}", type=int if k != "min_delta" else float)
     for name, fn in (("init", cmd_init), ("pack", cmd_pack), ("collect", cmd_collect), ("status", cmd_status)):
