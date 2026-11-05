@@ -74,6 +74,7 @@ ptcg_loop/
 | `no kernel image is available` | 编译时设了 PTCG_SM；删掉环境变量重编 |
 | `✗ 已有循环在跑 <名>` | 有另一个 `loop.sh` 持有 `logs/loop_<名>.lock`。先确认它是不是还活着，死了再 `rm -f logs/loop_<名>.lock`。**别两个循环同时跑同一个 state**：各自推进 round 会互相覆盖 |
 | `✗ 评估回收不全（0/400 场）` | worker 被 OOM 杀了（同目录 `*.log` 是 0 字节）。脚本已自动降到 4/2/1 个 worker 重试，全降完还不行就说明机器内存真不够：先别跑别的评估，或把 `--matches-per-cell` 调小 |
-| 评估很慢 | 面板 15→5 个对手、或 `--matches-per-cell` 调小；14 vCPU 下 1250 局约 10~20 分钟 |
+| 评估很慢 | 面板 15→5 个对手、或 `--matches-per-cell` 调小；14 vCPU 下 1250 局约 15~20 分钟 |
+| `面板 auto → N` 的 N 你觉得不对 | 直接钉死：`export PTCG_PANELS=7`；它不会超过内存/核数算出的安全上限。想改公式用 `PTCG_PANEL_CORES`（每面板占几核，默认 2.0）和 `PTCG_MEM_GB_PER_PANEL`（默认 1.3） |
 | 想从某个中间模型重开 | 改 `state/dual_<名>.json` 里对应侧的 `model`，再 `loop.sh` |
 | 两侧都 flat 但你觉得还能练 | 加 `--patience 3` 或换 bank（重新 `init` 一个新 state） |

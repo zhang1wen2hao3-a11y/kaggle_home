@@ -29,6 +29,7 @@
 """
 import argparse
 import json
+import math
 import os
 import signal
 import sys
@@ -106,6 +107,43 @@ def cgroup_limit_gb(paths=(
     return None
 
 
+def cgroup_cpu_count():
+    """容器**实际**能用的 vCPU 数（向上取整）；读不到/无限额时返回 None。
+
+    为什么必须自己读：`os.cpu_count()` 在容器里报的是**宿主机**核数。AutoDL 实测
+    宿主机 112 核、实际配额 14 vCPU；拿 112 去算面板数会开 37 个面板 ≈ 110 个进程、
+    ~1000 线程抢 14 核，表现是单步 120 s 超时 + 异常率飙到 ~24%（2026-11-05 实测）。
+    这和内存侧 `cgroup_limit_gb()` 是同一类坑，以前只修了内存没修 CPU。
+    """
+    # cgroup v2: "quota period"；quota == "max" 表示无限额
+    try:
+        with open("/sys/fs/cgroup/cpu.max") as f:
+            q, per = f.read().split()[:2]
+        if q != "max":
+            return max(1, math.ceil(int(q) / int(per)))
+    except (OSError, ValueError):
+        pass
+    # cgroup v1: quota 与 period 在两个文件里，quota=-1 表示无限额
+    try:
+        with open("/sys/fs/cgroup/cpu/cpu.cfs_quota_us") as f:
+            q = int(f.read().strip())
+        with open("/sys/fs/cgroup/cpu/cpu.cfs_period_us") as f:
+            per = int(f.read().strip())
+        if q > 0 and per > 0:
+            return max(1, math.ceil(q / per))
+    except (OSError, ValueError):
+        pass
+    return None
+
+
+def usable_cpu_count():
+    """可用 vCPU：cgroup 配额 ∩ 本进程 CPU 亲和性 ∩ os.cpu_count()，取最小。"""
+    cands = [c for c in (cgroup_cpu_count(),
+                         len(os.sched_getaffinity(0)) if hasattr(os, "sched_getaffinity") else None,
+                         os.cpu_count()) if c]
+    return max(1, min(cands)) if cands else 4
+
+
 def shard_to_file(job):
     # SIGTERM 默认会直接杀进程、**不跑 finally**，于是它 spawn 的 agent 子进程会被过继成
     # 孤儿继续占内存（实测：杀掉主进程后残留 17 个 ~600 MB 的 worker，把 7 GB 机器吃到 98%）。
@@ -124,7 +162,7 @@ def main():
                     help="对手，可重复。NAME 进结果 json 的 per_opp 键")
     ap.add_argument("--matches", type=int, default=400, help="总 Bo3 场数（多对手时平均分，向上补偶数）")
     ap.add_argument("--workers", type=int, default=0,
-                    help="面板数；0=auto（取 min(内存预算/0.7GB, 核数)）")
+                    help="面板数；0=auto（min(内存预算/1.3GB, 容器配额/2.0)）；也可用 PTCG_PANELS 指定")
     ap.add_argument("--seed-base", type=int, default=90000)
     ap.add_argument("--out", required=True)
     ap.add_argument("--logdir", default=None)
@@ -191,23 +229,37 @@ def main():
     else:
         total_gb, used_gb = host_total, max(0.0, host_total - host_avail)
         src = f"宿主机 {host_total:.1f} GB"
-    per_panel = float(os.environ.get("PTCG_MEM_GB_PER_PANEL", "0.7"))
-    # 每个面板实际要吃掉几个 vCPU：1 个引擎进程 + 2 个 agent 进程，而 agent 的
-    # main.py 里 `torch.set_num_threads(2)` 是写死的 ⇒ 面板多了就是**线程超卖**，
-    # 表现是单步 120 s 超时 / agent 侧 fallback Traceback（2026-11-01 实测：
-    # 32 vCPU 机器上 auto 选了 32 面板 ≈ 160 线程，异常率到 ~24%）。
-    cores_per_panel = float(os.environ.get("PTCG_PANEL_CORES", "3"))
+    # 实测（2026-11-05，2 面板稳态采样）：每个面板 = 1 个对局进程（单线程，~22 MB）
+    # + 2 个 agent 进程（各 ~590 MB、约 0.9 核）⇒ **1.2 GB / 1.86 核**。
+    # 旧默认 0.7 GB/面板 低估近一倍（会越过内存天花板去开更多面板）。
+    per_panel = float(os.environ.get("PTCG_MEM_GB_PER_PANEL", "1.3"))
+    # 每个面板吃几个 vCPU：实测 1.86，留余量取 2.0（旧默认 3 在 14 vCPU 上只肯开 4 个，
+    # 一半机器闲着；而 os.cpu_count() 报宿主核数时又会开 37 个，两头都错）。
+    cores_per_panel = float(os.environ.get("PTCG_PANEL_CORES", "2"))
     budget = total_gb * ceil_pct / 100.0 - used_gb - 0.3      # 0.3 GB 余量
     safe = max(1, int(budget / per_panel))
-    ncore = max(1, int((os.cpu_count() or 4) / cores_per_panel))
+    # ★ 用"容器实际配额"而不是 os.cpu_count()（容器里它报的是宿主机核数）
+    cg_cpu = cgroup_cpu_count()
+    avail_cpu = usable_cpu_count()
+    ncore = max(1, int(avail_cpu / cores_per_panel))
     safe = min(safe, ncore)                                   # 也受核数约束
     # 面板数自适应：`--workers 0`（或负数）= auto，直接吃满"内存预算 ∩ 核数"的较小者；
     # 给了正数就尊重它，只在会破内存天花板时下调。
     # ⚠️ 旧代码的 else 分支也在写 `a.workers = safe`，等于**把用户显式给的数悄悄抬上去**
     #    （7.5 GB 的机器上永远走 > safe 分支，所以一直没暴露）。
-    if a.workers <= 0:
+    # 直接钉死面板数（比调两个比值好推理）：PTCG_PANELS=7
+    pin = os.environ.get("PTCG_PANELS", "").strip()
+    if pin and a.workers <= 0:
+        want = max(1, int(pin))
+        if want > safe:
+            print(f"⚠️ PTCG_PANELS={want} 超过安全上限 {safe}（{src} / {avail_cpu} vCPU）→ 按 {safe} 跑")
+            want = safe
+        print(f"面板 = {want}（PTCG_PANELS 指定；安全上限 {safe}）")
+        a.workers = want
+    elif a.workers <= 0:
         print(f"面板 auto → {safe}（{src}，预算 {budget:.1f} GB @ {per_panel} GB/面板；"
-              f"核数 {os.cpu_count()} @ {cores_per_panel:.1f} 核/面板 → 上限 {ncore}）")
+              f"可用 {avail_cpu} vCPU @ {cores_per_panel:.1f} 核/面板 → 上限 {ncore}；"
+              f"os.cpu_count() 报 {os.cpu_count()}）")
         a.workers = safe
     elif a.workers > safe:
         print(f"⚠️ 内存预算 {budget:.1f} GB（{src}，上限 {ceil_pct:.0f}%，已用 {used_gb:.1f} GB）"
