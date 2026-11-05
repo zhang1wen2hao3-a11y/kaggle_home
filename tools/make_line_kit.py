@@ -51,6 +51,7 @@ mkdir -p "$REPO/decks/pool_field" "$REPO/tools" "$REPO/init" "$HERE/banks_used" 
 for f in decks/pool_field/*.csv; do cp -f "$f" "$REPO/decks/pool_field/"; done
 cp -f decks/@DWFNAME@ "$REPO/decks/@DWFNAME@"
 cp -f tools/db04_line.sh "$REPO/tools/db04_line.sh"; chmod +x "$REPO/tools/db04_line.sh"
+cp -f tools/patch_bank_decks.py "$REPO/tools/patch_bank_decks.py" 2>/dev/null || true
 cp -f banks/*.bin "$HERE/banks_used/"
 cp -f init/@INITNAME@ "$REPO/init/@INITNAME@"
 # 关键：把打包机上的 tables blob 原样装上。卡组池加了新卡组后（anchor 不在旧池里），
@@ -186,6 +187,10 @@ def main():
 
     shutil.copyfile(os.path.join(ROOT, "tools", "db04_line.sh"),
                     os.path.join(stage, "tools", "db04_line.sh"))
+    # 补丁脚本也要随包走：apply.sh 缺补丁时打印的修复命令就是跑它，
+    # 包里没有这个文件，操作员在 GPU 机上无路可走（2026-11-05 真实踩到）。
+    shutil.copyfile(os.path.join(ROOT, "tools", "patch_bank_decks.py"),
+                    os.path.join(stage, "tools", "patch_bank_decks.py"))
     os.chmod(os.path.join(stage, "tools", "db04_line.sh"), 0o755)
     if a.stage_full_pool:
         for f in sorted(os.listdir(os.path.join(REPO, "decks", "pool_field"))):
@@ -248,7 +253,7 @@ def main():
                    if f.endswith(".csv")] if a.stage_full_pool else
                   [f"decks/pool_field/{n}.csv" for n in [a.anchor] + [x.strip() for x in track.split(",")
                                                                      if x.strip() and x.strip() != a.anchor]])
-    for rel in (["tools/db04_line.sh"] + _pool_rels +
+    for rel in (["tools/db04_line.sh", "tools/patch_bank_decks.py"] + _pool_rels +
                 [f"decks/{dwfname}", f"init/{initname}"] + [f"banks/bank_{i}.bin" for i in range(_nbank)] + [
                  "native/ptcg_tables_field.bin"]):
         f = os.path.join(stage, rel)

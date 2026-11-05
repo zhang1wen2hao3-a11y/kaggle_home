@@ -70,12 +70,15 @@ def agent_table():
         t[name] = dict(name=name, pol=sha12(mp) if os.path.isfile(mp) else "",
                        deck8=deck8_of(dc))
     d2h = {}
-    for pat in ("decks/pool_field/*.csv", "decks/top/*.csv", "decks/*.csv"):
+    d2f = {}
+    for pat in ("decks/pool_field/*.csv",):
         for f in glob.glob(os.path.join(ROOT, pat)):
             h = deck8_of(f)
+            stem = os.path.basename(f)[:-4]
             if h:
-                d2h[os.path.basename(f)[:-4]] = h
-    return t, d2h
+                d2h[stem] = h
+                d2f[h] = stem.split("__")[0] if "__" in stem else stem
+    return t, d2h, d2f
 
 
 def resolve_name(name, agents, d2h):
@@ -93,6 +96,10 @@ def resolve_name(name, agents, d2h):
 
 def opp_fmt(r):
     return r["on"] + ("@" + r["od"] if r.get("od") else "")
+
+
+def family_of(deck_hash, d2f):
+    return d2f.get(deck_hash or "", (deck_hash or "?"))
 
 
 def wilson(k, n, z=1.96):
@@ -200,9 +207,14 @@ def main():
     ap.add_argument("--query", default="")
     ap.add_argument("--out", default="data/agent_matrix.tsv")
     ap.add_argument("--profile", default="data/agent_strength.tsv")
+    ap.add_argument("--emit-router", default="", help="输出路由表 data/route_table.tsv")
+    ap.add_argument("--default-model", default="g6_db04",
+                    help="泛用/默认模型名；路由增益相对它算")
+    ap.add_argument("--min-gain", type=float, default=0.03,
+                    help="路由门槛：最佳模型相对 default 至少要高这么多才承认")
     a = ap.parse_args()
 
-    agents, d2h = agent_table()
+    agents, d2h, d2f = agent_table()
     cells, junk = [], collections.Counter()
     nlog = load_logs(agents, d2h, cells, junk)
     nar = load_arena(agents, cells, junk)
@@ -247,6 +259,51 @@ def main():
         tag = "%-24s %.3f (n=%d)" % (opp_fmt(adm[0]), adm[0]["score"], adm[0]["n"]) if adm else "—"
         print("%-28s%4d%7d%7d  %s" % (an + "@" + (ad or "-"), len(rs),
                                       sum(x["n"] for x in rs), len(adm), tag))
+
+    if a.emit_router:
+        # 三个维度：我方卡组(family) × 我方模型 × 对手原型(family)
+        agg = collections.defaultdict(lambda: collections.defaultdict(list))
+        for r in rows:
+            if r["on"].startswith("label:") or r["on"].startswith("?"):
+                continue
+            of = family_of(r["ad"], d2f)
+            pf = family_of(r["od"], d2f)
+            agg[(of, pf)][r["an"]].append(r)
+        out = os.path.join(ROOT, a.emit_router)
+        os.makedirs(os.path.dirname(out) or ".", exist_ok=True)
+        lines = ["our_deck_family\topp_family\tdefault_model\tdefault_score\tdefault_n\t"
+                 "best_model\tbest_score\tbest_n\tci_low\tci_high\tvs_default\tadmit"]
+        admit_n = 0
+        for (of, pf), bym in sorted(agg.items()):
+            # 候选模型需要在该格有 >= min_n 的数据；default 取样本最大的那个
+            usable = {m: max(rs, key=lambda r: r["n"]) for m, rs in bym.items()
+                      if max(r["n"] for r in rs) >= a.min_n}
+            if not usable:
+                continue
+            # default 必须是**指定的泛用模型**，不是"样本最多的那个"——否则增益是跟别人比的
+            dm = a.default_model if a.default_model in usable else max(usable, key=lambda m: usable[m]["n"])
+            dsc = usable[dm]["score"]
+            bm = max(usable, key=lambda m: usable[m]["score"])
+            b = usable[bm]
+            gain = b["score"] - dsc
+            ok = (bm != dm and gain >= a.min_gain and b["lo"] > dsc)
+            admit_n += ok
+            lines.append("\t".join([of, pf, dm, f"{dsc:.4f}", str(usable[dm]["n"]),
+                                    bm, f"{b['score']:.4f}", str(b["n"]),
+                                    f"{b['lo']:.4f}", f"{b['hi']:.4f}",
+                                    f"{gain:+.4f}", str(int(ok))]))
+        open(out, "w").write("\n".join(lines) + "\n")
+        print(f"\n路由表 → {a.emit_router}（{len(lines) - 1} 个格子，其中 {admit_n} 个值得路由）")
+        # 覆盖率：我方每个卡组族 × 对手每个原型族，有多少格有数据
+        ours = {family_of(r["ad"], d2f) for r in rows}
+        opps = {family_of(r["od"], d2f) for r in rows
+                if not r["on"].startswith("label:") and not r["on"].startswith("?")}
+        have = {(family_of(r["ad"], d2f), family_of(r["od"], d2f)) for r in rows}
+        print(f"覆盖率：我方 {len(ours)} 族 × 对手 {len(opps)} 族 = {len(ours)*len(opps)} 格，"
+              f"有数据的 {len(have & {(o,p) for o in ours for p in opps})} 格"
+              f"（{100*len(have)/max(1,len(ours)*len(opps)):.0f}%）")
+        print("⚠️ 路由表的价值取决于**重复测量**：同一 (我方模型 × 对手原型) 必须用同一套种子反复量，")
+        print("   否则格子填不满、增益也无法配对比较。建议固定一个 panel（见 下一步.md §40）。")
 
     if a.query:
         q = a.query.lower()
