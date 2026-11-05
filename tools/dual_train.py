@@ -98,12 +98,13 @@ def cmd_init(a):
         if v is not None:
             rules[k] = v
     st = dict(name=a.names, rules=rules,
-              sides=dict(A=dict(agent=a.a, model=a.a, best_ev=None, flat=0),
-                         B=dict(agent=a.b, model=a.b, best_ev=None, flat=0)),
+              sides=dict(A=dict(agent=a.a, model=a.a, deck=a.a_deck, best_ev=None, flat=0),
+                         B=dict(agent=a.b, model=a.b, deck=a.b_deck, best_ev=None, flat=0)),
               turn="A", round=0, history=[], verdict=None, primary=a.primary)
     save(a.names, st)
     print(f"✅ {state_path(a.names)}")
-    print(f"   A = {a.a}   B = {a.b}   先训 A（B 冻结当 bank）")
+    print(f"   A = {a.a} @ {a.a_deck}")
+    print(f"   B = {a.b} @ {a.b_deck}   先训 A（B 冻结当 bank）")
     print(f"   规则: {rules}")
 
 
@@ -122,12 +123,14 @@ def cmd_pack(a):
     cmd = [PY, "tools/make_line_kit.py",
            "--init", learner["model"],
            "--run", run_name,
-           "--anchor", a.anchor,
+           # ★ anchor 必须是**这一侧**的卡组；bank 必须钉在**对手那一侧**的卡组上。
+           #   写死成同一个 a.anchor 会让交叉卡组对训里"专家打生牌"，陪练强度虚高。
+           "--anchor", learner["deck"],
            "--dwf", a.dwf,
            "--banks", bank["model"],
-           "--bank-decks", a.anchor,
+           "--bank-decks", bank["deck"],
            "--league-pct", str(a.league_pct),
-           "--track", a.anchor,
+           "--track", f"{bank['deck']},{learner['deck']}",
            "--purpose", f"{a.names} 第 {rnd} 轮：{side} 学、{other} 冻结当 bank",
            "--extra", f"主判据 field-weighted EV；min_delta={st['rules']['min_delta']}、"
                       f"patience={st['rules']['patience']}",
@@ -324,6 +327,8 @@ def main():
     sub = ap.add_subparsers(dest="cmd", required=True)
     i = sub.add_parser("init"); i.add_argument("--names", required=True)
     i.add_argument("--a", required=True); i.add_argument("--b", required=True)
+    i.add_argument("--a-deck", required=True, help="A 侧打的卡组（pool_field 里的名字）")
+    i.add_argument("--b-deck", required=True, help="B 侧打的卡组")
     i.add_argument("--primary", default="A", choices=["A", "B"],
                    help="我们要提交的那一侧（判据用 field_ev）；另一侧用『打主侧的头对头』")
     for k in DEFAULT_RULES:
@@ -334,7 +339,6 @@ def main():
     for name in ("pack",):
         p = sub.choices[name]
         p.add_argument("--names", required=True)
-        p.add_argument("--anchor", required=True, help="本轮学习者打的卡组")
         p.add_argument("--dwf", required=True, help="对手卡组权重文件")
         p.add_argument("--league-pct", type=float, default=0.12)
         p.add_argument("--full-pool", action="store_true")

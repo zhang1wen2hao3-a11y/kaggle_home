@@ -1,40 +1,59 @@
-# 按需生成 run kit（现打现用，不预存）
+# run kit 的生命周期（**不要预存，按需现打**）
 
-**原则：只为"现在要跑的那一轮"打包。** run kit 全部由现成件合成，`make_line_kit.py` 几秒出包，
-预存一堆"可能用得上"的包只会让"该跑哪个"变模糊（2026-11-05 用户指出后已删掉一个这样的包）。
+## 关键修正（2026-11-05）
 
-## 已在盘上的（都有明确用途）
+**反向包不需要单独打** —— `dual_train.py pack` 会自动换向：
+
+```
+collect 判定"本轮没显著提升"  ⇒ state 里 turn 翻到另一侧
+pack    读 state              ⇒ 自动用「另一侧的模型当 init、本侧模型当 bank」
+```
+
+所以任何时候都只有一条命令：`./tools/py tools/dual_train.py pack --names <state> --dwf ...`
+
+### 但这里修掉了一个真 bug
+
+老版 `pack` 把 `--anchor` 和 `--bank-decks` **都写死成同一个 CLI 参数**，
+于是**交叉卡组对训会错**：换向到 grookey 侧时，会把 grookey 专家钉到 db04 上——
+正是「专家打生牌 → 陪练强度虚高 → 学不到东西」那个坑。
+
+现在每侧记住自己的卡组：
+
+| 训哪侧 | anchor（learner 100% 打） | bank 钉在 |
+|---|---|---|
+| A | `A.deck` | `B.deck` |
+| B | `B.deck` | `A.deck` |
+
+`init` 时必须显式给 `--a-deck` / `--b-deck`。
+
+## 盘上现有的包（都有明确用途）
 
 | 包 | 用途 |
 |---|---|
-| `ptcg_train_kit_v3.tar.gz` | 首次部署（补丁+工具+187 池，自洽） |
-| `r1_db04_vs_grookey_kit.tar.gz` | **当前该跑的**：主侧第 1 轮，陪练=BC grookey |
-| `r1_db04_vs_abra_kit.tar.gz` | 主侧备用：陪练换成 abra（已验证方向，加固用） |
+| `ptcg_train_kit_v3.tar.gz` | 首次部署（两个 C 补丁 + 5 个工具 + 187 池，自洽） |
+| `r1_db04_vs_grookey_kit.tar.gz` | **当前该跑的**：主侧第 1 轮 |
+| `r1_db04_vs_abra_kit.tar.gz` | 主侧备用：陪练换 abra（已有 G11-A +9.5pp 实证） |
 | `dual_starter.tar.gz` | 本机编排器 + 路由框架（不传 GPU 机） |
 
-## 按需生成（需要时现打）
-
-**反向：把 grookey 陪练练强**（只有当主侧第 1 轮毫无提升、怀疑陪练太弱时才需要）
+## 标准循环（每一轮只有这两步）
 
 ```bash
-./tools/py tools/make_line_kit.py \
-  --init bc_pool/grookey.bin --run r1_grookey_vs_db04 \
-  --anchor grookey_thwackey__2617 --dwf decks/weights_real.txt \
-  --banks models/ppo/g6_db04.bin --bank-decks dunsparce_abra__db04 \
-  --league-pct 0.20 --track "dunsparce_abra__db04,grookey_thwackey__2617" \
-  --stage-full-pool --out /root/r1_grookey_vs_db04
+# ① 本机：出包（秒级）
+./tools/py tools/dual_train.py pack --names db04_vs_grookey \
+    --dwf decks/weights_real.txt --full-pool
+
+# ② GPU 机：解包 → 预检 → 开训（约 8 分钟）
+tar xzf <run>_kit.tar.gz && cd <run>_kit
+PTCG_REPO=~/ptcg_train_kit/port_repo bash apply.sh --run
+
+# ③ 本机：收模型、评估、判定、自动决定下一轮训谁
+./tools/py tools/dual_train.py collect --names db04_vs_grookey --bin <拉回的.bin>
+./tools/py tools/dual_train.py status  --names db04_vs_grookey
 ```
 
-**后续轮次**：把 `--init` 换成上一轮的产出、`--banks` 换成新的陪练、
-`--run` 换个名字即可。用 `dual_train.py pack` 可以自动算出这些参数：
+## 规矩
 
-```bash
-./tools/py tools/dual_train.py pack --names <state名> \
-    --anchor <本轮 learner 的卡组> --dwf decks/weights_real.txt --full-pool
-```
-
-## 判断"该打哪个包"的依据
-
-1. 主侧（要提交的那副牌）**有没有提升** → 没提升才去练陪练
-2. `dual_train.py status` 里的 `flat` 计数：主侧 flat 涨到 `patience` 就换方向
-3. 不要在没测过之前就为多种可能各打一个包
+**只有当"这一轮现在就要跑"时才打包。** 判据：
+1. `status` 里 `turn` 指向谁，就训谁（它已按"显著提升才继续同侧"自动决定）
+2. 主侧 `flat` 涨到 `patience` 才说明这条线走不通，那时才考虑换成另一对（如 abra）
+3. **不在测过之前为多种可能各打一个包**
