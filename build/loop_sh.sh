@@ -26,15 +26,40 @@ if ! flock -n 9; then
 fi
 echo "$$" > "logs/loop_${NAME}.pid"
 
+# ★ 信号联动：本脚本被 TERM/INT/HUP 时，先把在跑的那一步（dual_train）停掉。
+#   不这么做的话，kill 掉 loop.sh 只会杀掉 bash 本身，dual_train → eval_pair →
+#   21 个进程继续把这一轮跑完（实测就是这样才出现"kill 了 CPU 不降"）。
+CHILD=""
+runc() {                       # 后台起 + wait：这样 trap 里才拿得到 pid
+  "$@" & CHILD=$!
+  wait "$CHILD"; local rc=$?
+  CHILD=""
+  return $rc
+}
+on_signal() {
+  trap - INT TERM HUP
+  echo
+  echo "收到信号 $1：正在停子进程（dual_train 会级联清 eval_pair 和它的面板）…"
+  if [ -n "$CHILD" ]; then
+    kill -TERM "$CHILD" 2>/dev/null || true
+    wait "$CHILD" 2>/dev/null || true
+  fi
+  echo "已停止（state 保留，重跑 loop.sh 会从这一轮继续）"
+  exit 130
+}
+trap 'on_signal INT' INT
+trap 'on_signal TERM' TERM
+trap 'on_signal HUP' HUP
+
 echo "===== 循环开始 $NAME 最多 $MAX 轮 $([ $DRY = 1 ] && echo '（DRY 模式）') ====="
 for i in $(seq 1 "$MAX"); do
   echo
   echo "───────── 第 $i 轮 ─────────"
-  if $PY tools/dual_train.py stop --names "$NAME" >/dev/null 2>&1; then
+  if runc $PY tools/dual_train.py stop --names "$NAME" >/dev/null 2>&1; then
     echo "已满足停止条件，循环结束"; break
   fi
   # ① 训练
-  if ! $PY tools/dual_train.py train --names "$NAME" --repo port_repo \
+  if ! runc $PY tools/dual_train.py train --names "$NAME" --repo port_repo \
         --out "$HERE/runs" --dwf decks/weights_real.txt $STUB; then
     echo "✗ 训练失败，循环中止"; exit 1
   fi
@@ -48,12 +73,11 @@ PY
 )
   echo "[loop] 产物 = $BIN"
   # ③ 评估 + 判定
-  if ! $PY tools/dual_train.py collect --names "$NAME" --bin "$BIN" \
-        ; then
+  if ! runc $PY tools/dual_train.py collect --names "$NAME" --bin "$BIN"; then
     echo "✗ 评估失败，循环中止"; exit 1
   fi
 done
 
 echo
 echo "===== 结束状态 ====="
-$PY tools/dual_train.py status --names "$NAME"
+runc $PY tools/dual_train.py status --names "$NAME" || true

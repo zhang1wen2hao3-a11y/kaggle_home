@@ -41,6 +41,7 @@ import shutil
 import sys
 import tarfile
 import tempfile
+import threading
 import time
 import traceback
 from pathlib import Path
@@ -85,11 +86,32 @@ def resolve(path: str) -> str:
 
 
 # ------------------------------------------------------------------ 子进程
+def watch_parent(interval=1.0):
+    """父进程死了就自杀（ppid 变化）。
+
+    **为什么必须有**：信号处理器只能覆盖 TERM/INT/HUP。父进程被 SIGKILL、或 OOM
+    killer 挑中时，它**没有任何机会**清理子进程，spawn 出来的对局/agent 进程会被
+    过继给 init 继续跑 —— 外在表现就是"我把进程 kill 了，CPU 还是满载"，而且这些
+    残留进程还会继续吃内存（实测：残留 17 个 ~600 MB worker 把 7 GB 机器吃到 98%）。
+    唯一能覆盖 KILL 的办法是子进程自己发现"我的父辈没了"。
+    """
+    ppid0 = os.getppid()
+
+    def _loop():
+        while True:
+            time.sleep(interval)
+            if os.getppid() != ppid0:
+                os._exit(143)       # 来不及清理，也无需清理：父辈已死
+
+    threading.Thread(target=_loop, daemon=True, name="ppid-watch").start()
+
+
 def worker_main(folder, connection, log_path):
     import sys as _sys
     log = open(log_path, "a", encoding="utf-8", buffering=1)
     _sys.stdout = _sys.stderr = log
     os.environ["PTCG_DEBUG"] = "1"       # 让"吞异常"变成可数的 Traceback
+    watch_parent()                       # 父（对局进程）被 SIGKILL 时自己退出
     os.chdir(folder)
     _sys.path.insert(0, folder)
     ns = {}

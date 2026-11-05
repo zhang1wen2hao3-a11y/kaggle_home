@@ -148,7 +148,11 @@ def shard_to_file(job):
     # SIGTERM 默认会直接杀进程、**不跑 finally**，于是它 spawn 的 agent 子进程会被过继成
     # 孤儿继续占内存（实测：杀掉主进程后残留 17 个 ~600 MB 的 worker，把 7 GB 机器吃到 98%）。
     # 转成 SystemExit 才能让 shard() 的 finally 逐个 close() agent。
-    signal.signal(signal.SIGTERM, lambda *a: sys.exit(143))
+    for _sig in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP):
+        signal.signal(_sig, lambda *a: sys.exit(143))
+    # 父进程被 SIGKILL（信号处理器没机会跑）时靠这个兜底：见 bo3_eval.watch_parent
+    from bo3_eval import watch_parent
+    watch_parent()
     recs = shard(job)
     with open(os.path.join(job[3], f"shard-{job[0]}.jsonl"), "w", encoding="utf-8") as f:
         for r in recs:
@@ -282,19 +286,43 @@ def main():
         procs = [ctx.Process(target=shard_to_file, args=(j,)) for j in jobs]
 
         def _bail(*_a):
-            """SIGINT/SIGTERM：先请子进程体面退出，超时再强杀。**不能只杀自己**。"""
+            """SIGINT/SIGTERM/HUP：**先全部发 TERM，等一个总时限，再全部 KILL**。
+
+            不能逐个 `join(10)`：7 个面板最坏要等 70 s，而它跑的是 C++ 引擎
+            （ctypes 调用期间收不到 Python 信号），TERM 常常压根没机会生效 ——
+            实测 7 面板时只等 20 s 会看到"父进程已死、10 个子进程还在跑"。
+            所以：TERM 一次全发 → 总共等 5 s → 剩下的直接 KILL。
+            """
             print("收到中断，正在清理子进程…", flush=True)
             for pr in procs:
-                if pr.is_alive():
-                    pr.terminate()
+                try:
+                    if pr.is_alive():
+                        pr.terminate()
+                except Exception:
+                    pass
+            deadline = time.time() + 3.0
             for pr in procs:
-                pr.join(10)
+                left = max(0.0, deadline - time.time())
+                try:
+                    pr.join(left)
+                except Exception:
+                    pass
+            n_killed = 0
             for pr in procs:
-                if pr.is_alive():
-                    pr.kill()
+                try:
+                    if pr.is_alive():
+                        pr.kill()
+                        n_killed += 1
+                except Exception:
+                    pass
+            if n_killed:
+                print(f"  {n_killed} 个面板没响应 TERM，已 SIGKILL", flush=True)
             sys.exit(130)
 
-        old = {sig: signal.signal(sig, _bail) for sig in (signal.SIGINT, signal.SIGTERM)}
+        # 也要接管 HUP：非 nohup 启动时关终端会发 HUP，默认动作是**直接死**，
+        # 子进程全变孤儿（实测残留 17 个 ~600 MB 的 worker）。
+        old = {sig: signal.signal(sig, _bail)
+               for sig in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP)}
         try:
             for pr in procs:
                 pr.start()

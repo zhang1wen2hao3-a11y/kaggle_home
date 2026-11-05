@@ -47,8 +47,10 @@ import argparse
 import collections
 import json
 import os
+import signal
 import subprocess
 import sys
+import time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 STATE_DIR = os.path.join(ROOT, "ptcg_league", "state")
@@ -111,9 +113,57 @@ def save(name, st):
     json.dump(st, open(state_path(name), "w"), ensure_ascii=False, indent=1)
 
 
+_CHILD = []          # 当前在跑的子进程（eval_pair / db04_line.sh），供信号处理器清理
+
+
+def child(cmd, **kw):
+    """跑子进程，并登记它，好让"本进程被 kill"时能连带清掉。
+
+    为什么必须登记：`subprocess.run` 只管启动和等待，**不建立任何退出联动**。
+    实测踩过：kill 掉 dual_train 后，它启动的 eval_pair 还在跑 21 个进程，
+    继续吃满 14 个核十几分钟 —— 外面看起来就是"kill 了 CPU 不降"。
+    """
+    print("  $", " ".join(str(c) for c in cmd)[:160], flush=True)
+    pr = subprocess.Popen([str(c) for c in cmd], cwd=ROOT, **kw)
+    _CHILD.append(pr)
+    try:
+        rc = pr.wait()
+    finally:
+        if pr in _CHILD:
+            _CHILD.remove(pr)
+    return subprocess.CompletedProcess(pr.args, rc)
+
+
 def run(cmd, **kw):
-    print("  $", " ".join(str(c) for c in cmd)[:160])
-    return subprocess.run([str(c) for c in cmd], cwd=ROOT, **kw)
+    return child(cmd, **kw)
+
+
+def _bail(signum, _frame=None):
+    """收到 TERM/INT/HUP：先把子进程树清掉，再自己退出。"""
+    print(f"\n收到信号 {signum}，正在清理子进程…", flush=True)
+    for pr in list(_CHILD):
+        try:
+            if pr.poll() is None:
+                pr.terminate()
+        except Exception:
+            pass
+    deadline = time.time() + 6.0          # 总计 6 s，不是每个子进程 6 s
+    for pr in list(_CHILD):
+        try:
+            pr.wait(timeout=max(0.5, deadline - time.time()))
+        except Exception:
+            try:
+                pr.kill()
+            except Exception:
+                pass
+    sys.exit(128 + int(signum))
+
+
+for _sig in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP):
+    try:
+        signal.signal(_sig, _bail)
+    except (ValueError, OSError):        # 非主线程 / 不支持的平台
+        pass
 
 
 def cmd_init(a):
@@ -486,8 +536,15 @@ def cmd_train(a):
         os.makedirs(out, exist_ok=True)
         subprocess.run(["cp", "-f", env["INIT"], dst0], check=True)
     else:
-        r = subprocess.run(["bash", os.path.join(repo, "tools", "db04_line.sh")],
-                           cwd=repo, env=env)
+        r = subprocess.Popen(["bash", os.path.join(repo, "tools", "db04_line.sh")],
+                             cwd=repo, env=env)
+        _CHILD.append(r)
+        try:
+            rc = r.wait()
+        finally:
+            if r in _CHILD:
+                _CHILD.remove(r)
+        r = subprocess.CompletedProcess(r.args, rc)
         if r.returncode != 0:
             raise SystemExit(f"✗ 训练失败 rc={r.returncode}")
     binp = os.path.join(out, run + ".bin")

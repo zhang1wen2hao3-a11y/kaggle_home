@@ -73,6 +73,8 @@ ptcg_loop/
 |---|---|
 | `no kernel image is available` | 编译时设了 PTCG_SM；删掉环境变量重编 |
 | `✗ 已有循环在跑 <名>` | 有另一个 `loop.sh` 持有 `logs/loop_<名>.lock`。先确认它是不是还活着，死了再 `rm -f logs/loop_<名>.lock`。**别两个循环同时跑同一个 state**：各自推进 round 会互相覆盖 |
+| 想中途停掉 | `kill <loop.sh 的 pid>`（**TERM，不要 -9**）→ 会级联停掉 dual_train → eval_pair → 7 个对局进程 + 14 个 agent 进程，实测 6 秒内清干净。`kill -9` 只能杀掉 bash 自己，下面的工作会继续跑完这一轮 |
+| kill 了但 CPU 不降 | 大概率只杀了上层：`kill -- -$(ps -o pgid= -p <pid> \| tr -d ' ')` 整组杀。残留的 `spawn_main` 进程会在 1 秒内因父进程消失而自杀（ppid 看门狗） |
 | `✗ 评估回收不全（0/400 场）` | worker 被 OOM 杀了（同目录 `*.log` 是 0 字节）。脚本已自动降到 4/2/1 个 worker 重试，全降完还不行就说明机器内存真不够：先别跑别的评估，或把 `--matches-per-cell` 调小 |
 | 评估很慢 | 面板 15→5 个对手、或 `--matches-per-cell` 调小；14 vCPU 下 1250 局约 15~20 分钟 |
 | `面板 auto → N` 的 N 你觉得不对 | 直接钉死：`export PTCG_PANELS=7`；它不会超过内存/核数算出的安全上限。想改公式用 `PTCG_PANEL_CORES`（每面板占几核，默认 2.0）和 `PTCG_MEM_GB_PER_PANEL`（默认 1.3） |
