@@ -70,6 +70,31 @@ DEFAULT_RULES = dict(min_delta=0.02, patience=2, max_rounds=8,
                      alpha=0.05)
 
 
+def resolve_model(spec):
+    """把 init 参数归一成**存在的 native blob 路径**。
+
+    接受三种写法：
+      models/ppo/xxx.bin          （推荐）
+      xxx                          → models/ppo/xxx.bin 或 bc_pool/xxx.bin
+      build/agents/<dir>           → 找同目录 model.pt 对应的 .bin（不自动转换，报错提示）
+    make_line_kit 的 --init 必须是 18,205,408 B 的 native blob，.pt 不行。
+    """
+    cands = []
+    if os.path.isabs(spec) or "/" in spec:
+        cands.append(spec if os.path.isabs(spec) else os.path.join(ROOT, spec))
+    else:
+        cands += [os.path.join(ROOT, "models/ppo", spec + ".bin"),
+                  os.path.join(ROOT, "bc_pool", spec + ".bin")]
+    for c in cands:
+        if os.path.isfile(c) and os.path.getsize(c) == 18205408:
+            return os.path.relpath(c, ROOT)
+    raise SystemExit(
+        f"✗ 认不出 init={spec!r}（需要 18,205,408 B 的 native blob .bin）\n"
+        f"   试过: {cands}\n"
+        f"   若是 .pt 或 agent 目录，先导出：\n"
+        f"   python3 port_repo/native/tools/native_weights.py export <x.pt> <x.bin>")
+
+
 def state_path(name):
     return os.path.join(STATE_DIR, f"dual_{name}.json")
 
@@ -97,14 +122,15 @@ def cmd_init(a):
         v = getattr(a, k, None)
         if v is not None:
             rules[k] = v
+    ma, mb = resolve_model(a.a), resolve_model(a.b)
     st = dict(name=a.names, rules=rules,
-              sides=dict(A=dict(agent=a.a, model=a.a, deck=a.a_deck, best_ev=None, flat=0),
-                         B=dict(agent=a.b, model=a.b, deck=a.b_deck, best_ev=None, flat=0)),
+              sides=dict(A=dict(agent=a.a, model=ma, deck=a.a_deck, best_ev=None, flat=0),
+                         B=dict(agent=a.b, model=mb, deck=a.b_deck, best_ev=None, flat=0)),
               turn="A", round=0, history=[], verdict=None, primary=a.primary)
     save(a.names, st)
     print(f"✅ {state_path(a.names)}")
-    print(f"   A = {a.a} @ {a.a_deck}")
-    print(f"   B = {a.b} @ {a.b_deck}   先训 A（B 冻结当 bank）")
+    print(f"   A = {ma} @ {a.a_deck}")
+    print(f"   B = {mb} @ {a.b_deck}   先训 A（B 冻结当 bank）")
     print(f"   规则: {rules}")
 
 
