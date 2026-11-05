@@ -206,6 +206,65 @@ def _h2h(cand_dir, opp_label, opp_dir, n, seed, out):
     return v["score"], v["n"], v["ci_low"], v["ci_high"]
 
 
+def panel_eval(cand_dir, rules, out, logname):
+    """在**固定面板 + 固定种子**上评估一个 agent 目录 → (json, field_ev)。"""
+    os.makedirs(os.path.dirname(out), exist_ok=True)
+    cmd = [PY, GUARD, "--cand", cand_dir]
+    for k, dv in FIELD_OPPS.items():
+        cmd += ["--opp", f"{k}={dv}"]
+    cmd += ["--matches", str(rules["matches_per_cell"] * len(FIELD_OPPS)),
+            "--workers", "0", "--seed-base", str(rules["seed_base"]),
+            "--out", out, "--logdir", os.path.join(ROOT, "logs/dual", logname)]
+    r = run(cmd)
+    if r.returncode != 0:
+        raise SystemExit("✗ 评估失败")
+    d = json.load(open(out))
+    ev = sum(FIELD[k] * d["per_opp"][k]["score"] for k in FIELD) / sum(FIELD.values())
+    return d, ev
+
+
+def agent_dir_from_blob(blob, name, deck_csv):
+    """native blob(.bin) 或已有 .pt → 标准 agent 目录。返回目录路径。"""
+    blob = blob if os.path.isabs(blob) else os.path.join(ROOT, blob)
+    if not os.path.exists(blob):
+        raise SystemExit(f"✗ 找不到权重 {blob}")
+    ag_dir = os.path.join(ROOT, "build/agents", f"ag_{name}")
+    pt = os.path.join(ROOT, "models/ppo", f"{name}.pt")
+    if blob.endswith(".bin"):
+        os.makedirs(os.path.dirname(pt), exist_ok=True)
+        run([sys.executable, os.path.join(ROOT, "port_repo/native/tools/native_weights.py"),
+             "import", blob, pt])
+    else:
+        pt = blob
+    if not os.path.isdir(ag_dir) or not os.path.exists(os.path.join(ag_dir, "model.pt")):
+        run(["bash", os.path.join(ROOT, "tools", "make_agent_dir.sh"), ag_dir,
+             pt, os.path.join(ROOT, deck_csv)])
+    return ag_dir
+
+
+def ensure_baseline(st, side, a):
+    """**round 0 基线**：该侧还没有任何评估记录时，先把它当前的起始模型
+    在同一面板/种子下量一遍。否则第 1 轮只能"当作基准"，训练是否让模型变差看不出来。"""
+    rec = st["sides"][side]
+    if rec.get("evals"):
+        return st
+    deck = rec["deck"]
+    deck_csv = f"decks/pool_field/{deck}.csv"
+    name = f"{a.names}_r0{side}_base"
+    ag = agent_dir_from_blob(rec["model"], name, deck_csv)
+    out = os.path.join(ROOT, "logs/dual", f"{name}.json")
+    d, ev = panel_eval(ag, st["rules"], out, name)
+    rec.setdefault("evals", []).append(dict(round=0, baseline=True, metric=ev, ev=ev,
+                                            h2h=None, per_seed=per_seed_totals(d["per_opp"])))
+    rec["last_ev"] = ev
+    key = "best_ev" if side == st.get("primary", "A") else "best_h2h"
+    if rec.get(key) is None:
+        rec[key] = ev
+    save(a.names, st)
+    print(f"[baseline] {side} 起始模型 = {rec['model']}  field_ev = {ev:.4f}（已记为 round 0）")
+    return st
+
+
 def cmd_collect(a):
     st = load(a.names)
     if st.get("verdict"):
@@ -217,32 +276,16 @@ def cmd_collect(a):
     src = os.path.abspath(os.path.expanduser(a.bin))
     if not os.path.exists(src) or os.path.getsize(src) != 18205408:
         raise SystemExit(f"✗ {src} 不是 18,205,408 B 的 native blob")
+    # ★ 先确保 round 0 基线存在（拿"训练前的模型"当对照），否则第 1 轮无法判定
+    ensure_baseline(st, side, a)
     # bin → pt → agent 目录
     dst_bin = os.path.join(ROOT, "models/ppo", f"{run_name}.bin")
-    dst_pt = os.path.join(ROOT, "models/ppo", f"{run_name}.pt")
     os.makedirs(os.path.dirname(dst_bin), exist_ok=True)
     if src != dst_bin:
         subprocess.run(["cp", "-f", src, dst_bin], check=True)
-    run([sys.executable, os.path.join(ROOT, "port_repo/native/tools/native_weights.py"),
-         "import", dst_bin, dst_pt])
-    ag_dir = os.path.join(ROOT, "build/agents", f"ag_{run_name}")
-    if not os.path.isdir(ag_dir):
-        run(["bash", os.path.join(ROOT, "tools", "make_agent_dir.sh"), ag_dir,
-             dst_pt, os.path.join(ROOT, a.deck_csv)])
-    # 配对评估：5 个真实场对手（种子固定 ⇒ 可与历史配对）
+    ag_dir = agent_dir_from_blob(dst_bin, run_name, a.deck_csv)
     out = os.path.join(ROOT, "logs/dual", f"{run_name}.json")
-    os.makedirs(os.path.dirname(out), exist_ok=True)
-    cmd = [PY, GUARD, "--cand", ag_dir]
-    for k, d in FIELD_OPPS.items():
-        cmd += ["--opp", f"{k}={d}"]
-    cmd += ["--matches", str(st["rules"]["matches_per_cell"] * len(FIELD_OPPS)),
-            "--workers", "0", "--seed-base", str(st["rules"]["seed_base"]),
-            "--out", out, "--logdir", os.path.join(ROOT, "logs/dual", run_name)]
-    r = run(cmd)
-    if r.returncode != 0:
-        raise SystemExit("✗ 评估失败")
-    d = json.load(open(out))
-    ev = sum(FIELD[k] * d["per_opp"][k]["score"] for k in FIELD) / sum(FIELD.values())
+    d, ev = panel_eval(ag_dir, st["rules"], out, run_name)
 
     # 陪练侧重在"更会打主侧"：额外量一次头对头。主侧仍以 field_ev 为主判据。
     primary = st.get("primary", "A")
@@ -283,8 +326,8 @@ def cmd_collect(a):
                                   and delta >= st["rules"]["min_delta"])
     st["sides"][side]["flat"] = 0 if significant else st["sides"][side]["flat"] + 1
     side_rec = st["sides"][side]
-    side_rec.setdefault("evals", []).append(dict(round=rnd, metric=metric, ev=ev,
-                                                 h2h=h2h, per_seed=seeds_now))
+    side_rec.setdefault("evals", []).append(dict(round=rnd, baseline=False, metric=metric,
+                                                 ev=ev, h2h=h2h, per_seed=seeds_now))
     side_rec["last_ev"] = ev
     if h2h is not None:
         side_rec["last_h2h"] = h2h
@@ -314,10 +357,16 @@ def cmd_collect(a):
           + f"  → 判据 {tag} {metric:.4f}"
           + (f"（Δ {delta:+.4f}）" if delta is not None else "（首轮）"))
     if first_round:
-        print("   首轮：作为该侧基准，不做显著性检验")
+        print("   （仍无基线，作为基准）")
     else:
-        print(f"   与同一侧上一轮配对：本轮赢/输 = {n_better}/{n_worse}，McNemar p={p_val:.4f}"
+        base = prev_eval[-1]
+        who = "起始模型(round 0)" if base.get("baseline") else f"上一轮 r{base['round']}"
+        print(f"   对比 {who}：配对 本轮赢/输 = {n_better}/{n_worse}，McNemar p={p_val:.4f}"
+              f"，Δfield_ev {delta:+.4f}"
               f" ⇒ {'✅ 显著提升' if significant else '⚠️ 未显著提升'}")
+    if not first_round and p_val < st["rules"]["alpha"] and n_worse > n_better:
+        print(f"   ⚠️ **显著变差**：比对照差 {n_worse}:{n_better}（p={p_val:.4f}）"
+              f" —— 这一轮不该采用，best 保持原样")
     print(f"   flat = {flat}")
     if st["verdict"]:
         print(f"\n🛑 {st['verdict']}")
@@ -327,6 +376,56 @@ def cmd_collect(a):
     else:
         why = "本轮还在涨 → 继续练同一侧" if significant else "本轮没涨 → 换方向"
         print(f"   下一轮：训 {st['turn']}（{why}；先 pack）")
+
+
+def cmd_train(a):
+    """**本地跑一轮训练**（整包里的自动循环用）：不起 kit、不 tar，
+    直接把 state 里的 learner/bank 参数喂给 port_repo/tools/db04_line.sh。"""
+    st = load(a.names)
+    if st.get("verdict"):
+        raise SystemExit(f"✗ 已经结束：{st['verdict']}")
+    side = st["turn"]; other = "B" if side == "A" else "A"
+    L, B = st["sides"][side], st["sides"][other]
+    rnd = st["round"] + 1
+    run = f"{a.names}_r{rnd}{side}"
+    repo = os.path.abspath(os.path.join(ROOT, a.repo))
+    out = os.path.abspath(os.path.join(ROOT, a.out))
+    os.makedirs(out, exist_ok=True)
+    env = dict(os.environ,
+               PYTHON=a.python or "python3",
+               INIT=os.path.join(ROOT, L["model"]),
+               OUT=out, RUN=run,
+               ANCHOR=L["deck"], DWF=a.dwf,
+               TRACK=f"{B['deck']},{L['deck']}",
+               BANKS=os.path.join(ROOT, B["model"]),
+               LEAGUE_PCT=str(a.league_pct),
+               BANKDECKS=B["deck"])
+    print(f"[train] 第 {rnd} 轮 训 {side}: anchor={L['deck']} bank={B['model']}@{B['deck']}")
+    r = subprocess.run(["bash", os.path.join(repo, "tools", "db04_line.sh")],
+                       cwd=repo, env=env)
+    if r.returncode != 0:
+        raise SystemExit(f"✗ 训练失败 rc={r.returncode}")
+    binp = os.path.join(out, run + ".bin")
+    if not os.path.exists(binp):
+        raise SystemExit(f"✗ 没产出 {binp}")
+    dst = os.path.join(ROOT, "models/ppo", run + ".bin")
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    subprocess.run(["cp", "-f", binp, dst], check=True)
+    print(f"[train] 产出 → {os.path.relpath(dst, ROOT)}")
+    print(f"        下一步： collect --names {a.names} --bin {os.path.relpath(dst, ROOT)}")
+
+
+def cmd_stop(a):
+    """循环用：已判定结束则 exit 0（并打印结论），否则 exit 1。"""
+    st = load(a.names)
+    if st.get("verdict"):
+        print(f"🛑 {st['verdict']}")
+        for s_ in ("A", "B"):
+            r = st["sides"][s_]
+            print(f"   {s_} 最佳: {r.get('agent')}  ev={r.get('best_ev')}  h2h={r.get('best_h2h')}")
+        return 0
+    print(f"继续：下一轮训 {st.get('turn')}")
+    return 1
 
 
 def cmd_status(a):
@@ -359,7 +458,8 @@ def main():
                    help="我们要提交的那一侧（判据用 field_ev）；另一侧用『打主侧的头对头』")
     for k in DEFAULT_RULES:
         i.add_argument(f"--{k.replace('_','-')}", type=int if k != "min_delta" else float)
-    for name, fn in (("init", cmd_init), ("pack", cmd_pack), ("collect", cmd_collect), ("status", cmd_status)):
+    for name, fn in (("init", cmd_init), ("pack", cmd_pack), ("collect", cmd_collect),
+                     ("status", cmd_status), ("train", cmd_train), ("stop", cmd_stop)):
         p = sub.add_parser(name) if name != "init" else i
         p.set_defaults(fn=fn)
     for name in ("pack",):
@@ -373,8 +473,18 @@ def main():
     p.add_argument("--deck-csv", default="")
     p = sub.choices["status"]
     p.add_argument("--names", required=True)
+    p = sub.choices["train"]
+    p.add_argument("--names", required=True)
+    p.add_argument("--repo", default="port_repo", help="训练仓库目录")
+    p.add_argument("--out", default="/tmp/loopout", help="训练产物输出目录")
+    p.add_argument("--dwf", default="decks/weights_real.txt")
+    p.add_argument("--league-pct", type=float, default=0.20)
+    p.add_argument("--python", default="python3")
+    p = sub.choices["stop"]
+    p.add_argument("--names", required=True)
     a = ap.parse_args()
-    a.fn(a)
+    rc = a.fn(a)
+    raise SystemExit(rc if isinstance(rc, int) else 0)
 
 
 if __name__ == "__main__":
