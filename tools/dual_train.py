@@ -67,9 +67,38 @@ FIELD_OPPS = {
     "shuppet_0d86": "build/agents/opp_shuppet_human",
     "dreepy_3eaa": "build/agents/c_dreepy",
 }
+def _load_field():
+    """优先用**真实天梯**的对手分布；没有就用旧的一套（5 个原型，权重是估的）。
+
+    §43 之后定的规矩：判定权重必须来自我们真实遇到的对手分布，不能再用猜的比例。
+    数据来源：decks/field_real.json（权重）+ decks/panel_real.tsv（对手 agent）。
+    实测来源：我们队 706 局 ladder 回放（覆盖 64.9% 的场次）。
+    """
+    fp = os.path.join(ROOT, "decks", "field_real.json")
+    tp = os.path.join(ROOT, "decks", "panel_real.tsv")
+    if not (os.path.exists(fp) and os.path.exists(tp)):
+        return None
+    w = json.load(open(fp))
+    opps = {}
+    for line in open(tp):
+        if line.startswith("#") or not line.strip():
+            continue
+        parts = line.rstrip("\n").split("\t")
+        if len(parts) >= 2:
+            opps[parts[0]] = parts[1]
+    if set(w) != set(opps):
+        print(f"⚠️ field_real.json 与 panel_real.tsv 的对手集合不一致，回退到旧权重", flush=True)
+        return None
+    return w, opps
+
+
 DEFAULT_RULES = dict(min_delta=0.02, patience=2, max_rounds=8,
                      matches_per_cell=250, seed_base=950000, h2h_cell=400,
                      alpha=0.05)
+
+_REAL = _load_field()
+if _REAL:
+    FIELD, FIELD_OPPS = _REAL
 
 
 def resolve_model(spec):

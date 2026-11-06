@@ -51,12 +51,14 @@ cp -f decks/weights_real.txt "$STAGE/decks/" 2>/dev/null || true
 # 策略、只是卡组不同），逐个复制会白塞 60 MB。
 echo "④ 面板对手（去重后只装不同的 model.pt）"
 : > "$STAGE/panel/agents.tsv"
-for spec in \
-  "ogerpon_7e39=build/agents/port_7e39" \
-  "abra_f5f8=build/agents/c_abra" \
-  "grookey_2617=build/agents/c_grookey" \
-  "shuppet_0d86=build/agents/opp_shuppet_human" \
-  "dreepy_3eaa=build/agents/c_dreepy" ; do
+# 面板来源：decks/panel_real.tsv（真实天梯分布，7 个对手）；没有就用旧的 5 个
+if [ -f decks/panel_real.tsv ]; then
+  SPECS=$(grep -v '^#' decks/panel_real.tsv | awk -F'\t' 'NF>=2{print $1"="$2}')
+else
+  SPECS="ogerpon_7e39=build/agents/port_7e39 abra_f5f8=build/agents/c_abra grookey_2617=build/agents/c_grookey shuppet_0d86=build/agents/opp_shuppet_human dreepy_3eaa=build/agents/c_dreepy"
+fi
+echo "  面板：$(echo $SPECS | wc -w) 个对手"
+for spec in $SPECS ; do
   name="${spec%%=*}"; dir="${spec##*=}"
   [ -f "$dir/model.pt" ] || { echo "✗ 缺 $dir/model.pt"; exit 1; }
   real=$(readlink -f "$dir/model.pt")

@@ -1,0 +1,8 @@
+# 真实天梯主力对手面板（我们 706 局实测）；列：name<TAB>agent_dir<TAB>deck
+ogerpon_7e39	build/agents/port_7e39	teal_mask_ogerpon_ex_applin__7e39
+dunsparce_0bf5	build/agents/opp_dunsparce_0bf5	dunsparce_abra__0bf5
+grookey_2617	build/agents/c_grookey	grookey_thwackey__2617
+shuppet_0d86	build/agents/opp_shuppet_human	shuppet_dhelmise__0d86
+dunsparce_9d6e	build/agents/port_on_9d6e	dunsparce_abra__9d6e
+abra_f5f8	build/agents/c_abra	abra_kadabra__f5f8
+dreepy_3eaa	build/agents/opp_3eaa	dreepy_drakloak__3eaa

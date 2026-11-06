@@ -32,13 +32,27 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PL = os.path.join(ROOT, "ptcg_league")
 PY = os.path.join(ROOT, "tools", "py")
 BLOB = 18205408
-PANEL = {  # 评估机上的面板对手（与 dual_train.FIELD 的键一致）
-    "ogerpon_7e39": "build/agents/ogerpon_7e39",
-    "abra_f5f8": "build/agents/abra_f5f8",
-    "grookey_2617": "build/agents/grookey_2617",
-    "shuppet_0d86": "build/agents/shuppet_0d86",
-    "dreepy_3eaa": "build/agents/dreepy_3eaa",
-}
+def _panel():
+    """面板对手：优先读 decks/panel_real.tsv（真实天梯分布），否则用旧的 5 个。"""
+    tp = os.path.join(ROOT, "decks", "panel_real.tsv")
+    if os.path.exists(tp):
+        out = {}
+        for line in open(tp):
+            if line.startswith("#") or not line.strip():
+                continue
+            parts = line.rstrip("\n").split("\t")
+            if len(parts) >= 2:
+                out[parts[0]] = parts[1]
+        if out:
+            return out
+    return {"ogerpon_7e39": "build/agents/ogerpon_7e39",
+            "abra_f5f8": "build/agents/abra_f5f8",
+            "grookey_2617": "build/agents/grookey_2617",
+            "shuppet_0d86": "build/agents/shuppet_0d86",
+            "dreepy_3eaa": "build/agents/dreepy_3eaa"}
+
+
+PANEL = _panel()
 
 
 def cfg(fn, defaults):
