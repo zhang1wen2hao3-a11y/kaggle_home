@@ -300,8 +300,12 @@ def panel_eval(cand_dir, rules, out, logname):
             f"✗ 面板评估不完整：缺 {missing}\n"
             f"   多半是 agent 起不来（看 {out} 同目录的 *.log）\n"
             f"   常见原因：该 python 没装 torch → 用 PYTHON=<装了torch的解释器> 重跑")
-    ev = sum(FIELD[k] * d["per_opp"][k]["score"] for k in FIELD) / sum(FIELD.values())
-    return d, ev
+    return d, field_ev(d["per_opp"])
+
+
+def field_ev(per_opp):
+    """按我们 640 局实测的对手分布加权（与 §39 同一套权重）。"""
+    return sum(FIELD[k] * per_opp[k]["score"] for k in FIELD) / sum(FIELD.values())
 
 
 def agent_dir_from_blob(blob, name, deck_csv):
@@ -357,7 +361,11 @@ def ensure_baseline(st, side, a):
     name = f"{a.names}_r0{side}_base"
     ag = agent_dir_from_blob(rec["model"], name, deck_csv)
     out = os.path.join(ROOT, "logs/dual", f"{name}.json")
-    d, ev = panel_eval(ag, st["rules"], out, name)
+    if getattr(a, "preset_json", None):     # ingest：基线分数来自远端评估机
+        d = json.load(open(a.preset_json))
+        ev = field_ev(d["per_opp"])
+    else:
+        d, ev = panel_eval(ag, st["rules"], out, name)
     # ★ 非主侧的判据是"头对头打主侧"，基线也必须量同一个量：否则第 1 轮会拿
     #   h2h 去减基线里的 field_ev，得出 Δ=-0.43 这种跨量纲的假信号。
     primary = st.get("primary", "A")
@@ -423,6 +431,17 @@ def cmd_collect(a):
         except SystemExit:
             h2h = None
 
+    _judge_round(st, a, side, rnd, run_name, ev, h2h, d, h2h_seeds, ag_dir)
+    return 0
+
+
+def _judge_round(st, a, side, rnd, run_name, ev, h2h, d, h2h_seeds, ag_dir):
+    """把「本轮的分数」变成 state 里的判定：配对 McNemar + Δ≥min_delta → flat / 换向 / 停止。
+
+    collect（本地评估完）与 ingest（远端评估结果回灌）走**同一段逻辑**，
+    免得两条路各算一套判据。"""
+    primary = st.get("primary", "A")
+    other = "B" if side == "A" else "A"
     metric = ev if side == primary else (h2h if h2h is not None else ev)
     if side == primary or h2h is None:
         seeds_now = per_seed_totals(d["per_opp"])
@@ -504,6 +523,65 @@ def cmd_collect(a):
     else:
         why = "本轮还在涨 → 继续练同一侧" if significant else "本轮没涨 → 换方向"
         print(f"   下一轮：训 {st['turn']}（{why}；先 pack）")
+
+
+def cmd_ingest(a):
+    """**远端评估、本地判定**：把评估机跑出来的 json 灌进 state。
+
+    为什么需要：评估机（32 核）跑 1250 局约 12 分钟，本机（12 核）要 24 分钟；
+    训练机每 13 分钟吐一个模型 ⇒ 评估是瓶颈，必须挪到多核机器上。但**判定逻辑
+    必须与 collect 完全一致**，所以这里复用 _judge_round() 而不是另写一套 McNemar。
+    """
+    st = load(a.names)
+    if st.get("verdict"):
+        raise SystemExit(f"✗ 已经结束：{st['verdict']}")
+    side = st["turn"]
+    rnd = st["round"] + 1
+    run_name = f"{a.names}_r{rnd}{side}"
+    src = os.path.abspath(os.path.expanduser(a.bin))
+    if not os.path.exists(src) or os.path.getsize(src) != 18205408:
+        raise SystemExit(f"✗ {src} 不是 18,205,408 B 的 native blob")
+    rec = st["sides"][side]
+
+    # ① 基线（round 0）必须先入库，否则这一轮等于拿自己当基准，判定永不显著
+    if a.base_json:
+        if not rec.get("evals"):
+            d0 = json.load(open(a.base_json))
+            ev0 = field_ev(d0["per_opp"])
+            rec.setdefault("evals", []).append(
+                dict(round=0, baseline=True, metric=ev0, ev=ev0, h2h=None,
+                     per_seed=per_seed_totals(d0["per_opp"])))
+            rec["last_ev"] = ev0
+            key0 = "best_ev" if side == st.get("primary", "A") else "best_h2h"
+            if rec.get(key0) is None:
+                rec[key0] = ev0
+            save(a.names, st)
+            print(f"[baseline] {side} 起始模型 field_ev = {ev0:.4f}"
+                  f"（来自 {os.path.basename(a.base_json)}，记为 round 0）")
+    elif not rec.get("evals"):
+        raise SystemExit("✗ 该侧还没有基线：加 --base-json <该侧起始模型的 eval 结果 json>")
+
+    # ② 候选结果
+    d = json.load(open(a.cand_json))
+    if not d.get("per_opp"):
+        n = (d.get("overall") or {}).get("n")
+        raise SystemExit(f"✗ {a.cand_json} 里没有 per_opp（评估失败？回收 {n} 场）")
+    missing = [k for k in FIELD if k not in d["per_opp"]]
+    if missing:
+        raise SystemExit(f"✗ 面板不完整，缺 {missing}")
+    ev = field_ev(d["per_opp"])
+
+    dst_bin = os.path.join(ROOT, "models/ppo", f"{run_name}.bin")
+    os.makedirs(os.path.dirname(dst_bin), exist_ok=True)
+    if src != dst_bin:
+        subprocess.run(["cp", "-f", src, dst_bin], check=True)
+    ag_dir = agent_dir_from_blob(dst_bin, run_name,
+                                 f"decks/pool_field/{st['sides'][side]['deck']}.csv")
+    json.dump(d, open(os.path.join(ROOT, "logs/dual", f"{run_name}.json"), "w"),
+              ensure_ascii=False, indent=1)
+    print(f"[ingest] {run_name}  field_ev = {ev:.4f}（来自 {os.path.basename(a.cand_json)}）")
+    _judge_round(st, a, side, rnd, run_name, ev, None, d, None, ag_dir)
+    return 0
 
 
 def cmd_train(a):
@@ -605,6 +683,7 @@ def main():
     for k in DEFAULT_RULES:
         i.add_argument(f"--{k.replace('_','-')}", type=int if k != "min_delta" else float)
     for name, fn in (("init", cmd_init), ("pack", cmd_pack), ("collect", cmd_collect),
+                     ("ingest", cmd_ingest),
                      ("status", cmd_status), ("train", cmd_train), ("stop", cmd_stop)):
         p = sub.add_parser(name) if name != "init" else i
         p.set_defaults(fn=fn)
@@ -617,6 +696,11 @@ def main():
     p = sub.choices["collect"]
     p.add_argument("--names", required=True); p.add_argument("--bin", required=True)
     p.add_argument("--deck-csv", default="", help="留空=用该侧在 state 里的卡组")
+    p = sub.choices["ingest"]
+    p.add_argument("--names", required=True)
+    p.add_argument("--bin", required=True, help="本轮 .bin（已拉回本地）")
+    p.add_argument("--cand-json", required=True, help="候选的 eval_pair 结果 json")
+    p.add_argument("--base-json", default="", help="该侧 round-0 基线的 eval 结果 json")
     p = sub.choices["status"]
     p.add_argument("--names", required=True)
     p = sub.choices["train"]

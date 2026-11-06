@@ -62,3 +62,5 @@ ptcg_league/pools/
 #   models/ppo/*.json *.log（每次训练的元数据与日志）
 #   decks/pool_field/_manifest.json、bc_pool/registry.tsv
 #   ptcg_league/{gen,state,reports}（联赛状态与开环计划）
+ptcg_league/remote.json
+ptcg_league/evalnode.json
