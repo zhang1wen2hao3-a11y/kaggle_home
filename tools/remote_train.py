@@ -107,6 +107,8 @@ def cmd_find(a):
 
 
 def cmd_run(a):
+    if a.t < 32768:
+        raise SystemExit(f"✗ --t {a.t} < 32768（训练器一个 epoch）⇒ 产出全 NaN 权重。改成 ≥ 32768")
     c = cfg()
     st = json.load(open(os.path.join(STATE_DIR, f"dual_{a.names}.json")))
     if st.get("verdict"):
@@ -194,7 +196,9 @@ def main():
 
     r = sub.add_parser("run", help="按 state 跑一轮训练")
     r.add_argument("--names", required=True, help="dual_<names>.json 的名字")
-    r.add_argument("--t", type=int, default=400000, help="训练步数（默认 400k ≈ 8 分钟）")
+    r.add_argument("--t", type=int, default=400000,
+                   help="训练步数（默认 400k）。★ 必须 ≥ 32768：训练器按 epoch(32768) 采集，"
+                        "T 小于一个 epoch 时第一批是半满缓冲 → 产出全 NaN 权重")
     r.add_argument("--threads", type=int, default=8)
     r.add_argument("--league-pct", type=float, default=0.2)
     r.add_argument("--init-remote", default="", help="覆盖：训练机上的 INIT 路径")

@@ -11,7 +11,8 @@
    引擎动作是确定性的、agent 是 temp=0 argmax ⇒ 同一 `(cand, opp, seed_base, n)`
    重复跑结果完全一致。
 2. **卡组固定**：对手目录里的 `deck.csv` 就是它的卡组（`stage_ckpt.py` 写好的）。
-3. **座位交替**：`seat = mid % 2`，且每场内第 2 局 `reverse_player=True`。
+3. **座位交替**：`seat = (mid // 2) % 2`（mid 步长 2，直接 mid%2 恒为 0），
+   且每场内第 2 局 `reverse_player=True`。
 
 ## 用法
 
@@ -66,7 +67,10 @@ def shard(job):
                 panes[name] = (AgentProcess(f"{k}A{name}", dir_a, logdir),
                                AgentProcess(f"{k}B{name}", dir_b, logdir))
             pa, pb = panes[name]
-            seat = mid % 2
+            # ★ 座位必须按**任务序号**交替，不能按 mid 的奇偶：mid 步长是 2（为了让
+            #   play_match 的种子唯一），所以 mid % 2 恒为 0 ⇒ 候选永远坐左边。
+            #   实测 400 场全部 seat=0（2026-11-08）。改成按序号的一半取奇偶。
+            seat = (mid // 2) % 2
             left, right = (pa, pb) if seat == 0 else (pb, pa)
             r = play_match(left, right, mid)
             r.update(seat=seat, opp=name)
