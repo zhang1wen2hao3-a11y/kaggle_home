@@ -52,6 +52,17 @@ CHAMPS = [
     "z_ogerpon_toolbox_miwa__e1d7",       # ミワハルキ 1580 / 137,602 帧
     "shuppet_dhelmise__0d86",             # ミワハルキ 1580 / 130,236 帧
 ]
+# 其他强策略：教师 LB ≥1300 且我们实测遇到 <1%（基本是没见过的强牌）
+OTHERS = [
+    "dreepy_drakloak__a413",                 # Ondrej Kubicek 1428
+    "dreepy_drakloak__9aec",                 # Ondrej Kubicek 1428
+    "dreepy_drakloak__2228",                 # Ondrej Kubicek 1428
+    "cinderace_mega_kangaskhan_ex__1eb0",    # Ondrej Kubicek 1428
+    "dreepy_drakloak__c73f",                 # Darren Sheehan 1313
+    "mega_kangaskhan_ex_dwebble__7e79",      # Darren Sheehan 1313
+    "beldum_metang__e1f9",                   # RtoABC2 1311
+]
+
 DEFAULT_TAIL = 0.0001     # 池里其余卡组的兜底权重（与旧文件一致）
 
 
@@ -73,6 +84,32 @@ def build(field: dict[str, float], champs: list[str], b: float) -> dict[str, flo
     return out
 
 
+def build_mix(field: dict[str, float], champs: list[str], others: list[str],
+              a_local: float, a_champ: float, a_other: float) -> dict[str, float]:
+    """三块混合（A/B/C/D 对照实验用）：
+
+        w(d) = a_local·f(d)  +  a_champ/|C|·1[d∈冠军]  +  a_other/|O|·1[d∈其他强]
+
+    三块内部：本地按实测比例，冠军与其他强按**均匀**（它们大多在我们的场地里占比为 0，
+    没有实测比例可分）。三块权重必须合计为 1。
+    """
+    s = a_local + a_champ + a_other
+    if abs(s - 1.0) > 1e-6:
+        raise SystemExit(f"✗ 三块比例合计 {s:.3f} ≠ 1")
+    out = {d: a_local * w for d, w in field.items()}
+    if a_champ > 0:
+        if not champs:
+            raise SystemExit("✗ a_champ>0 但没给 --champ")
+        for d in champs:
+            out[d] = out.get(d, 0.0) + a_champ / len(champs)
+    if a_other > 0:
+        if not others:
+            raise SystemExit("✗ a_other>0 但没给 --other")
+        for d in others:
+            out[d] = out.get(d, 0.0) + a_other / len(others)
+    return out
+
+
 def ess(w: dict[str, float]) -> float:
     """有效对手数（1/Σw²，按总权重 1 归一后的口径）。"""
     s = sum(v * v for v in w.values())
@@ -84,6 +121,10 @@ def main() -> int:
     ap.add_argument("--games", default=GAMES)
     ap.add_argument("--b", type=float, default=0.05, help="每副冠军卡组的保底比例（0.05 = +5pp）")
     ap.add_argument("--champ", nargs="*", default=CHAMPS)
+    ap.add_argument("--other", nargs="*", default=OTHERS,
+                    help="其他强策略块（默认：教师≥1300 且我们遇到<1% 的牌）")
+    ap.add_argument("--mix", default="",
+                    help="三块比例 local,champ,other（如 85,10,5）；给了就忽略 --b")
     ap.add_argument("--tail", type=float, default=DEFAULT_TAIL)
     ap.add_argument("--min-share", type=float, default=0.002,
                     help="实测占比低于此值的卡组不写进文件（走 tail）")
@@ -92,9 +133,19 @@ def main() -> int:
     a = ap.parse_args()
 
     field, n_games, n_rows = field_distribution(a.games)
-    w = build(field, a.champ, a.b)
-    # 只显式写"占比够大或属于冠军"的卡组，其余走 tail
-    keep = {d: v for d, v in w.items() if v >= a.min_share or d in a.champ}
+    if a.mix:
+        parts = [float(x) / 100.0 for x in a.mix.split(",")]
+        if len(parts) != 3:
+            raise SystemExit("✗ --mix 需要三个数：local,champ,other（百分比）")
+        w = build_mix(field, a.champ, a.other, *parts)
+        head = (f"三块混合 local={parts[0]*100:.0f}%  champ={parts[1]*100:.0f}%  "
+                f"other={parts[2]*100:.0f}%   （冠军 {len(a.champ)} 副，其他强 {len(a.other)} 副）")
+    else:
+        w = build(field, a.champ, a.b)
+        head = (f"冠军卡组 {len(a.champ)} 副 × 保底 b={a.b:.2f} ⇒ 占用 {len(a.champ)*a.b*100:.0f}% 权重，"
+                f"其余 {(1-len(a.champ)*a.b)*100:.0f}% 按实测比例压缩")
+    # 只显式写"占比够大或属于冠军/其他强"的卡组，其余走 tail
+    keep = {d: v for d, v in w.items() if v >= a.min_share or d in a.champ or d in a.other}
     keep = dict(sorted(keep.items(), key=lambda t: -t[1]))
     # 被 min-share 剔掉的份额不能让权重总和 < 1（否则实际生效比例整体偏小），
     # 按比例回摊到保留的卡组上，落选的走 tail。
@@ -104,12 +155,11 @@ def main() -> int:
     total = sum(keep.values())
 
     print(f"实测场地：{n_games} 局（{n_rows} 条记录，已剔除未识别）  唯一对手卡组 {len(field)} 副")
-    print(f"冠军卡组 {len(a.champ)} 副 × 保底 b={a.b:.2f} ⇒ 占用 {len(a.champ)*a.b*100:.0f}% 权重，"
-          f"其余 {(1-len(a.champ)*a.b)*100:.0f}% 按实测比例压缩\n")
-    print(f"{'卡组':<42}{'实测':>8}{'新权重':>9}{'冠军':>6}")
+    print(head + "\n")
+    print(f"{'卡组':<42}{'实测':>8}{'新权重':>9}{'组':>6}")
     for d, v in keep.items():
-        star = "★" if d in a.champ else ""
-        print(f"{d:<42}{field.get(d,0)*100:>7.1f}%{v*100:>8.1f}%{star:>6}")
+        grp = "冠军" if d in a.champ else ("强策略" if d in a.other else "")
+        print(f"{d:<42}{field.get(d,0)*100:>7.1f}%{v*100:>8.1f}%{grp:>6}")
     print(f"\n显式覆盖 {total*100:.2f}% 权重，{len(keep)} 副；其余 {tail_decks} 副走 tail={a.tail}")
     print(f"有效对手数 ESS = {ess({**keep, **{}}):.1f}（旧 weights_2617.txt 只有 5.8 —— 极度集中）")
 
