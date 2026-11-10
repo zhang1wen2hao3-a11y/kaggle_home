@@ -15,16 +15,20 @@ TAG="${TAG:-$(basename "$CAND")}"
 N="${N:-400}"; SEED="${SEED:-930000}"
 OUT="logs/specialist_eval/$TAG"
 mkdir -p "$OUT"
+# 归档兼容：Tier B/C 已移到 models/archive/，这里按名字回退查找
+ag() { if [ -d "build/agents/$1" ]; then echo "build/agents/$1";
+       elif [ -d "models/archive/$1" ]; then echo "models/archive/$1";
+       else echo "build/agents/$1"; fi; }
 declare -A OPP=(
-  [g6_db04]=build/agents/g12_db04_dreepy          # 用同卡组的最新 db04 agent 作 G6 系代表
-  [port_db04]=build/agents/port_db04
-  [dreepy_3eaa]=build/agents/c_dreepy
-  [ogerpon_7e39]=build/agents/port_7e39
-  [abra_f5f8]=build/agents/c_abra
-  [hydrapple]=build/agents/opp_hydrapple
-  [thwackey_dipplin]=build/agents/opp_thwackey_dipplin
-  [alakazam_dd]=build/agents/opp_alakazam_dd
-  [dragapult_ch]=build/agents/opp_dragapult_ch
+  [g6_db04]=$(ag g12_db04_dreepy)                 # 用同卡组的最新 db04 agent 作 G6 系代表
+  [port_db04]=$(ag port_db04)
+  [dreepy_3eaa]=$(ag c_dreepy)
+  [ogerpon_7e39]=$(ag port_7e39)
+  [abra_f5f8]=$(ag c_abra)
+  [hydrapple]=$(ag opp_hydrapple)
+  [thwackey_dipplin]=$(ag opp_thwackey_dipplin)
+  [alakazam_dd]=$(ag opp_alakazam_dd)
+  [dragapult_ch]=$(ag opp_dragapult_ch)
 )
 for k in g6_db04 port_db04 dreepy_3eaa ogerpon_7e39 abra_f5f8 hydrapple thwackey_dipplin alakazam_dd dragapult_ch; do
   f="$OUT/vs_$k.json"; [ -f "$f" ] && { echo "[skip] $k"; continue; }

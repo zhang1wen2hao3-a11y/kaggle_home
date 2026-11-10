@@ -122,9 +122,15 @@ def cmd_summary(a):
         if w < 0 or not d0 or not d1:
             continue
         rows += 1
-        per_deck[d0][0] += w; per_deck[d0][1] += 1
-        per_deck[d1][0] += 1 - w; per_deck[d1][1] += 1
-        for mine, opp, win in ((d0, d1, w), (d1, d0, 1 - w)):
+        # ★ TSV 里 winner=0 表示 **deck0 赢**（build 时按回放 rewards 判：r0>r1 ⇒ 0）。
+        #   早先这里写成 `per_deck[d0][0] += w`，等于把每一行都判给了 deck1 ——
+        #   全部胜率恒为补数，docs/strength_table.md §B 因此整张表反向
+        #   （把"我们赢 85%"读成"我们输 85%"，于是把 0bf5/7e39 当成最大失血格）。
+        #   2026-11-08 用回放 125821646 / 125895425 两条原始记录对死。
+        win0 = 1 - w
+        per_deck[d0][0] += win0; per_deck[d0][1] += 1
+        per_deck[d1][0] += w; per_deck[d1][1] += 1
+        for mine, opp, win in ((d0, d1, win0), (d1, d0, w)):
             matchup[(mine, opp)][0] += win; matchup[(mine, opp)][1] += 1
             per_dir[d][mine][0] += win; per_dir[d][mine][1] += 1
 

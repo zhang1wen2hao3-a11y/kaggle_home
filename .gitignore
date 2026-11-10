@@ -64,3 +64,6 @@ ptcg_league/pools/
 #   ptcg_league/{gen,state,reports}（联赛状态与开环计划）
 ptcg_league/remote.json
 ptcg_league/evalnode.json
+
+# 打包出来的训练/评估 kit（165MB，可重建）
+build/loop_kit/

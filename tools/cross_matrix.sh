@@ -7,13 +7,17 @@
 set -uo pipefail
 cd "$(dirname "$0")/.."
 N="${N:-400}"; SEED="${SEED:-913000}"; W="${WORKERS:-0}"
+# 归档兼容：Tier B/C 已移到 models/archive/
+ag() { if [ -d "build/agents/$1" ]; then echo "build/agents/$1";
+       elif [ -d "models/archive/$1" ]; then echo "models/archive/$1";
+       else echo "build/agents/$1"; fi; }
 declare -A A=(
-  [port]=build/agents/port_db04
+  [port]=$(ag port_db04)
   [g6]=ptcg_league/pools/league/opp_g6_db04
-  [g9]=build/agents/g9_db04
+  [g9]=$(ag g9_db04)
   [g7b]=ptcg_league/pools/league/opp_g7b_shuppet
   [g8]=ptcg_league/pools/league/opp_g8_shuppet
-  [g8bc]=build/agents/g8_bc_parent
+  [g8bc]=$(ag g8_bc_parent)
 )
 # 优先格：① BC 父权重 vs db04（测 H3）② BC父 vs PPO后（G8 的 PPO 到底加了什么）
 #        ③ G8 vs G7B（测 H1：是不是普遍更强）④ BC父 vs G6

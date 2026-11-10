@@ -1,0 +1,64 @@
+name	tier	loc	size_mb	lb	why
+ag_a10blend	C	models/archive	20.5		无引用 / 无天梯分 / 已被取代
+ag_a10raw	C	models/archive	20.5		无引用 / 无天梯分 / 已被取代
+ag_db04_vs_grookey_r1A	C	models/archive	20.5		无引用 / 无天梯分 / 已被取代
+ag_dualA_26c6	C	models/archive	20.5		无引用 / 无天梯分 / 已被取代
+ag_dualB_3eaa	C	models/archive	20.5		无引用 / 无天梯分 / 已被取代
+ag_final_kl	C	models/archive	20.5		无引用 / 无天梯分 / 已被取代
+ag_final_kl_clean	C	models/archive	20.5		无引用 / 无天梯分 / 已被取代
+ag_r1A2_db04_g6	C	models/archive	20.5		无引用 / 无天梯分 / 已被取代
+ag_r1A3_db04_g6	C	models/archive	20.5		无引用 / 无天梯分 / 已被取代
+ag_r1A4_db04_g6	C	models/archive	20.5		无引用 / 无天梯分 / 已被取代
+ag_r1A_db04_g6	C	models/archive	20.5		无引用 / 无天梯分 / 已被取代
+ag_s4_learn9d6e	C	models/archive	20.5		无引用 / 无天梯分 / 已被取代
+bc_26c6	A	build/agents	20.5		① 当前代工作模型
+bc_3eaa	A	build/agents	20.5		① 当前代工作模型
+bc_abra2	B	models/archive	20.5		② 活代码引用：arena_log.py, exp_registry.py, specialist_value.py
+bc_abra76k	B	models/archive	20.5		② 活代码引用：agent_matrix.py, arena_log.py, bc_screen.sh
+bc_dreepy2	B	models/archive	20.5		② 活代码引用：arena_log.py, exp_registry.py
+bc_grookey3	B	models/archive	20.5		② 活代码引用：arena_log.py, bc_screen.sh, exp_registry.py
+bc_miwa_e1d7	B	models/archive	20.5		② 活代码引用：bc_category_acc.py
+bc_pc	B	models/archive	20.5		② 活代码引用：eval_specialist.sh
+c_abra	A	build/agents	20.5		① 面板对手（覆盖评估基线）
+c_dreepy	B	models/archive	20.5		② 活代码引用：arena_log.py, bc_screen.sh, dual_train.py
+c_grookey	A	build/agents	20.5		① 面板对手（覆盖评估基线）
+c_slowking	B	models/archive	20.5		② 活代码引用：arena_log.py
+exp_db04_shuppet	C	models/archive	20.5		无引用 / 无天梯分 / 已被取代
+g10_db04_banks	B	models/archive	20.5		② 活代码引用：arena_log.py, exp_registry.py
+g11a_cross_deck	C	models/archive	20.5		无引用 / 无天梯分 / 已被取代
+g12_db04_dreepy	B	models/archive	20.5		② 活代码引用：eval_specialist.sh
+g13_db04	C	models/archive	20.5		无引用 / 无天梯分 / 已被取代
+g14a_e1d7	B	models/archive	20.5	875.5	③ 历史天梯 875.5（已被超越，dist/ 可复原）
+g6_0bf5	C	models/archive	20.5		无引用 / 无天梯分 / 已被取代
+g6_7e39	B	models/archive	20.5	880.9	③ 历史天梯 880.9（已被超越，dist/ 可复原）
+g6_9d6e	B	models/archive	20.5	992.1	③ 历史天梯 992.1（已被超越，dist/ 可复原）
+g6_db04	A	build/agents	20.5	1060.3	① 当前代工作模型
+g6_db04_on_7e39	B	models/archive	20.5		② 活代码引用：arena_log.py
+g6_db04_on_9d6e	B	models/archive	20.5		② 活代码引用：arena_log.py
+g6_pc	C	models/archive	20.5		无引用 / 无天梯分 / 已被取代
+g8_bc_parent	A	build/agents	20.5	779.6	① 当前代工作模型
+g8_shuppet	A	build/agents	20.5		① 当前代工作模型
+g9_db04	B	models/archive	20.5		② 活代码引用：arena_log.py, cross_matrix.sh, exp_registry.py
+head_26c6_A1	C	models/archive	0.4		无引用 / 无天梯分 / 已被取代
+head_26c6_B1	C	models/archive	0.4		无引用 / 无天梯分 / 已被取代
+head_3eaa_C1	C	models/archive	0.4		无引用 / 无天梯分 / 已被取代
+opp_3eaa	A	build/agents	20.5		① 面板对手（覆盖评估基线）
+opp_abomasnow_b702	C	models/archive	20.5		无引用 / 无天梯分 / 已被取代
+opp_abra_3f45	C	models/archive	20.5		无引用 / 无天梯分 / 已被取代
+opp_abra_e8ee	C	models/archive	20.5		无引用 / 无天梯分 / 已被取代
+opp_alakazam_dd	B	models/archive	20.5		② 活代码引用：eval_specialist.sh
+opp_dragapult_ch	B	models/archive	20.5		② 活代码引用：eval_specialist.sh
+opp_dreepy_94ec	C	models/archive	20.5		无引用 / 无天梯分 / 已被取代
+opp_dreepy_b381	C	models/archive	20.5		无引用 / 无天梯分 / 已被取代
+opp_dunsparce_0bf5	A	build/agents	20.5		① 面板对手（覆盖评估基线）
+opp_e1d7	C	models/archive	20.5		无引用 / 无天梯分 / 已被取代
+opp_hydrapple	B	models/archive	20.5		② 活代码引用：eval_specialist.sh
+opp_lucario_77a5	C	models/archive	20.5		无引用 / 无天梯分 / 已被取代
+opp_shuppet_human	A	build/agents	20.5		① 面板对手（覆盖评估基线）
+opp_thwackey_dipplin	B	models/archive	20.5		② 活代码引用：eval_specialist.sh
+port_7e39	A	build/agents	20.5		① 面板对手（覆盖评估基线）
+port_db04	A	build/agents	20.5	1042.3	① 当前代工作模型
+port_on_9d6e	A	build/agents	20.5		① 面板对手（覆盖评估基线）
+port_pc	C	models/archive	20.5		无引用 / 无天梯分 / 已被取代
+port_shuppet	B	models/archive	20.5		② 活代码引用：arena_log.py
+router_db01	C	build/agents(symlink→dist/router_router_db01)	0.0		符号链接，不占空间，保留原位

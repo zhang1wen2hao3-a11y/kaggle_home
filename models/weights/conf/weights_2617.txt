@@ -1,0 +1,11 @@
+version 3
+default 0.0001
+teal_mask_ogerpon_ex_applin__7e39 0.34
+grookey_thwackey__2617 0.13
+dunsparce_abra__0bf5 0.12
+z_dragapult_dreepy_petit__0904 0.10
+dreepy_drakloak__3eaa 0.09
+dunsparce_abra__9d6e 0.08
+abra_kadabra__f5f8 0.05
+z_ogerpon_toolbox_miwa__e1d7 0.05
+slowpoke_slowking__26c6 0.04

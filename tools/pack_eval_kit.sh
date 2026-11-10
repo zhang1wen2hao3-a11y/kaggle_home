@@ -17,9 +17,11 @@ STAGE="dist/eval_kit_stage/ptcg_eval"
 OUT="dist/ptcg_eval_kit.tar.gz"
 
 CANDS=()
+declare -A DECK_OVERRIDE=()
 while [ $# -gt 0 ]; do
   case "$1" in
     --cand) CANDS+=("$2"); shift 2;;
+    --cand-deck) DECK_OVERRIDE["${2%%=*}"]="${2##*=}"; shift 2;;
     *) echo "✗ 未知参数 $1"; exit 1;;
   esac
 done
@@ -99,6 +101,7 @@ for f in glob.glob("ptcg_league/state/dual_*.json"):
 print("dunsparce_abra__db04")
 PY
 )
+  [ -n "${DECK_OVERRIDE[$c]:-}" ] && deck="${DECK_OVERRIDE[$c]}"
   printf '%s\t%s\n' "$c" "$deck" >> "$STAGE/models/cands.tsv"
   echo "   $c @ $deck"
 done

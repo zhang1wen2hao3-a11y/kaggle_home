@@ -1,0 +1,4 @@
+candidate,pool_version,train_minutes,before_value,after_value,marginal_value,gpu_hours,notes
+ph3_db04_v1,P001,25.0,0.6662,0.6419,-0.0243,0.42,stage3 round1: shuppet 0.022->0.083 但总分下降; 加权 -2.4pp
+ph3_2617_v2,P001,26.0,0.6662,0.6523,-0.0139,0.43,stage3 round2: INIT=port_w（修 v1 初始化错误）; 同机同协议 n=200 seed940000; v1 是 -12.8pp → v2 -1.4pp（落噪声带 ±2.5pp）
+ph3_9d6e_v2,P001,26.0,0.6148,0.6097,-0.0051,0.43,stage3 round3: INIT=port_w; 同机同协议 n=200 seed940000; port_on_9d6e 基线 0.6148 → -0.5pp（噪声内）

@@ -40,8 +40,13 @@ import torch.nn.functional as F  # noqa: E402
 from ptcg.rl.search_agent import SearchAgent  # noqa: E402
 
 
-def build_policy(device: str):
-    AG = BUNDLE
+def build_policy(device: str, agent_dir=None):
+    """`agent_dir` 给定时从该 agent 目录起步（全模型微调），否则用 bundle 自带的 model.pt。
+
+    全模型从 g6_db04 起步 vs 从 port 初始化：前者用来验证"共享 encoder 当**初始化**"
+    （区别于 head_train.py 的冻结骨干），看端到端微调能不能超过 80.9% 的一致率。
+    """
+    AG = pathlib.Path(agent_dir) if agent_dir else BUNDLE
     ag = SearchAgent(model_path=str(AG / "model.pt"), deck_path=str(AG / "deck.csv"),
                      cfg=None, seed=0, device=device, data_dir=str(AG))
     return ag.policy
@@ -155,6 +160,8 @@ def main() -> int:
     ap.add_argument("--bs", type=int, default=256)
     ap.add_argument("--out", default="models/bc_v1.pt")
     ap.add_argument("--device", default="cuda")
+    ap.add_argument("--agent", default="",
+                    help="从该 agent 目录的 model.pt 起步（全模型微调）；空=用 bundle 的 model.pt")
     ap.add_argument("--only-deck", default="", help="只训 deck 前缀匹配的帧（如 0d86）")
     ap.add_argument("--only-agent", default="", help="只训 agent 正则匹配的帧")
     ap.add_argument("--winners-only", action="store_true", help="只训赢家帧（需 meta.won）")
@@ -210,7 +217,7 @@ def main() -> int:
     print(f"内存预算：可用 {_avail_mb()} MB（本脚本会增加 memmap 页缓存，"
           f"页缓存可回收，但别和评测同时跑）")
 
-    policy = build_policy(dev)
+    policy = build_policy(dev, a.agent or None)
 
     # ── 一次性校验：目标动作合法性（**只用端口权重**，与物化时的过滤规则一致）
     #    绝不能用训练中不断变化的权重来判断，否则同一帧会时而保留时而丢弃。
