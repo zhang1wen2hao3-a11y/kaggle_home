@@ -13,10 +13,11 @@ $SSH 'echo ok; nvidia-smi --query-gpu=name --format=csv,noheader' || { echo "✗
 
 echo "=== 1) 文本文件（脚本 / choice 表 / 权重配置）==="
 for f in tools/db04_line.sh tools/teacher_loop.sh tools/teacher_gate.sh tools/choice_to_banks.py \
-         tools/weight_dist.py tools/launch_ab.sh tools/kl_blend.py \
+         tools/weight_dist.py tools/launch_ab.sh tools/kl_blend.py tools/ab_watch.py \
          docs/the-pockmon-battle-choice.csv decks/weights_field_b05.txt; do
   [ -f "$f" ] || { echo "  ⚠️ 本地缺 $f，跳过"; continue; }
   case "$f" in
+    tools/*) dst="$R/tools/$(basename "$f")" ;;   # ★ 必须进 tools/，否则 launch 里的 bash tools/... 用的是旧版
     decks/*) dst="$R/decks/$(basename "$f")" ;;
     docs/*)  dst="$R/docs/$(basename "$f")" ;;
     *)       dst="$R/$(basename "$f")" ;;
