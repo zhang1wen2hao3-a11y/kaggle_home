@@ -28,6 +28,9 @@ ROUNDS="${4:-6}"; STEPS="${5:-2000000}"; ALPHA="${6:-0.10}"
 DRY=0; for a in "$@"; do [ "$a" = "--dry" ] && DRY=1; done
 PROMOTE_MARGIN="${PROMOTE_MARGIN:-0.03}"   # 相对镜像基线 B0 的晋升余量（3pp）
 N_GATE="${N_GATE:-400}"
+# 权重快照间隔（epoch）：100 个 epoch = 3.28M 步。50M 跑下来约 15 个快照，
+# 每个都能用 tools/weight_dist.py 量位移 —— 这是判断"值不值得加步数"的唯一依据。
+CHECKPOINT_INTERVAL="${CHECKPOINT_INTERVAL:-100}"
 
 if [ "$STEPS" -lt 32768 ]; then echo "✗ STEPS < 32768 会全 NaN"; exit 2; fi
 
@@ -78,6 +81,7 @@ for i in $(seq 1 "$ROUNDS"); do
   TRAIN_A="env PYTHON=$PY INIT=$A OUT=$OUT RUN=r${i}A T=$STEPS THREADS=8 \
     LEAGUE_PCT=$PLAN_PCT SEED=$((424242 + i)) ANCHOR=$SHIP TRACK=$SHIP \
     DWF=decks/weights_field_b05.txt BANKS=$PLAN_BANKS BANKDECKS=$PLAN_DECKS \
+    CHECKPOINT_INTERVAL=$CHECKPOINT_INTERVAL \
     bash tools/db04_line.sh"
   if [ "$DRY" = 1 ]; then echo "  $TRAIN_A"; else eval "$TRAIN_A" > "$LOG/r${i}A.log" 2>&1 || { echo "  ✗ A 训练失败，看 $LOG/r${i}A.log"; exit 1; }; fi
   A_NEW="$OUT/r${i}A.bin"
@@ -101,7 +105,8 @@ for i in $(seq 1 "$ROUNDS"); do
   TRAIN_B="env PYTHON=$PY INIT=$B OUT=$OUT RUN=r${i}B T=$STEPS THREADS=8 \
     LEAGUE_PCT=0.49 SEED=$((424242 + i + 1000)) ANCHOR=$SHIP TRACK=$SHIP \
     DWF=decks/weights_field_b05.txt BANKS=$INIT_A BANKDECKS=$SHIP \
-    P_ANCHOR_LEARNER=0.0 bash tools/db04_line.sh"
+    P_ANCHOR_LEARNER=0.0 CHECKPOINT_INTERVAL=$CHECKPOINT_INTERVAL \
+    bash tools/db04_line.sh"
   if [ "$DRY" = 1 ]; then echo "  $TRAIN_B"; else eval "$TRAIN_B" > "$LOG/r${i}B.log" 2>&1 || { echo "  ✗ B 训练失败，看 $LOG/r${i}B.log"; exit 1; }; fi
   B="$OUT/r${i}B.bin"
 done

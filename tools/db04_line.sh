@@ -56,6 +56,9 @@ BANKDECKS="${BANKDECKS:-}"
 P_ANCHOR_LEARNER="${P_ANCHOR_LEARNER:-1.0}"
 P_ANCHOR_SELF_OPP="${P_ANCHOR_SELF_OPP:-0.0}"
 P_ANCHOR_LEAGUE_OPP="${P_ANCHOR_LEAGUE_OPP:-0.0}"
+# ★ 权重快照间隔（epoch 数，1 epoch = AG×64 步）。默认 50 = 1.64M 步。
+#   50M 步的长跑必须设成 ~100（每 3.28M 步一个快照），否则只有 final.bin，看不到 scaling 曲线。
+CHECKPOINT_INTERVAL="${CHECKPOINT_INTERVAL:-50}"
 TAG="${TAG:-db04}"
 RUN="${RUN:-$(basename "${INIT%.bin}" | sed 's/_db04$//')_$TAG}"
 CHECK_ONLY=0
@@ -200,7 +203,7 @@ PYTHONPATH=data:.:native PTCG_TABLES=native/ptcg_tables_field.bin OMP_WAIT_POLIC
 "$PY" native/train_native.py --run-name "$RUN" \
   --timesteps "$T" --no-anneal-lr \
   --total-agents "$AG" --minibatch "$MB" --num-threads "$THREADS" \
-  --lr "$LR" --seed "$SEED" \
+  --lr "$LR" --seed "$SEED" --checkpoint-interval "$CHECKPOINT_INTERVAL" \
   --deck-pool "$POOL" --deck-weights-file "$DWF" \
   --anchor-decks "$ANCHOR" --track-decks "$TRACK" \
   --p-anchor-learner "$P_ANCHOR_LEARNER" --p-anchor-self-opp "$P_ANCHOR_SELF_OPP" --p-anchor-league-opp "$P_ANCHOR_LEAGUE_OPP" \
