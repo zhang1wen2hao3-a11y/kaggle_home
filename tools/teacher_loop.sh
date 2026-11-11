@@ -41,6 +41,25 @@ SHIP_CSV="${SHIP_CSV:-$R/decks/pool_field/$SHIP.csv}"
 
 A="$INIT_A"; B="$INIT_B"; TEACHER="$INIT_A"
 
+# ── A 阶段的对手驾驶员：查 choice 矩阵（对手牌 → 最强驾驶员），按覆盖率分配 bank 槽位 ──
+#    引擎硬限制：league_pct * n_banks < 0.5 ⇒ 指定驾驶员最多覆盖 49% 的对局，
+#    其余 51% 仍是自对弈（learner 自己打覆盖率抽的牌）。
+SHIP_HASH="${SHIP##*__}"
+SHIP_HASH="${SHIP_HASH:0:4}"
+PLAN_BANKS=""; PLAN_DECKS=""; PLAN_PCT=""
+if [ -f tools/choice_to_banks.py ] && [ -f docs/the-pockmon-battle-choice.csv ]; then
+  PLAN=$(./tools/py tools/choice_to_banks.py --a-deck "$SHIP_HASH" --emit-env 2>/dev/null || true)
+  if [ -n "$PLAN" ]; then
+    eval "$PLAN"
+    PLAN_BANKS="$BANKS"; PLAN_DECKS="$BANKDECKS"; PLAN_PCT="$LEAGUE_PCT"
+  fi
+fi
+if [ -z "$PLAN_BANKS" ]; then
+  echo "⚠️ choice 取不到 $SHIP_HASH 这一行，A 阶段退回单 bank（旧行为）"
+  PLAN_BANKS="$B"; PLAN_DECKS=""; PLAN_PCT="0.49"
+fi
+echo "A 阶段对手驾驶员 bank: $(echo "$PLAN_BANKS" | tr ',' '\n' | wc -l) 个槽位, league_pct=$PLAN_PCT"
+
 # 镜像基线 B0：起点时 A vs teacher（同一个文件）先量一次座位偏置
 gate() { # gate <cand.bin> <teacher.bin> -> 胜率(0~1)
   bash tools/teacher_gate.sh --cand "$1" --teacher "$2" --deck "$SHIP_CSV" --n "$N_GATE" --out "$OUT/gate" 2>/dev/null \
@@ -57,8 +76,8 @@ for i in $(seq 1 "$ROUNDS"); do
   echo "===== 第 $i 轮 A：训舰牌专精（对手=B 冻结，打所有牌）====="
   cd "$R"
   TRAIN_A="env PYTHON=$PY INIT=$A OUT=$OUT RUN=r${i}A T=$STEPS THREADS=8 \
-    LEAGUE_PCT=0.6 SEED=$((424242 + i)) ANCHOR=$SHIP TRACK=$SHIP \
-    DWF=decks/weights_field_b05.txt BANKS=$B BANKDECKS= \
+    LEAGUE_PCT=$PLAN_PCT SEED=$((424242 + i)) ANCHOR=$SHIP TRACK=$SHIP \
+    DWF=decks/weights_field_b05.txt BANKS=$PLAN_BANKS BANKDECKS=$PLAN_DECKS \
     bash tools/db04_line.sh"
   if [ "$DRY" = 1 ]; then echo "  $TRAIN_A"; else eval "$TRAIN_A" > "$LOG/r${i}A.log" 2>&1 || { echo "  ✗ A 训练失败，看 $LOG/r${i}A.log"; exit 1; }; fi
   A_NEW="$OUT/r${i}A.bin"
@@ -78,10 +97,10 @@ for i in $(seq 1 "$ROUNDS"); do
   fi
 
   # ── ④ 训 B：learner=B 打所有牌，对手=冻结 A 绑舰牌 ──
-  echo "===== 第 $i 轮 B：训通才（对手=A 冻结，打舰牌）====="
+  echo "===== 第 $i 轮 B：训通才（对手=A 用 init，打舰牌；B 自己从 init 起）====="
   TRAIN_B="env PYTHON=$PY INIT=$B OUT=$OUT RUN=r${i}B T=$STEPS THREADS=8 \
-    LEAGUE_PCT=0.6 SEED=$((424242 + i + 1000)) ANCHOR=$SHIP TRACK=$SHIP \
-    DWF=decks/weights_field_b05.txt BANKS=$A BANKDECKS=$SHIP \
+    LEAGUE_PCT=0.49 SEED=$((424242 + i + 1000)) ANCHOR=$SHIP TRACK=$SHIP \
+    DWF=decks/weights_field_b05.txt BANKS=$INIT_A BANKDECKS=$SHIP \
     P_ANCHOR_LEARNER=0.0 bash tools/db04_line.sh"
   if [ "$DRY" = 1 ]; then echo "  $TRAIN_B"; else eval "$TRAIN_B" > "$LOG/r${i}B.log" 2>&1 || { echo "  ✗ B 训练失败，看 $LOG/r${i}B.log"; exit 1; }; fi
   B="$OUT/r${i}B.bin"

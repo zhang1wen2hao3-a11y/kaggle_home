@@ -171,3 +171,58 @@ A/B 交替、对手用对面的产物、双向换边。但我们 8 轮 69 分钟
 **判据（跑完循环后）**：
 - 若 `teacher` 在 R 轮内至少晋升 1 次，且最终 A 的 12 格 `meta_w` ≥ 端口 +3pp ⇒ 机制有效，值得加预算/加轮数；
 - 若 R 轮 0 晋升、A 面板不涨 ⇒ 与旧 dual 同样的"对手不够强 / 步数不够"问题，回来看权重位移。
+
+## 训练侧接入：对手驾驶员按 choice 矩阵选（2026-11-06）
+
+### 已有什么（原 teacher_loop 就有）
+
+| 需求 | 实现 | 位置 |
+|---|---|---|
+| A/B 换边（A 训时 B 冻结、B 训时 A 冻结） | ✅ | `teacher_loop.sh` ① `BANKS=$B`；④ `BANKS=$A` |
+| A 永远用指定卡组 | ✅ | `ANCHOR=$SHIP` + `P_ANCHOR_LEARNER=1.0` |
+| B 的卡组按覆盖率 | ✅ | `DWF=decks/weights_field_b05.txt` |
+
+### 这次补的
+
+**① A 阶段：对手驾驶员查矩阵**（新 `tools/choice_to_banks.py`）
+
+把 `the-pockmon-battle-choice.csv` 里 A 那一行（对手牌 → 最强驾驶员）翻译成训练器的
+`BANKS/BANKDECKS/LEAGUE_PCT`：**按实测覆盖率分配 bank 槽位**，每个槽位钉一副牌、带该牌的驾驶员权重。
+
+```
+$ ./tools/py tools/choice_to_banks.py --a-deck db04
+对手卡组   槽位  覆盖率  驾驶员
+7e39        4   34.7%  init
+2617        1   11.7%  init
+e8ee        1    6.2%  g6_db04     ← 矩阵说这格用 g6_db04
+f5f8        1    5.7%  g6_db04
+0d86        1    5.5%  g6_db04
+9d6e        1    4.8%  init
+```
+
+**② B 阶段：对手 A 用 init**（`BANKS=$INIT_A BANKDECKS=$SHIP`），不再用 A 训后的权重。
+
+### 引擎硬限制（绕不过去）
+
+```python
+assert a.league_pct * len(a.league_bins) < 0.5, "league banks would own >50% of rows"
+```
+
+⇒ **指定驾驶员最多覆盖 49% 的对局**，其余 51% 仍是自对弈（learner 自己打覆盖率抽的牌）。
+`train_native.py` 的这条断言是有意的安全阀，不是可以调的参数。
+
+另外：bank 的卡组是**钉死**的（`bank-deck` override 直接覆盖覆盖率抽样），
+所以「对手卡组分布」实际由 **bank 槽位分配**决定 —— 本工具用最大余数法按覆盖率分配 16 个槽位来近似。
+
+### 目前生效的实际效果
+
+`choice` 表里 **A=26c6/slowking 这一行全是 `init`**（slowking 的驾驶员数据几乎没有），
+所以这个功能现在跑出来等价于"端口权重当对手"。矩阵里任何一个格子从 `init` 变成训练件，
+重新跑 `teacher_loop.sh` 就自动生效，**不需要改代码**。
+
+### 待办
+
+- `/root/kl/` 需要补 `ph3_2617_v1.bin / ph3_2617_v2.bin / ph3_9d6e_v2.bin`
+  （`DEFAULT_PILOT_MAP` 已写死这些路径，缺文件会回退 init 并告警）。
+- `matrix_full.csv` 的 7 副牌之外（`e8ee`/`db04`/`0904`/`26c6`/`e1d7`）的驾驶员对比仍缺数据，
+  补齐后矩阵会自动出现更多非 init 格。
