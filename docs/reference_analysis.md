@@ -226,3 +226,42 @@ assert a.league_pct * len(a.league_bins) < 0.5, "league banks would own >50% of 
   （`DEFAULT_PILOT_MAP` 已写死这些路径，缺文件会回退 init 并告警）。
 - `matrix_full.csv` 的 7 副牌之外（`e8ee`/`db04`/`0904`/`26c6`/`e1d7`）的驾驶员对比仍缺数据，
   补齐后矩阵会自动出现更多非 init 格。
+
+## A/B 切换改成动态（2026-11-06）
+
+### 之前为什么是固定步数
+
+`teacher_loop.sh` 最初按固定 `STEPS` 跑每个阶段——这是我图省事。参考工程是
+
+> "Train the nets in turns, starting with Net A until it **improves its WR by 2pp** over baseline,
+> then freeze Net A and start to train Net B to recover the lost points, repeat."
+
+固定步数的代价：A 可能 20M 就到顶、后 30M 白跑；B 也可能早该切却没切。
+
+### 现在的实现（`tools/ab_watch.py` + `teacher_loop.sh DYN=1`）
+
+**原料是免费的**：训练器每个 epoch 都打印 per-bank 胜率
+
+```
+epoch 50 step 1638400 ... lgw 0.612 [1:0.58/0.05][2:0.71/0.05]...
+                          ↑ bank 胜率/出现率 —— bank 钉死了卡组，所以这就是"对某副牌的胜率"
+```
+
+**触发逻辑**：
+1. 覆盖率加权对位胜率 `wr_bank = Σ coverage_b × wr_b / Σ coverage_b`；
+2. `baseline` = 前 `--warm` 个 epoch 的均值（默认 30）；`ema` = 最近 `--ema` 个 epoch（默认 20）；
+3. **A 阶段**：`ema - baseline ≥ THRESH_PP`（默认 **+2pp**）→ `pkill` 训练，取最新快照当 A；
+4. **B 阶段**：`ema - baseline ≥ THRESH_PP`（B 追回失分）→ 停，本轮结束。
+
+**快照密度**：DYN 模式默认 `CHECKPOINT_INTERVAL=20`（= 655k 步），
+杀训练时最多丢 0.7M 步（固定模式是 100 epoch = 3.3M）。
+
+### 噪声提醒（预注册）
+
+league 占 49% 时，每 epoch 约 **100 局** league 对局；`warm=30` + `ema=20` 的窗口约 2000–3000 局
+⇒ 加权胜率的 CI 约 **±2pp**。也就是说 **+2pp 的触发阈值贴着噪声底**，会偶发误触发。
+
+可调的三个旋钮：
+- `THRESH_PP=3.0` —— 更保守（推荐先用这个）；
+- `LEAGUE_PCT` 提高（上限 0.49）→ 每 epoch 样本更多；
+- `--warm/--ema` 放大 → 曲线更平滑但响应更慢。

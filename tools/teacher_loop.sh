@@ -28,9 +28,15 @@ ROUNDS="${4:-6}"; STEPS="${5:-2000000}"; ALPHA="${6:-0.10}"
 DRY=0; for a in "$@"; do [ "$a" = "--dry" ] && DRY=1; done
 PROMOTE_MARGIN="${PROMOTE_MARGIN:-0.03}"   # 相对镜像基线 B0 的晋升余量（3pp）
 N_GATE="${N_GATE:-400}"
-# 权重快照间隔（epoch）：100 个 epoch = 3.28M 步。50M 跑下来约 15 个快照，
-# 每个都能用 tools/weight_dist.py 量位移 —— 这是判断"值不值得加步数"的唯一依据。
-CHECKPOINT_INTERVAL="${CHECKPOINT_INTERVAL:-100}"
+# ★ 动态切换（默认开）：A 的覆盖率加权对位胜率涨 THRESH_PP 就杀 A、切 B；
+#   B 的胜率回到 baseline 附近就杀 B、结束本轮。设 DYN=0 退回固定步数。
+DYN="${DYN:-1}"
+THRESH_PP="${THRESH_PP:-2.0}"
+# 权重快照间隔（epoch；1 epoch = 32768 步）：
+#   DYN 模式杀训练会丢"最后一个未落盘的 epoch 段"，所以默认加密到 20 epoch（655k 步）；
+#   固定步数模式默认 100 epoch（3.28M 步）。每个快照都能用 tools/weight_dist.py 量位移。
+if [ "$DYN" = 1 ]; then _DEF_CKPT=20; else _DEF_CKPT=100; fi
+CHECKPOINT_INTERVAL="${CHECKPOINT_INTERVAL:-$_DEF_CKPT}"
 
 if [ "$STEPS" -lt 32768 ]; then echo "✗ STEPS < 32768 会全 NaN"; exit 2; fi
 
@@ -49,12 +55,13 @@ A="$INIT_A"; B="$INIT_B"; TEACHER="$INIT_A"
 #    其余 51% 仍是自对弈（learner 自己打覆盖率抽的牌）。
 SHIP_HASH="${SHIP##*__}"
 SHIP_HASH="${SHIP_HASH:0:4}"
-PLAN_BANKS=""; PLAN_DECKS=""; PLAN_PCT=""
+PLAN_BANKS=""; PLAN_DECKS=""; PLAN_PCT=""; PLAN_WEIGHTS=""
 if [ -f tools/choice_to_banks.py ] && [ -f docs/the-pockmon-battle-choice.csv ]; then
   PLAN=$(./tools/py tools/choice_to_banks.py --a-deck "$SHIP_HASH" --emit-env 2>/dev/null || true)
   if [ -n "$PLAN" ]; then
     eval "$PLAN"
     PLAN_BANKS="$BANKS"; PLAN_DECKS="$BANKDECKS"; PLAN_PCT="$LEAGUE_PCT"
+    PLAN_WEIGHTS="${BANK_WEIGHTS:-}"
   fi
 fi
 if [ -z "$PLAN_BANKS" ]; then
@@ -83,8 +90,25 @@ for i in $(seq 1 "$ROUNDS"); do
     DWF=decks/weights_field_b05.txt BANKS=$PLAN_BANKS BANKDECKS=$PLAN_DECKS \
     CHECKPOINT_INTERVAL=$CHECKPOINT_INTERVAL \
     bash tools/db04_line.sh"
-  if [ "$DRY" = 1 ]; then echo "  $TRAIN_A"; else eval "$TRAIN_A" > "$LOG/r${i}A.log" 2>&1 || { echo "  ✗ A 训练失败，看 $LOG/r${i}A.log"; exit 1; }; fi
-  A_NEW="$OUT/r${i}A.bin"
+  if [ "$DRY" = 1 ]; then
+    echo "  $TRAIN_A"
+  elif [ "$DYN" = 1 ]; then
+    # 后台训 + 动态触发器：涨 THRESH_PP 就杀掉训练
+    echo "  [DYN] 启动 A 训练并挂触发器（阈值 +${THRESH_PP}pp）"
+    eval "$TRAIN_A" > "$LOG/r${i}A.log" 2>&1 &
+    TRAIN_PID=$!
+    ./tools/py tools/ab_watch.py --log "$R/logs/r${i}A.log" --mode A \
+        --weights "$PLAN_WEIGHTS" --thresh-pp "$THRESH_PP" \
+        --kill-pattern "run-name r${i}A" >> "$LOG/r${i}A.watch.log" 2>&1
+    wait "$TRAIN_PID" 2>/dev/null || true
+    # 被杀时没有 final.bin，取最新快照
+    A_NEW=$(ls -t "$R/experiments/native-r${i}A/"*.bin 2>/dev/null | grep -v state | head -1)
+    [ -n "$A_NEW" ] && cp -f "$A_NEW" "$OUT/r${i}A.bin" && A_NEW="$OUT/r${i}A.bin"
+    echo "  [DYN] A 阶段结束于 $(basename "${A_NEW:-none}")"
+  else
+    eval "$TRAIN_A" > "$LOG/r${i}A.log" 2>&1 || { echo "  ✗ A 训练失败，看 $LOG/r${i}A.log"; exit 1; }
+  fi
+  A_NEW="${A_NEW:-$OUT/r${i}A.bin}"
   # ② KL 回拉 A → teacher
   A_BLEND="$OUT/r${i}A_blend.bin"
   BLEND_A="env PYTHONPATH=$R PTCG_NW=$R/native/tools/native_weights.py PTCG_BUNDLE=$BUNDLE \
@@ -107,7 +131,21 @@ for i in $(seq 1 "$ROUNDS"); do
     DWF=decks/weights_field_b05.txt BANKS=$INIT_A BANKDECKS=$SHIP \
     P_ANCHOR_LEARNER=0.0 CHECKPOINT_INTERVAL=$CHECKPOINT_INTERVAL \
     bash tools/db04_line.sh"
-  if [ "$DRY" = 1 ]; then echo "  $TRAIN_B"; else eval "$TRAIN_B" > "$LOG/r${i}B.log" 2>&1 || { echo "  ✗ B 训练失败，看 $LOG/r${i}B.log"; exit 1; }; fi
+  if [ "$DRY" = 1 ]; then
+    echo "  $TRAIN_B"
+  elif [ "$DYN" = 1 ]; then
+    echo "  [DYN] 启动 B 训练并挂触发器（B 追回失分即停）"
+    eval "$TRAIN_B" > "$LOG/r${i}B.log" 2>&1 &
+    TRAIN_PID=$!
+    ./tools/py tools/ab_watch.py --log "$R/logs/r${i}B.log" --mode B \
+        --thresh-pp "$THRESH_PP" --kill-pattern "run-name r${i}B" >> "$LOG/r${i}B.watch.log" 2>&1
+    wait "$TRAIN_PID" 2>/dev/null || true
+    B_NEW=$(ls -t "$R/experiments/native-r${i}B/"*.bin 2>/dev/null | grep -v state | head -1)
+    [ -n "$B_NEW" ] && cp -f "$B_NEW" "$OUT/r${i}B.bin"
+    echo "  [DYN] B 阶段结束于 $(basename "${B_NEW:-none}")"
+  else
+    eval "$TRAIN_B" > "$LOG/r${i}B.log" 2>&1 || { echo "  ✗ B 训练失败，看 $LOG/r${i}B.log"; exit 1; }
+  fi
   B="$OUT/r${i}B.bin"
 done
 

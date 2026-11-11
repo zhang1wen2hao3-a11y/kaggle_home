@@ -102,7 +102,7 @@ def main():
     cov_sub = {d: cov[d] for d in decks}
     slots = allocate(cov_sub, min(a.max_banks, len(decks)))
 
-    banks, bankdecks, unknown_pilot, missing_deck = [], [], [], []
+    banks, bankdecks, bankw, unknown_pilot, missing_deck = [], [], [], [], []
     for d, k in sorted(slots.items(), key=lambda t: -t[1]):
         pilot = pilots[d]
         if pilot not in pmap:
@@ -115,6 +115,7 @@ def main():
         for _ in range(k):
             banks.append(pmap[pilot])
             bankdecks.append(full)
+            bankw.append(round(cov[d], 4))
 
     n = len(banks)
     pct = round(a.quota / n, 5)
@@ -131,11 +132,13 @@ def main():
         print(f"\nBANKS={','.join(banks)}")
         print(f"BANKDECKS={','.join(bankdecks)}")
         print(f"LEAGUE_PCT={pct}   （= {a.quota}/{n}，须 <0.5）")
+        print(f"BANK_WEIGHTS={','.join(str(x) for x in bankw)}")
         print(f"\n剩余 {100*(1-a.quota):.0f}% 对局仍为自对弈（引擎硬限制）")
     else:
         print(f"BANKS={','.join(banks)}")
         print(f"BANKDECKS={','.join(bankdecks)}")
         print(f"LEAGUE_PCT={pct}")
+        print(f"BANK_WEIGHTS={','.join(str(x) for x in bankw)}")
     return 0
 
 
