@@ -67,3 +67,8 @@ ptcg_league/evalnode.json
 
 # 打包出来的训练/评估 kit（165MB，可重建）
 build/loop_kit/
+
+# 第三方参考工程（只读样本，不入库）
+samples/
+# 用户文档
+*.docx
