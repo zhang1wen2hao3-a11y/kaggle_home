@@ -1,0 +1,182 @@
+#!/usr/bin/env python3
+"""填充 docs/the-pockmon-battle-{cards,match,players}.csv 三张表（GBK 编码，与模板一致）。
+
+数据来源与口径：
+  cards   卡组宇宙    ← data/ladder_games.tsv（1756 局真人天梯档案，双座位都计入）
+  match   对位记录    ← ①真人 vs 真人（同档案）②我们 vs 对手（data/our_games.tsv，640 局）
+                        ③端口 vs 端口（data/scheduler/matrix_full.csv，49 格）
+  players 选手/克隆体 ← 档案里的 (卡组, 选手) 组合 + 我们本地各 agent 目录（端口/BC/训练）
+
+字段（模板原样）：
+  cards   : DeckID, 卡组, Meta 占比, 样本局数
+  match   : DeckID, 玩家卡组, 玩家, DeckID, 对手卡组, 对手, 胜局, 败局, 平局
+  players : DeckID, 玩家, 类型, 父玩家, 卡组, Checkpoint, 数据来源
+"""
+import collections, csv, json, os, glob
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DOCS = os.path.join(ROOT, "docs")
+ENC = "gb18030"   # GBK 的超集：模板是 GBK，但选手名含越南语/土耳其语字符，GBK 编不下
+
+# ---------- 卡组哈希 → 全名 ----------
+H2NAME = {}
+for p in glob.glob(os.path.join(ROOT, "decks", "pool_field", "*.csv")):
+    base = os.path.basename(p)[:-4]
+    if "__" in base:
+        H2NAME.setdefault(base.split("__")[-1][:4], base)
+# 档案里的 8 位哈希也注册进来
+for r in csv.DictReader(open(os.path.join(ROOT, "data", "ladder_games.tsv")), delimiter="\t"):
+    for k in ("seat0_deck", "seat1_deck"):
+        h = (r.get(k) or "")
+        if len(h) >= 4:
+            H2NAME.setdefault(h[:4], h)
+
+def name_of(h):
+    return H2NAME.get(h[:4], h[:4])
+
+LB = json.load(open(os.path.join(ROOT, "data", "lb_scores.json")))
+
+# ---------- cards：真人天梯档案的卡组分布 ----------
+arch = list(csv.DictReader(open(os.path.join(ROOT, "data", "ladder_games.tsv")), delimiter="\t"))
+appear = collections.Counter()
+for r in arch:
+    for k in ("seat0_deck", "seat1_deck"):
+        h = (r.get(k) or "")
+        if h: appear[h[:4]] += 1
+tot = sum(appear.values())
+cards = []
+for h, n in appear.most_common():
+    cards.append(dict(DeckID=h, 卡组=name_of(h), Meta占比=round(n / tot * 100, 2), 样本局数=n))
+
+# ---------- match ----------
+matches = []
+# ① 真人 vs 真人
+pair = collections.defaultdict(lambda: [0, 0])   # (d0,a0,d1,a1) -> [胜, 负]
+for r in arch:
+    d0, a0 = (r.get("seat0_deck") or "")[:4], r.get("seat0_agent") or ""
+    d1, a1 = (r.get("seat1_deck") or "")[:4], r.get("seat1_agent") or ""
+    w = r.get("winner")
+    if not (d0 and d1 and w in ("0", "1")):
+        continue
+    if w == "0": pair[(d0, a0, d1, a1)][0] += 1
+    else:        pair[(d0, a0, d1, a1)][1] += 1
+for (d0, a0, d1, a1), (win, lose) in sorted(pair.items(), key=lambda t: -(t[1][0] + t[1][1])):
+    if win + lose < 3:          # 少于 3 局的组合噪声太大
+        continue
+    matches.append(dict(DeckID=d0, 玩家卡组=name_of(d0), 玩家=a0, DeckID2=d1,
+                        对手卡组=name_of(d1), 对手=a1, 胜局=win, 败局=lose, 平局=0))
+n_human = len(matches)
+
+# ② 我们 vs 对手
+ours = list(csv.DictReader(open(os.path.join(ROOT, "data", "our_games.tsv")), delimiter="\t"))
+pm = collections.defaultdict(lambda: [0, 0])
+for r in ours:
+    d0 = (r.get("our_deck") or "")[:4]; d1 = (r.get("opp_deck") or "")[:4]
+    if not (d0 and d1) or r.get("result") not in ("0", "1"):
+        continue
+    sub = r.get("submission") or "ours"
+    key = (d0, sub, d1, r.get("opponent") or "")
+    if r["result"] == "1": pm[key][0] += 1
+    else:                  pm[key][1] += 1
+for (d0, sub, d1, opp), (w, l) in sorted(pm.items(), key=lambda t: -(t[1][0] + t[1][1])):
+    matches.append(dict(DeckID=d0, 玩家卡组=name_of(d0), 玩家=sub, DeckID2=d1,
+                        对手卡组=name_of(d1), 对手=opp, 胜局=w, 败局=l, 平局=0))
+n_ours = len(matches) - n_human
+
+# ③ 端口 vs 端口（49 格矩阵）
+mp = os.path.join(ROOT, "data", "scheduler", "matrix_full.csv")
+n_matrix = 0
+if os.path.exists(mp):
+    for r in csv.DictReader(open(mp)):
+        n = int(float(r["n_games"])); wr = float(r["cand_win"])
+        win = round(wr * n); lose = n - win
+        matches.append(dict(DeckID=r["cand_deck"], 玩家卡组=name_of(r["cand_deck"]),
+                            玩家="端口权重", DeckID2=r["opp_deck"],
+                            对手卡组=name_of(r["opp_deck"]), 对手="端口权重",
+                            胜局=win, 败局=lose, 平局=0))
+        n_matrix += 1
+
+# ---------- players ----------
+players = []
+# 真人：每个(卡组,选手)，≥2 局
+pg = collections.Counter()
+for r in arch:
+    for dk, ag in (("seat0_deck", "seat0_agent"), ("seat1_deck", "seat1_agent")):
+        h = (r.get(dk) or "")[:4]; a = r.get(ag) or ""
+        if h and a: pg[(h, a)] += 1
+for (h, a), n in sorted(pg.items(), key=lambda t: (-t[1], t[0])):
+    if n < 2: continue
+    players.append(dict(DeckID=h, 玩家=a, 类型="真人", 父玩家="", 卡组=name_of(h),
+                        Checkpoint="", 数据来源=f"Kaggle 回放（{n} 局）"))
+
+# 本地 agent：从 deck.csv 反查卡组
+def deck_of(agent_dir):
+    """用 deck.csv 内容比对 pool_field，认出这个 agent 打哪副牌。"""
+    p = os.path.join(agent_dir, "deck.csv")
+    if not os.path.exists(p): return ""
+    try:
+        a = open(p).read()
+    except Exception:
+        return ""
+    for q in glob.glob(os.path.join(ROOT, "decks", "pool_field", "*.csv")):
+        try:
+            if open(q).read() == a:
+                return os.path.basename(q)[:-4]
+        except Exception:
+            pass
+    return ""
+
+# 类型按**权重身份**判定（比目录名前缀可靠）：
+#   端口权重 md5 8b5fcda672ac → 端口基线；BC 父权重 6007d6f083 → BC克隆；其余 → PPO训练
+import hashlib
+def md5_of(path):
+    try:
+        return hashlib.md5(open(path, "rb").read()).hexdigest()[:12]
+    except Exception:
+        return ""
+PORT_MD5 = "8b5fcda672ac"
+BC_MD5 = "6007d6f083"        # g8_bc_parent / opp_shuppet_human 同一份 BC 父权重
+for d in sorted(glob.glob(os.path.join(ROOT, "build", "agents", "*"))):
+    if not os.path.isdir(d): continue
+    deckname = deck_of(d)
+    if not deckname: continue
+    base = os.path.basename(d)
+    m = md5_of(os.path.join(d, "model.pt"))
+    if m == PORT_MD5:
+        kind = "端口基线"
+    elif m.startswith(BC_MD5):
+        kind = "BC克隆"
+    else:
+        kind = "PPO训练"
+    parent = ""
+    if kind == "BC克隆":
+        # 找该卡组语料最好的真人教师（帧数最多者）
+        best = max(((n, a) for (h, a), n in pg.items() if h == deckname.split("__")[-1][:4]),
+                   default=(0, ""))
+        parent = best[1]
+    players.append(dict(DeckID=deckname.split("__")[-1][:4], 玩家=base, 类型=kind,
+                        父玩家=parent, 卡组=deckname,
+                        Checkpoint=f"build/agents/{base}/model.pt",
+                        数据来源="我们训练" if kind != "端口基线" else "端口仓库权重"))
+
+# ---------- 写盘 ----------
+def write(path, header, rows, fields):
+    with open(path, "w", newline="", encoding=ENC, errors="replace") as f:
+        w = csv.writer(f)
+        w.writerow(header)
+        for r in rows:
+            w.writerow([r.get(k, "") for k in fields])
+
+write(os.path.join(DOCS, "the-pockmon-battle-cards.csv"),
+      ["DeckID", "卡组", "Meta 占比", "样本局数"], cards, ["DeckID", "卡组", "Meta占比", "样本局数"])
+write(os.path.join(DOCS, "the-pockmon-battle-match.csv"),
+      ["DeckID", "玩家卡组", "玩家", "DeckID", "对手卡组", "对手", "胜局", "败局", "平局"],
+      matches, ["DeckID", "玩家卡组", "玩家", "DeckID2", "对手卡组", "对手", "胜局", "败局", "平局"])
+write(os.path.join(DOCS, "the-pockmon-battle-players.csv"),
+      ["DeckID", "玩家", "类型", "父玩家", "卡组", "Checkpoint", "数据来源"],
+      players, ["DeckID", "玩家", "类型", "父玩家", "卡组", "Checkpoint", "数据来源"])
+
+print(f"cards   : {len(cards)} 行（档案 {tot} 个座位出现）")
+print(f"match   : {len(matches)} 行 = 真人 {n_human} + 我们 {n_ours} + 端口矩阵 {n_matrix}")
+print(f"players : {len(players)} 行 = 真人 {sum(1 for p in players if p['类型']=='真人')} "
+      f"+ 本地 agent {sum(1 for p in players if p['类型']!='真人')}")
