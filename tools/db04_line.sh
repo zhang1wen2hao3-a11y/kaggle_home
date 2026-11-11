@@ -52,6 +52,10 @@ LEAGUE_PCT="${LEAGUE_PCT:-0.08}"
 # ★ bank 绑牌：与 BANKS 逐位对应；"-" 表示该 bank 不绑定（保留全局权重抽样）。
 #   例：BANKS=a.bin,b.bin BANKDECKS=shuppet_dhelmise__0d86,-
 BANKDECKS="${BANKDECKS:-}"
+# ★ 座位抽牌概率（two-net 循环里，B 阶段要让 learner 打所有牌 → P_ANCHOR_LEARNER=0）
+P_ANCHOR_LEARNER="${P_ANCHOR_LEARNER:-1.0}"
+P_ANCHOR_SELF_OPP="${P_ANCHOR_SELF_OPP:-0.0}"
+P_ANCHOR_LEAGUE_OPP="${P_ANCHOR_LEAGUE_OPP:-0.0}"
 TAG="${TAG:-db04}"
 RUN="${RUN:-$(basename "${INIT%.bin}" | sed 's/_db04$//')_$TAG}"
 CHECK_ONLY=0
@@ -199,7 +203,7 @@ PYTHONPATH=data:.:native PTCG_TABLES=native/ptcg_tables_field.bin OMP_WAIT_POLIC
   --lr "$LR" --seed "$SEED" \
   --deck-pool "$POOL" --deck-weights-file "$DWF" \
   --anchor-decks "$ANCHOR" --track-decks "$TRACK" \
-  --p-anchor-learner 1.0 --p-anchor-self-opp 0.0 --p-anchor-league-opp 0.0 \
+  --p-anchor-learner "$P_ANCHOR_LEARNER" --p-anchor-self-opp "$P_ANCHOR_SELF_OPP" --p-anchor-league-opp "$P_ANCHOR_LEAGUE_OPP" \
   ${BANKS:+--league-ckpts "$BANKS" --league-pct "$LEAGUE_PCT"} \
   ${BANKDECKS:+--bank-decks "$BANKDECKS"} \
   2>&1 | tee "logs/$RUN.log" | grep -E "anchor decks resolved|deck weights|REJECTED|epoch 5 |epoch 10 |final" | head -8
