@@ -12,33 +12,47 @@
   Excel 直接双击可正常显示。
 - 表头与模板**逐字一致**，未增删列。
 
-## 卡组名聚合规则（2026-11-06 新增）
+## 卡组名聚合规则（2026-11-06 更新：真复合用 A-B，微调仍用主体名）
 
-原始卡组名是 `<archetype>__<hash>`（如 `slowpoke_slowking__26c6`），太长且同一 archetype 有多个 decklist。
-现在统一映射到**简洁主体名**，规则是「取牌组主体（主攻手/最终进化），主体基本一致就归同一个名字」：
+原始卡组名是 `<archetype>__<hash>`，太长且同 archetype 有多个 decklist。统一映射到简洁名，规则：
 
-| 例子 | 简洁名 | 判定依据 |
+| 情形 | 命名 | 例子 |
 |---|---|---|
-| `slowpoke_slowking__*` | **slowking** | 进化线慢波→呆壳兽，最终进化 |
-| `teal_mask_ogerpon_ex_applin__*` | **ogerpon** | 主攻手是厄鬼椪 |
-| `dunsparce_abra__*` / `abra_kadabra__*` | **alakazam** | 60 张里 Abra+Kadabra+Alakazam 有 12 张、Dunsparce+Dudunsparce 只有 7 张 ⇒ 主体是胡地，土龙节节是抽牌引擎 |
-| `dreepy_drakloak__*` / `z_dragapult_dreepy_petit__*` | **dragapult** | 进化线最终形态 |
-| `shuppet_dhelmise__*` / `shuppet_banette__*` | **shuppet** | 约定俗成 + 本项目一贯叫法（进化终点其实是 Banette） |
+| **真·复合**：两条线各 ≥4 张（各是一个完整体系） | **A-B**（按卡数降序，最多 3 段） | `dunsparce_dudunsparce` → **dunsparce-froslass**；`abra_kadabra` → **alakazam-dunsparce** |
+| **微调**：第二条线只有 2~3 张 | **单主体名** | `dreepy_drakloak`（munkidori 仅 1.5 张）→ **dragapult**；`dwebble_crustle`（kangaskhan 1.7 张）→ **crustle** |
 
-**46 个 archetype → 26 个主体名**。完整映射表在 `tools/build_battle_tables.py` 的 `ARCH2SHORT`，
-改一行就能重新归属（表是可审计、可覆盖的，不是硬编码猜的）。
+**判据是实测卡数**（不是猜）：对每个 archetype，取 `data/deck_corpus.csv` 里它的所有 60 张实卡，
+按卡表进化链归到各条线，算平均卡数；**≥4 张 = 真体系，2~3 张 = 微调**。
 
-几个判断说明（可覆盖）：
-- `dunsparce_dudunsparce` / `dudunsparce_dunsparce` 保留为 **dudunsparce**（没有胡地线，纯土龙节节引擎）。
-- `raging_bolt_ex_teal_mask_ogerpon_ex` 归到 **ogerpon**（虽然主攻是猛雷鼓，但只有 1 个样本，影响极小）。
-- `mega_kangaskhan_ex_dwebble` / `cinderace_mega_kangaskhan_ex` / `slowpoke_mega_kangaskhan_ex` 都归 **kangaskhan**。
+46 个 archetype → **36 个名字**，其中 **23 个复合名**。完整表在
+`tools/build_battle_tables.py` 的 `ARCH2SHORT`（改一行就能覆盖生成结果）。
 
-## cards.csv —— 卡组宇宙（26 行，按主体聚合）
+典型例子：
+
+| archetype | 卡数构成 | 名字 |
+|---|---|---|
+| `teal_mask_ogerpon_ex_applin`（我们的 7e39） | applin 6.0 + meganium 5.5 + ogerpon 4.0 | **applin-meganium-ogerpon** |
+| `dunsparce_abra`（我们的 0bf5/9d6e/db04） | alakazam 11.9 + dunsparce 7.0 | **alakazam-dunsparce** |
+| `grookey_thwackey`（我们的 2617） | rillaboom 8.0 + applin 7.7 | **rillaboom-applin** |
+| `shuppet_dhelmise`（我们的 0d86） | shuppet 7.0 + dunsparce 5.0 + dhelmise 4.0 | **shuppet-dunsparce-dhelmise** |
+| `dreepy_drakloak` | dragapult 10.9 + munkidori 1.5 | **dragapult**（微调） |
+| `slowpoke_slowking` | slowking 7.0 + kangaskhan 3.0 | **slowking**（微调） |
+
+⚠️ **判断说明**（可覆盖）：
+- 顺序按**卡数降序**，不是按"招牌卡"。所以 7e39 排成 `applin-meganium-ogerpon`（applin 卡最多），
+  若想按招牌名排成 `ogerpon-applin-meganium`，改 `ARCH2SHORT` 一行即可。
+- 3 段的（`shuppet-dunsparce-dhelmise`、`applin-meganium-ogerpon`、`dwebble-cinderace-kangaskhan`、
+  `great_tusk-koraidon-stonjourner`、`grimmsnarl-froslass-munkidori`、`dwebble-froslass-munkidori`）
+  都是三条线各 ≥4 张，压缩到 2 段会丢信息。
+- 两个 1~4 样本的怪牌手动修正：`hop_s_snorlax_hop_s_cramorant` → `cramorant-kangaskhan`；
+  `girafarig_enamorus` → `girafarig`（实卡里没有 girafarig 线，属数据噪声）。
+
+## cards.csv —— 卡组宇宙（36 行，按主体/复合聚合）
 
 | 列 | 口径 |
 |---|---|
 | `DeckID` | 该主体下**样本最多的那个 decklist** 哈希（代表，不是穷举） |
-| `卡组` | 主体名（上节映射） |
+| `卡组` | 主体/复合名（上节映射） |
 | `Meta 占比` | 该主体在 1756 局真人天梯档案里的出现占比（同一主体多个 decklist 相加） |
 | `样本局数` | 座位出现次数（一局 2 个座位） |
 
