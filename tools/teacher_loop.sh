@@ -136,7 +136,7 @@ for i in $(seq 1 "$ROUNDS"); do
     eval "$TRAIN_A" > "$LOG/r${i}A.log" 2>&1 &
     TRAIN_PID=$!
     PY_WATCH="${PY_WATCH:-}"; [ -z "$PY_WATCH" ] && { [ -x ./tools/py ] && PY_WATCH=./tools/py || PY_WATCH="$PY"; }
-    $PY_WATCH tools/ab_watch.py --log "$R/logs/r${i}A.log" --mode A \
+    $PY_WATCH tools/ab_watch.py --pid "$TRAIN_PID" --log "$R/logs/r${i}A.log" --mode A \
         --weights "${A_WEIGHTS:-$PLAN_WEIGHTS}" --thresh-pp "$THRESH_PP" \
         --kill-pattern "run-name r${i}A" >> "$LOG/r${i}A.watch.log" 2>&1
     wait "$TRAIN_PID" 2>/dev/null || true
@@ -178,7 +178,7 @@ for i in $(seq 1 "$ROUNDS"); do
     eval "$TRAIN_B" > "$LOG/r${i}B.log" 2>&1 &
     TRAIN_PID=$!
     PY_WATCH="${PY_WATCH:-}"; [ -z "$PY_WATCH" ] && { [ -x ./tools/py ] && PY_WATCH=./tools/py || PY_WATCH="$PY"; }
-    $PY_WATCH tools/ab_watch.py --log "$R/logs/r${i}B.log" --mode B \
+    $PY_WATCH tools/ab_watch.py --pid "$TRAIN_PID" --log "$R/logs/r${i}B.log" --mode B \
         --thresh-pp "$THRESH_PP" --kill-pattern "run-name r${i}B" >> "$LOG/r${i}B.watch.log" 2>&1
     wait "$TRAIN_PID" 2>/dev/null || true
     B_NEW=$(ls -t "$R/experiments/native-r${i}B/"*.bin 2>/dev/null | grep -v state | head -1)

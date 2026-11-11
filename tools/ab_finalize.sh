@@ -21,8 +21,9 @@ say() { echo "[$(date +%T)] $*" | tee -a "$LOG"; }
 
 say "=== 等待 A/B 跑完（每 3 分钟查一次）==="
 while true; do
-  n=$($SSH "ps -eo args | grep -c '[t]eacher_loop.sh slowpoke'" 2>/dev/null || echo 1)
-  if [ "${n:-1}" -eq 0 ]; then say "teacher_loop 已退出"; break; fi
+  n=$($SSH "ps -eo args | grep -c '[t]eacher_loop.sh slowpoke' || true" 2>/dev/null)
+  n=$(echo "$n" | head -1 | tr -dc '0-9')
+  if [ "${n:-1}" = "0" ]; then say "teacher_loop 已退出"; break; fi
   say "还在跑（teacher_loop 进程数=$n）"
   sleep 180
 done

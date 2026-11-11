@@ -62,12 +62,22 @@ def main():
     ap.add_argument("--kill-pattern", default="", help="触发后 pkill -f 这个模式")
     ap.add_argument("--poll", type=float, default=5.0)
     ap.add_argument("--max-wait", type=float, default=0.0, help="秒；0=不限")
+    ap.add_argument("--pid", type=int, default=0, help="训练进程 pid；它退出就结束（防止无限等待）")
     a = ap.parse_args()
 
     weights = [float(x) for x in a.weights.split(",") if x.strip()] or [1.0]
     seen = []          # [(ep, step, wr)]
     t0 = time.time()
+    def alive(pid):
+        if pid <= 0: return True
+        try:
+            os.kill(pid, 0); return True
+        except OSError:
+            return False
     while True:
+        if not alive(a.pid):
+            print(f"[watch] 训练进程 {a.pid} 已退出且未触发阈值（看了 {len(seen)} 个 epoch）", flush=True)
+            return 3
         if a.max_wait > 0 and time.time() - t0 > a.max_wait:
             print(f"[watch] 超时未触发，放弃（已看 {len(seen)} 个 epoch）"); return 2
         if not os.path.exists(a.log):
