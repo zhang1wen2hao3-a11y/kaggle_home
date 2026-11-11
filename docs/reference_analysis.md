@@ -287,3 +287,45 @@ watcher 的加权里，B 槽按覆盖率均值 1.0 计（它打全池）。
 
 ⚠️ 语义提醒：第 1 轮 B 阶段的门控晋升用的是"镜像 h2h A vs teacher"，
 而 B 阶段对手是 A —— 两者测的不是同一个量，**不要用 B 阶段的训练胜率当晋升依据**。
+
+## 切换到纯交替自博弈（MODE=ab，2026-11-06）
+
+用户拍板：**与参考工程对齐**——A/B 攻防交替，一侧稳定提升 **2pp** 就换边，跑满指定轮数后两侧停止。
+不再需要"49% 冻结 + 51% 自对弈"的混合方案。
+
+### 机制差异（为什么这次可以不要 50% 上限）
+
+| | 混合模式（MODE=matrix） | 纯交替（MODE=ab） |
+|---|---|---|
+| 行构成 | 49% 冻结对手 + 51% 自对弈 | **100% 冻结对手**（单智能体收集） |
+| learner 策略梯度 | 自对弈半边给双份（negamax） | 只有自己那半边 |
+| `league_pct × n_banks` | 必须 <0.5 | **=1.0** |
+| 对手 | choice 矩阵驾驶员（静态清单） | **当前 B / 当前 A**（活对手，每轮更新） |
+
+参考工程的 finetune 就是后者：*"the live net always pilots --finetune-deck; the other seat is a
+FROZEN net (--opponent-ckpt)... **Collection becomes single-agent**"*。
+
+### 改动
+
+1. **`train_native.py`**：`assert league_pct*n < 0.5` → `assert 0 < league_pct*n <= 1.0`，
+   并在一侧 >50% 时打警告（提醒"纯交替模式：learner 没有 live 对手信号，靠 teacher KL 锚 + 离线审计"）。
+2. **`teacher_loop.sh`**：新增 `MODE=ab`（默认）。A 阶段 `BANKS=$B`（不钉牌 → B 按覆盖率抽全池）、
+   `LEAGUE_PCT=1.0`；B 阶段 `BANKS=$A`（绑舰牌）、`LEAGUE_PCT=1.0`。
+3. **修 bug**：`A_NEW/B_NEW` 跨轮未重置，导致第 2 轮 B 阶段的对手停在第 1 轮 A 上（已修，dry-run 验证）。
+4. **`launch_ab.sh`** 默认：`MODE=ab`、`THRESH_PP=2.0`、`ROUNDS=3`。
+
+### 交替链（dry-run 实测）
+
+```
+r1A: INIT=init        BANKS=B(init)      league=100%
+r1B: INIT=init        BANKS=A(r1A)       league=100%
+r2A: INIT=A(r1A)      BANKS=B(r1B)       league=100%   ← 增强的 B 回流成对手
+r2B: INIT=B(r1B)      BANKS=A(r2A)       league=100%   ← 增强的 A 回流成对手
+... 满 ROUNDS 轮后停止
+```
+
+### 附带收益与风险
+
+- **收益**：league 行从 49% 提到 100% ⇒ 每 epoch 样本翻倍，加权胜率噪声 ±2pp → **±1.4pp**，2pp 阈值更可信。
+- **风险**：learner 完全没有 live 对手信号，对手质量决定一切（Goodhart）。
+  缓解：KL 回拉 α=0.10 + 门控晋升（镜像 h2h）+ **只用离线审计判断**，不看训练胜率。

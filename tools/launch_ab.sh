@@ -17,12 +17,14 @@ cd /root/ptcg_train_kit/port_repo
 
 SHIP="${SHIP:-slowpoke_slowking__26c6}"
 STEPS="${STEPS:-25000000}"        # 每阶段步数；总计 = 2 × STEPS × ROUNDS
-ROUNDS="${ROUNDS:-3}"          # 对齐参考工程的 6–8 轮交替（我们先用 3 轮）
+ROUNDS="${ROUNDS:-3}"          # 跑满 N 轮后两侧停止（参考工程 6–8 轮，我们先用 3）
+MODE="${MODE:-ab}"             # ab = 纯交替（A/B 互相当对手，100% 行）；matrix = 旧混合方案
+THRESH_PP="${THRESH_PP:-2.0}"  # 一侧稳定提升 2pp 就换边（参考工程写盘口径；代码默认 3pp）
 INIT="${INIT:-/root/kl/port_w.bin}"
 OUT="${OUT:-/root/autodl-tmp/teacher_loop_ab}"
 ALPHA="${ALPHA:-0.10}"
 CHECKPOINT_INTERVAL="${CHECKPOINT_INTERVAL:-20}"   # DYN 模式：杀训练最多丢 655k 步
-THRESH_PP="${THRESH_PP:-3.0}"          # 对齐参考工程 cross-gate-delta 0.03，也更抗我们的 ±2pp 噪声
+
 B_SLOTS="${B_SLOTS:-2}"
 PROMOTE_MARGIN="${PROMOTE_MARGIN:-0.03}"
 N_GATE="${N_GATE:-400}"
@@ -45,11 +47,13 @@ grep -q bank_deck native/ptcg/env.c 2>/dev/null && echo "  ✓ bank-decks 补丁
 TOTAL=$(( STEPS * 2 * ROUNDS ))
 HRS=$(awk -v s="$TOTAL" 'BEGIN{printf "%.1f", s/957/3600}')
 echo
-echo "A/B 长跑：SHIP=$SHIP  每阶段 $((STEPS/1000000))M 步 × 2 × $ROUNDS 轮 = $((TOTAL/1000000))M 步"
+echo "A/B 长跑：SHIP=$SHIP  MODE=$MODE  每阶段上限 $((STEPS/1000000))M 步 × 2 × $ROUNDS 轮 = $((TOTAL/1000000))M 步（上限）"
+echo "换边阈值：一侧覆盖率加权胜率 +${THRESH_PP}pp（动态，早到顶早换边，不会跑满上限）"
 echo "预计 ${HRS} 小时（957 SPS）  快照间隔 $((CHECKPOINT_INTERVAL*32768/1000000)).2M 步"
 
-nohup env STEPS="$STEPS" ROUNDS="$ROUNDS" OUT="$OUT" ALPHA="$ALPHA" \
-  CHECKPOINT_INTERVAL="$CHECKPOINT_INTERVAL" PROMOTE_MARGIN="$PROMOTE_MARGIN" N_GATE="$N_GATE" \
+nohup env STEPS="$STEPS" ROUNDS="$ROUNDS" OUT="$OUT" ALPHA="$ALPHA" MODE="$MODE" \
+  THRESH_PP="$THRESH_PP" CHECKPOINT_INTERVAL="$CHECKPOINT_INTERVAL" \
+  PROMOTE_MARGIN="$PROMOTE_MARGIN" N_GATE="$N_GATE" \
   bash tools/teacher_loop.sh "$SHIP" "$INIT" "$INIT" "$ROUNDS" "$STEPS" "$ALPHA" \
   > "$OUT/run.log" 2>&1 &
 echo "✓ 已启动 pid=$!   日志 $OUT/run.log"

@@ -30,6 +30,13 @@ PROMOTE_MARGIN="${PROMOTE_MARGIN:-0.03}"   # 相对镜像基线 B0 的晋升余�
 N_GATE="${N_GATE:-400}"
 # ★ 动态切换（默认开）：A 的覆盖率加权对位胜率涨 THRESH_PP 就杀 A、切 B；
 #   B 的胜率回到 baseline 附近就杀 B、结束本轮。设 DYN=0 退回固定步数。
+# ★ 训练模式
+#   MODE=ab     —— 纯交替（默认，对齐参考工程 two-net finetune）：
+#                  A 训时对手 = 当前 B（打覆盖率牌池），100% 行都是冻结对手
+#                  B 训时对手 = 当前 A（绑舰牌），同样 100%
+#                  两侧交替，某一侧涨 THRESH_PP 就换边；跑满 ROUNDS 轮停止。
+#   MODE=matrix —— 旧的混合方案：对手 = choice 矩阵驾驶员（覆盖率分槽）+ 51% 自对弈。
+MODE="${MODE:-ab}"
 # ★ 多轮时把"上一轮的增强模型"带进新一轮：
 #   A 阶段：矩阵驾驶员之外，额外挂 B 的当前权重若干槽（不钉牌 → 按覆盖率抽牌）
 #   B 阶段：对手 A 用**当前 A**（第 1 轮就是刚训完的 A），不再固定 init
@@ -87,7 +94,12 @@ echo "镜像基线 B0 = $B0（晋升阈值 = $B0 + $PROMOTE_MARGIN）"
 promote() { awk -v w="$1" -v b="$B0" -v m="$PROMOTE_MARGIN" 'BEGIN{ exit !(w+0 >= b+m) }'; }
 
 for i in $(seq 1 "$ROUNDS"); do
+  A_NEW=""; B_NEW=""      # ★ 每轮必须重置，否则上一轮的值会漏到这一轮（曾导致 B 阶段对手停在旧 A）
   # ── ① 训 A：learner=A 打舰牌；对手 = 矩阵驾驶员 + 当前 B（多轮时才挂 B）──
+  if [ "$MODE" = "ab" ]; then
+    A_BANKS="$B"; A_DECKS=""; A_PCT="1.0"; A_WEIGHTS="1.0"
+    echo "  [round $i] MODE=ab：A 的对手 = 当前 B（$(basename "$B")），100% 行，B 按覆盖率抽牌"
+  else
   A_BANKS="$PLAN_BANKS"; A_DECKS="$PLAN_DECKS"; A_WEIGHTS="$PLAN_WEIGHTS"
   N_MATRIX=0
   [ -n "$PLAN_BANKS" ] && N_MATRIX=$(echo "$PLAN_BANKS" | tr ',' '\n' | wc -l)
@@ -107,6 +119,7 @@ for i in $(seq 1 "$ROUNDS"); do
   else
     A_PCT="$PLAN_PCT"
     echo "  [round $i] A 阶段对手 = $N_MATRIX 个矩阵槽（B 还是 init，不额外挂）"
+  fi
   fi
   echo "===== 第 $i 轮 A：训舰牌专精（对手=B 冻结，打所有牌）====="
   cd "$R"
@@ -153,7 +166,7 @@ for i in $(seq 1 "$ROUNDS"); do
   if [ "$B_OPP" = "init" ]; then B_OPP_BIN="$INIT_A"; else B_OPP_BIN="$A"; fi
   echo "===== 第 $i 轮 B：训通才（对手=A 用 $(basename "$B_OPP_BIN")，打舰牌）====="
   TRAIN_B="env PYTHON=$PY INIT=$B OUT=$OUT RUN=r${i}B T=$STEPS THREADS=8 \
-    LEAGUE_PCT=0.49 SEED=$((424242 + i + 1000)) ANCHOR=$SHIP TRACK=$SHIP \
+    LEAGUE_PCT=$([ "$MODE" = "ab" ] && echo 1.0 || echo 0.49) SEED=$((424242 + i + 1000)) ANCHOR=$SHIP TRACK=$SHIP \
     DWF=decks/weights_field_b05.txt BANKS=$B_OPP_BIN BANKDECKS=$SHIP \
     P_ANCHOR_LEARNER=0.0 CHECKPOINT_INTERVAL=$CHECKPOINT_INTERVAL \
     bash tools/db04_line.sh"
