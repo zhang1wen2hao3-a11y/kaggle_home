@@ -265,3 +265,25 @@ league 占 49% 时，每 epoch 约 **100 局** league 对局；`warm=30` + `ema=
 - `THRESH_PP=3.0` —— 更保守（推荐先用这个）；
 - `LEAGUE_PCT` 提高（上限 0.49）→ 每 epoch 样本更多；
 - `--warm/--ema` 放大 → 曲线更平滑但响应更慢。
+
+## 多轮交替：每轮必须带上"增强后的 A/B"（2026-11-06）
+
+参考工程是 **6–8 轮**交替（`--ft-balance-mode turns`：*"promotion-driven strict alternation; phase ends
+when the trainee earns its cross-gate promotion, `--ft-phase-timebox` 120M backstop"*），
+门槛 `--cross-gate-delta 0.03` = **3pp**，且是相对"冻结 vs 冻结"基线（因为对位 EV ≠ 0.5）。
+
+我们原来的 `teacher_loop.sh` 有个致命缺陷：**多轮时 A 的对手仍来自静态 choice 表，B 的增强权重从不回流**，
+第 2 轮等于把第 1 轮重跑一遍。已修：
+
+| 阶段 | 第 1 轮 | 第 i≥2 轮 |
+|---|---|---|
+| A 训 | 对手 = 矩阵驾驶员（9 槽） | 对手 = 矩阵驾驶员 **+ 当前 B 的 2 个槽**（`B_SLOTS=2`，不钉牌 → 按覆盖率抽牌） |
+| B 训 | 对手 A = 刚训完的 A | 对手 A = 上一轮的 A（`B_OPP=A` 默认；可设 `init` 回退） |
+
+槽位分配：`league_pct = 0.49 / (矩阵槽 + B_SLOTS)`，仍然卡在引擎 50% 上限内。
+watcher 的加权里，B 槽按覆盖率均值 1.0 计（它打全池）。
+
+**默认值同步**：`ROUNDS=3`（先用 3 轮验证，参考工程是 6–8）、`THRESH_PP=3.0`（对齐 cross-gate-delta 0.03）。
+
+⚠️ 语义提醒：第 1 轮 B 阶段的门控晋升用的是"镜像 h2h A vs teacher"，
+而 B 阶段对手是 A —— 两者测的不是同一个量，**不要用 B 阶段的训练胜率当晋升依据**。

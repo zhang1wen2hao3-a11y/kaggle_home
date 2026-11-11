@@ -10,18 +10,20 @@
 #   B 阶段：B=通才（覆盖率先验抽所有牌），对手 A 用 **init** 权重打舰牌
 #   每轮结束做 KL 回拉 + 门控晋升（镜像 h2h ≥ B0+3pp 才把 teacher 换成 A）
 #
-# 权重快照：CHECKPOINT_INTERVAL=100 epoch（= 3.28M 步），50M 跑下来约 15 个，
+# 权重快照：DYN 模式默认 20 epoch（= 655k 步）——杀训练最多丢 655k 步；
 # 每个都能用 `./tools/py tools/weight_dist.py --bin <快照>` 量位移 → 判 scaling。
 set -uo pipefail
 cd /root/ptcg_train_kit/port_repo
 
 SHIP="${SHIP:-slowpoke_slowking__26c6}"
 STEPS="${STEPS:-25000000}"        # 每阶段步数；总计 = 2 × STEPS × ROUNDS
-ROUNDS="${ROUNDS:-1}"
+ROUNDS="${ROUNDS:-3}"          # 对齐参考工程的 6–8 轮交替（我们先用 3 轮）
 INIT="${INIT:-/root/kl/port_w.bin}"
 OUT="${OUT:-/root/autodl-tmp/teacher_loop_ab}"
 ALPHA="${ALPHA:-0.10}"
-CHECKPOINT_INTERVAL="${CHECKPOINT_INTERVAL:-100}"
+CHECKPOINT_INTERVAL="${CHECKPOINT_INTERVAL:-20}"   # DYN 模式：杀训练最多丢 655k 步
+THRESH_PP="${THRESH_PP:-3.0}"          # 对齐参考工程 cross-gate-delta 0.03，也更抗我们的 ±2pp 噪声
+B_SLOTS="${B_SLOTS:-2}"
 PROMOTE_MARGIN="${PROMOTE_MARGIN:-0.03}"
 N_GATE="${N_GATE:-400}"
 mkdir -p "$OUT"

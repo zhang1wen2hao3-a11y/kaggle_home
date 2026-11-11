@@ -30,8 +30,13 @@ PROMOTE_MARGIN="${PROMOTE_MARGIN:-0.03}"   # 相对镜像基线 B0 的晋升余�
 N_GATE="${N_GATE:-400}"
 # ★ 动态切换（默认开）：A 的覆盖率加权对位胜率涨 THRESH_PP 就杀 A、切 B；
 #   B 的胜率回到 baseline 附近就杀 B、结束本轮。设 DYN=0 退回固定步数。
+# ★ 多轮时把"上一轮的增强模型"带进新一轮：
+#   A 阶段：矩阵驾驶员之外，额外挂 B 的当前权重若干槽（不钉牌 → 按覆盖率抽牌）
+#   B 阶段：对手 A 用**当前 A**（第 1 轮就是刚训完的 A），不再固定 init
+B_SLOTS="${B_SLOTS:-2}"        # A 阶段里 B 占几个 bank 槽
+B_OPP="${B_OPP:-A}"            # B 阶段的对手用 A 还是 init
 DYN="${DYN:-1}"
-THRESH_PP="${THRESH_PP:-2.0}"
+THRESH_PP="${THRESH_PP:-3.0}"   # 对齐参考工程 cross-gate-delta 0.03
 # 权重快照间隔（epoch；1 epoch = 32768 步）：
 #   DYN 模式杀训练会丢"最后一个未落盘的 epoch 段"，所以默认加密到 20 epoch（655k 步）；
 #   固定步数模式默认 100 epoch（3.28M 步）。每个快照都能用 tools/weight_dist.py 量位移。
@@ -82,12 +87,32 @@ echo "镜像基线 B0 = $B0（晋升阈值 = $B0 + $PROMOTE_MARGIN）"
 promote() { awk -v w="$1" -v b="$B0" -v m="$PROMOTE_MARGIN" 'BEGIN{ exit !(w+0 >= b+m) }'; }
 
 for i in $(seq 1 "$ROUNDS"); do
-  # ── ① 训 A：learner=A 打舰牌，对手=冻结 B 打所有牌 ──
+  # ── ① 训 A：learner=A 打舰牌；对手 = 矩阵驾驶员 + 当前 B（多轮时才挂 B）──
+  A_BANKS="$PLAN_BANKS"; A_DECKS="$PLAN_DECKS"; A_WEIGHTS="$PLAN_WEIGHTS"
+  N_MATRIX=0
+  [ -n "$PLAN_BANKS" ] && N_MATRIX=$(echo "$PLAN_BANKS" | tr ',' '\n' | wc -l)
+  if [ "$i" -ge 2 ] || [ "$(md5sum "$B" 2>/dev/null | cut -d' ' -f1)" != "$(md5sum "$INIT_B" 2>/dev/null | cut -d' ' -f1)" ]; then
+    extra_banks=""; extra_decks=""; extra_w=""
+    for _k in $(seq 1 "$B_SLOTS"); do
+      extra_banks="${extra_banks:+$extra_banks,}$B"
+      extra_decks="${extra_decks:+$extra_decks,}-"      # "-" = 不钉牌，按覆盖率先验抽牌
+      extra_w="${extra_w:+$extra_w,}1.0"               # B 打全池，权重记 1.0
+    done
+    A_BANKS="${A_BANKS:+$A_BANKS,}$extra_banks"
+    A_DECKS="${A_DECKS:+$A_DECKS,}$extra_decks"
+    A_WEIGHTS="${A_WEIGHTS:+$A_WEIGHTS,}$extra_w"
+    N_TOTAL=$((N_MATRIX + B_SLOTS))
+    A_PCT=$(awk -v q=0.49 -v n="$N_TOTAL" 'BEGIN{printf "%.5f", q/n}')
+    echo "  [round $i] A 阶段对手 = $N_MATRIX 个矩阵槽 + $B_SLOTS 个当前B槽（league_pct=$A_PCT）"
+  else
+    A_PCT="$PLAN_PCT"
+    echo "  [round $i] A 阶段对手 = $N_MATRIX 个矩阵槽（B 还是 init，不额外挂）"
+  fi
   echo "===== 第 $i 轮 A：训舰牌专精（对手=B 冻结，打所有牌）====="
   cd "$R"
   TRAIN_A="env PYTHON=$PY INIT=$A OUT=$OUT RUN=r${i}A T=$STEPS THREADS=8 \
-    LEAGUE_PCT=$PLAN_PCT SEED=$((424242 + i)) ANCHOR=$SHIP TRACK=$SHIP \
-    DWF=decks/weights_field_b05.txt BANKS=$PLAN_BANKS BANKDECKS=$PLAN_DECKS \
+    LEAGUE_PCT=${A_PCT:-$PLAN_PCT} SEED=$((424242 + i)) ANCHOR=$SHIP TRACK=$SHIP \
+    DWF=decks/weights_field_b05.txt BANKS=$A_BANKS BANKDECKS=$A_DECKS \
     CHECKPOINT_INTERVAL=$CHECKPOINT_INTERVAL \
     bash tools/db04_line.sh"
   if [ "$DRY" = 1 ]; then
@@ -98,7 +123,7 @@ for i in $(seq 1 "$ROUNDS"); do
     eval "$TRAIN_A" > "$LOG/r${i}A.log" 2>&1 &
     TRAIN_PID=$!
     ./tools/py tools/ab_watch.py --log "$R/logs/r${i}A.log" --mode A \
-        --weights "$PLAN_WEIGHTS" --thresh-pp "$THRESH_PP" \
+        --weights "${A_WEIGHTS:-$PLAN_WEIGHTS}" --thresh-pp "$THRESH_PP" \
         --kill-pattern "run-name r${i}A" >> "$LOG/r${i}A.watch.log" 2>&1
     wait "$TRAIN_PID" 2>/dev/null || true
     # 被杀时没有 final.bin，取最新快照
@@ -125,10 +150,11 @@ for i in $(seq 1 "$ROUNDS"); do
   fi
 
   # ── ④ 训 B：learner=B 打所有牌，对手=冻结 A 绑舰牌 ──
-  echo "===== 第 $i 轮 B：训通才（对手=A 用 init，打舰牌；B 自己从 init 起）====="
+  if [ "$B_OPP" = "init" ]; then B_OPP_BIN="$INIT_A"; else B_OPP_BIN="$A"; fi
+  echo "===== 第 $i 轮 B：训通才（对手=A 用 $(basename "$B_OPP_BIN")，打舰牌）====="
   TRAIN_B="env PYTHON=$PY INIT=$B OUT=$OUT RUN=r${i}B T=$STEPS THREADS=8 \
     LEAGUE_PCT=0.49 SEED=$((424242 + i + 1000)) ANCHOR=$SHIP TRACK=$SHIP \
-    DWF=decks/weights_field_b05.txt BANKS=$INIT_A BANKDECKS=$SHIP \
+    DWF=decks/weights_field_b05.txt BANKS=$B_OPP_BIN BANKDECKS=$SHIP \
     P_ANCHOR_LEARNER=0.0 CHECKPOINT_INTERVAL=$CHECKPOINT_INTERVAL \
     bash tools/db04_line.sh"
   if [ "$DRY" = 1 ]; then
