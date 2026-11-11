@@ -81,17 +81,17 @@ ce3a,Jemin,真人,,riolu_mega_lucario_ex__ce3a,,Kaggle 回放（2 局）
 e8ee,Charles Backman On LinkedIn,真人,,abra_kadabra__e8ee,,Kaggle 回放（2 局）
 e8ee,Kengo Mukai,真人,,abra_kadabra__e8ee,,Kaggle 回放（2 局）
 fa86,Guenoir,真人,,mega_lucario_ex_riolu__fa86,,Kaggle 回放（2 局）
-26c6,bc_26c6,BC克隆,やる気元気ミワハルキ 2nd ver.,slowpoke_slowking__26c6,build/agents/bc_26c6/model.pt,我们训练
-3eaa,bc_3eaa,BC克隆,Dipam Chakraborty,dreepy_drakloak__3eaa,build/agents/bc_3eaa/model.pt,我们训练
+26c6,bc_26c6,PPO训练,,slowpoke_slowking__26c6,build/agents/bc_26c6/model.pt,我们训练
+3eaa,bc_3eaa,PPO训练,,dreepy_drakloak__3eaa,build/agents/bc_3eaa/model.pt,我们训练
 f5f8,c_abra,端口基线,,abra_kadabra__f5f8,build/agents/c_abra/model.pt,端口仓库权重
 2617,c_grookey,端口基线,,grookey_thwackey__2617,build/agents/c_grookey/model.pt,端口仓库权重
 db04,g6_db04,PPO训练,,dunsparce_abra__db04,build/agents/g6_db04/model.pt,我们训练
 2617,g6_db04_on_2617,PPO训练,,grookey_thwackey__2617,build/agents/g6_db04_on_2617/model.pt,我们训练
-0d86,g8_bc_parent,PPO训练,,shuppet_dhelmise__0d86,build/agents/g8_bc_parent/model.pt,我们训练
+0d86,g8_bc_parent,BC克隆,やる気元気ミワハルキ 2nd ver.,shuppet_dhelmise__0d86,build/agents/g8_bc_parent/model.pt,我们训练
 0d86,g8_shuppet,PPO训练,,shuppet_dhelmise__0d86,build/agents/g8_shuppet/model.pt,我们训练
 3eaa,opp_3eaa,端口基线,,dreepy_drakloak__3eaa,build/agents/opp_3eaa/model.pt,端口仓库权重
 0bf5,opp_dunsparce_0bf5,端口基线,,dunsparce_abra__0bf5,build/agents/opp_dunsparce_0bf5/model.pt,端口仓库权重
-0d86,opp_shuppet_human,端口基线,,shuppet_dhelmise__0d86,build/agents/opp_shuppet_human/model.pt,端口仓库权重
+0d86,opp_shuppet_human,BC克隆,やる気元気ミワハルキ 2nd ver.,shuppet_dhelmise__0d86,build/agents/opp_shuppet_human/model.pt,我们训练
 2617,ph3_2617_v1,PPO训练,,grookey_thwackey__2617,build/agents/ph3_2617_v1/model.pt,我们训练
 2617,ph3_2617_v2,PPO训练,,grookey_thwackey__2617,build/agents/ph3_2617_v2/model.pt,我们训练
 9d6e,ph3_9d6e_v2,PPO训练,,dunsparce_abra__9d6e,build/agents/ph3_9d6e_v2/model.pt,我们训练

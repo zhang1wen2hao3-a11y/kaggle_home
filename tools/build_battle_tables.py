@@ -34,6 +34,20 @@ for r in csv.DictReader(open(os.path.join(ROOT, "data", "ladder_games.tsv")), de
 def name_of(h):
     return H2NAME.get(h[:4], h[:4])
 
+
+def hid(deck_str):
+    """从「全名」或「哈希」取 4 位 DeckID；认不出（'?'/空）返回 ''。
+
+    our_games.tsv 里存的是全名（如 dunsparce_abra__9d6e），
+    直接取 [:4] 会得到 'duns' 这种假 ID —— 早期版本就踩了这个坑。
+    """
+    t = (deck_str or "").strip()
+    if not t or t == "?":
+        return ""
+    if "__" in t:
+        return t.split("__")[-1][:4]
+    return t[:4] if all(c in "0123456789abcdef" for c in t[:4].lower()) else ""
+
 LB = json.load(open(os.path.join(ROOT, "data", "lb_scores.json")))
 
 # ---------- cards：真人天梯档案的卡组分布 ----------
@@ -41,8 +55,8 @@ arch = list(csv.DictReader(open(os.path.join(ROOT, "data", "ladder_games.tsv")),
 appear = collections.Counter()
 for r in arch:
     for k in ("seat0_deck", "seat1_deck"):
-        h = (r.get(k) or "")
-        if h: appear[h[:4]] += 1
+        h = hid(r.get(k))
+        if h: appear[h] += 1
 tot = sum(appear.values())
 cards = []
 for h, n in appear.most_common():
@@ -53,8 +67,8 @@ matches = []
 # ① 真人 vs 真人
 pair = collections.defaultdict(lambda: [0, 0])   # (d0,a0,d1,a1) -> [胜, 负]
 for r in arch:
-    d0, a0 = (r.get("seat0_deck") or "")[:4], r.get("seat0_agent") or ""
-    d1, a1 = (r.get("seat1_deck") or "")[:4], r.get("seat1_agent") or ""
+    d0, a0 = hid(r.get("seat0_deck")), r.get("seat0_agent") or ""
+    d1, a1 = hid(r.get("seat1_deck")), r.get("seat1_agent") or ""
     w = r.get("winner")
     if not (d0 and d1 and w in ("0", "1")):
         continue
@@ -71,9 +85,9 @@ n_human = len(matches)
 ours = list(csv.DictReader(open(os.path.join(ROOT, "data", "our_games.tsv")), delimiter="\t"))
 pm = collections.defaultdict(lambda: [0, 0])
 for r in ours:
-    d0 = (r.get("our_deck") or "")[:4]; d1 = (r.get("opp_deck") or "")[:4]
+    d0 = hid(r.get("our_deck")); d1 = hid(r.get("opp_deck"))
     if not (d0 and d1) or r.get("result") not in ("0", "1"):
-        continue
+        continue        # 对手卡组未识别（'?'）的局不进对位表——归不到具体卡组
     sub = r.get("submission") or "ours"
     key = (d0, sub, d1, r.get("opponent") or "")
     if r["result"] == "1": pm[key][0] += 1
@@ -95,6 +109,41 @@ if os.path.exists(mp):
                             对手卡组=name_of(r["opp_deck"]), 对手="端口权重",
                             胜局=win, 败局=lose, 平局=0))
         n_matrix += 1
+
+# ---------- match：同对合并 + 胜率高者置左 + 按前列排序 ----------
+try:
+    from pypinyin import lazy_pinyin          # 有就用真拼音
+    def sort_key(txt):
+        return lazy_pinyin(txt)
+except ImportError:                            # 没装就用码位（ASCII 名仍是字母序）
+    def sort_key(txt):
+        return [txt]
+
+# 以「(卡组, 玩家) 实体对」为唯一键；同一对只保留一条，两个方向相加
+pair_tot = {}          # frozenset({实体A, 实体B}) → {(实体): [胜, 负, 平]}
+for m in matches:
+    a = (m["DeckID"], m["玩家卡组"], m["玩家"])
+    b = (m["DeckID2"], m["对手卡组"], m["对手"])
+    key = tuple(sorted([a, b]))
+    cur = pair_tot.setdefault(key, {a: [0, 0, 0], b: [0, 0, 0]})
+    cur.setdefault(a, [0, 0, 0]); cur.setdefault(b, [0, 0, 0])
+    cur[a][0] += m["胜局"]; cur[a][1] += m["败局"]; cur[a][2] += m["平局"]
+    cur[b][0] += m["败局"]; cur[b][1] += m["胜局"]
+
+merged = []
+for (e1, e2), per in pair_tot.items():
+    (w1, l1, d1), (w2, l2, d2) = per[e1], per[e2]
+    if (w1 + l1) == 0 or (w2 + l2) == 0:
+        continue
+    if w1 / (w1 + l1) < w2 / (w2 + l2):      # 胜率高的放左边
+        e1, e2, w1, l1, d1, w2, l2, d2 = e2, e1, w2, l2, d2, w1, l1, d1
+    merged.append(dict(DeckID=e1[0], 玩家卡组=e1[1], 玩家=e1[2], DeckID2=e2[0],
+                       对手卡组=e2[1], 对手=e2[2], 胜局=w1, 败局=l1, 平局=d1))
+# 排序：优先按前几列（左卡组名 → 左玩家 → 右卡组名 → 右玩家）
+merged.sort(key=lambda m: (sort_key(m["玩家卡组"]), sort_key(m["玩家"]),
+                           sort_key(m["对手卡组"]), sort_key(m["对手"])))
+n_before = len(matches)
+matches = merged
 
 # ---------- players ----------
 players = []
@@ -177,6 +226,6 @@ write(os.path.join(DOCS, "the-pockmon-battle-players.csv"),
       players, ["DeckID", "玩家", "类型", "父玩家", "卡组", "Checkpoint", "数据来源"])
 
 print(f"cards   : {len(cards)} 行（档案 {tot} 个座位出现）")
-print(f"match   : {len(matches)} 行 = 真人 {n_human} + 我们 {n_ours} + 端口矩阵 {n_matrix}")
+print(f"match   : {len(matches)} 行（原始 {n_before} 行：真人 {n_human} + 我们 {n_ours} + 端口矩阵 {n_matrix}，同对合并后，胜率高者置左）")
 print(f"players : {len(players)} 行 = 真人 {sum(1 for p in players if p['类型']=='真人')} "
       f"+ 本地 agent {sum(1 for p in players if p['类型']!='真人')}")
