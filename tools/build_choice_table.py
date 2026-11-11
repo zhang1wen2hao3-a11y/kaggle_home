@@ -106,6 +106,11 @@ def main():
 
     decks = sorted({h for k in by for h in k})
     choice, why = {}, {}
+    # 先对所有 (行,列) 组合给默认值，再用实测数据覆盖
+    for ch in decks:
+        for de in decks:
+            choice[(ch, de)] = "init"
+            why[(ch, de)] = "无数据，默认 init"
     for k, pilots in by.items():
         ini = pilots.get("init")
         trained = {p: v for p, v in pilots.items() if p != "init"}
@@ -123,8 +128,8 @@ def main():
             choice[k] = best[0]
             why[k] = f"无 init 数据，退回取最高 {best[1][1]:.3f}"
         else:
-            choice[k] = ""
-            why[k] = "无数据"
+            choice[k] = "init"          # 无数据：默认 init（假定未知就用端口），后续训出更强的再覆盖
+            why[k] = "无数据，默认 init"
 
     # 写三张表
     with open(os.path.join(ROOT, "docs/the-pockmon-battle-choice.csv"), "w", newline="", encoding="gb18030", errors="replace") as f:
@@ -135,14 +140,18 @@ def main():
 
     with open(os.path.join(ROOT, "docs/the-pockmon-battle-choice-detail.csv"), "w", newline="", encoding="gb18030", errors="replace") as f:
         w = csv.writer(f)
-        w.writerow(["挑战者", "被挑战者", "驾驶员", "胜率", "样本场次", "依据"])
+        w.writerow(["挑战者", "被挑战者", "驾驶员", "胜率", "样本场次", "状态", "依据"])
         for ch in decks:
             for de in decks:
                 k = (ch, de)
                 if k not in choice or not choice[k]:
                     continue
-                v = by[k][choice[k]]
-                w.writerow([ch, de, choice[k], round(v[1], 4), v[2], why[k]])
+                why_k = why.get(k, "")
+                if "无数据" in why_k:
+                    w.writerow([ch, de, choice[k], "", "", "默认", why_k])
+                else:
+                    v = by[k][choice[k]]
+                    w.writerow([ch, de, choice[k], round(v[1], 4), v[2], "实测", why_k])
 
     with open(os.path.join(ROOT, "docs/the-pockmon-battle-choice-all.csv"), "w", newline="", encoding="gb18030", errors="replace") as f:
         w = csv.writer(f)
@@ -151,7 +160,8 @@ def main():
             w.writerow([ch, de, pilot, round(wr, 4), n, src])
 
     cnt = collections.Counter(choice.values())
-    print(f"覆盖 {len(decks)} 副卡组；有数据的格 {sum(1 for v in choice.values() if v)}/{len(decks)**2}")
+    n_default = sum(1 for k, v in why.items() if "无数据" in v)
+    print(f"覆盖 {len(decks)} 副卡组；实测 {len(decks)**2 - n_default} 格，默认 init {n_default} 格")
     for k, v in cnt.most_common():
         print(f"  {v:>3} 格  {k}")
     print("\n非 init 的格子（全部是 ≥5pp 的强信号）：")
