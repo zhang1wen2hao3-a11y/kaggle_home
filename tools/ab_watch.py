@@ -57,6 +57,8 @@ def main():
     ap.add_argument("--weights", default="", help="逗号分隔，每个 bank 对应卡组的覆盖率")
     ap.add_argument("--thresh-pp", type=float, default=2.0)
     ap.add_argument("--warm", type=int, default=30, help="前 N 个 epoch 作 baseline")
+    ap.add_argument("--skip", type=int, default=5,
+                    help="跳过最前 N 个 epoch（样本极少，lgw 抖动到 0.9，会把基线抬高）")
     ap.add_argument("--ema", type=int, default=20, help="最近 N 个 epoch 做 EMA")
     ap.add_argument("--baseline-ref", type=float, default=None, help="B 模式：baseline 直接用这个值")
     ap.add_argument("--kill-pattern", default="", help="触发后 pkill -f 这个模式")
@@ -100,10 +102,12 @@ def main():
                 if a.mode == "B" and a.baseline_ref is not None:
                     base = a.baseline_ref
                 else:
-                    if len(seen) < max(a.warm, a.ema + 1):
-                        print(f"[watch] ep{ep} wr={wr:.3f} (攒 baseline: {len(seen)}/{a.warm})", flush=True)
+                    # ★ baseline 从 --skip 之后开始算（前几个 epoch 样本极少，lgw 会抖到 0.9）
+                    valid = seen[a.skip:]
+                    if len(valid) < max(a.warm, a.ema + 1):
+                        print(f"[watch] ep{ep} wr={wr:.3f} (攒 baseline: {len(valid)}/{a.warm}, 跳过前{a.skip})", flush=True)
                         continue
-                    base = sum(w for _, _, w in seen[:a.warm]) / a.warm
+                    base = sum(w for _, _, w in valid[:a.warm]) / a.warm
                 tail = [w for _, _, w in seen[-a.ema:]]
                 ema = sum(tail) / len(tail)
                 d = (ema - base) * 100
