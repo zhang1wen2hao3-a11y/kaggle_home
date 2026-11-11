@@ -50,6 +50,72 @@ def hid(deck_str):
 
 LB = json.load(open(os.path.join(ROOT, "data", "lb_scores.json")))
 
+# ---------- 卡组名聚合：archetype → 简洁主体名 ----------
+# 规则：取牌组"主体"（通常是主攻手/最终进化）作为名字，主体基本一致就归同一个名字。
+# 多线牌组按"卡数最多的那条线"判（例：9d6e/0bf5/db04 的 60 张里 Abra+Kadabra+Alakazam
+# 共 12 张、Dunsparce+Dudunsparce 只有 7 张 ⇒ 主体是 alakazam，dunsparce 只是抽牌引擎）。
+ARCH2SHORT = {
+    # 厄鬼椪家族
+    "teal_mask_ogerpon_ex_applin": "ogerpon",
+    "teal_mask_ogerpon_ex_hero_s_cape": "ogerpon",
+    "cornerstone_mask_ogerpon_ex_dwebble": "ogerpon",
+    "raging_bolt_ex_teal_mask_ogerpon_ex": "ogerpon",
+    "z_ogerpon_toolbox_miwa": "ogerpon",
+    # 胡地家族（Dunsparce 系列是抽牌引擎，主体是 Alakazam）
+    "dunsparce_abra": "alakazam",
+    "abra_kadabra": "alakazam",
+    "dudunsparce_abra": "alakazam",
+    "kadabra_duskull": "alakazam",
+    "duskull_kadabra": "alakazam",
+    # 土龙节节（纯引擎向，没有胡地线）
+    "dunsparce_dudunsparce": "dudunsparce",
+    "dudunsparce_dunsparce": "dudunsparce",
+    # 其他单线
+    "grookey_thwackey": "rillaboom",
+    "dreepy_drakloak": "dragapult",
+    "z_dragapult_dreepy_petit": "dragapult",
+    "shuppet_dhelmise": "shuppet",
+    "shuppet_banette": "shuppet",
+    "slowpoke_slowking": "slowking",
+    "slowpoke_mega_kangaskhan_ex": "kangaskhan",
+    "mega_kangaskhan_ex_dwebble": "kangaskhan",
+    "cinderace_mega_kangaskhan_ex": "kangaskhan",
+    "mega_lucario_ex_solrock": "lucario",
+    "riolu_mega_lucario_ex": "lucario",
+    "mega_lucario_ex_riolu": "lucario",
+    "mega_lucario_ex_makuhita": "lucario",
+    "riolu_lunatone": "lucario",
+    "beldum_metang": "metagross",
+    "steven_s_beldum_steven_s_metagross_ex": "metagross",
+    "dwebble_crustle": "crustle",
+    "dwebble_bunnelby": "dwebble",
+    "duraludon_archaludon_ex": "archaludon",
+    "snover_mega_abomasnow_ex": "abomasnow",
+    "munkidori_marnie_s_impidimp": "munkidori",
+    "munkidori_dwebble": "munkidori",
+    "iono_s_voltorb_iono_s_tadbulb": "voltorb",
+    "girafarig_enamorus": "girafarig",
+    "staryu_mega_starmie_ex": "starmie",
+    "chandelure_litwick": "chandelure",
+    "larvitar_tyranitar": "tyranitar",
+    "great_tusk_stonjourner": "great_tusk",
+    "iron_thorns_ex_tapu_koko_ex": "iron_thorns",
+    "iron_thorns_ex_pikachu_ex": "iron_thorns",
+    "charcadet_ceruledge_ex": "ceruledge",
+    "gastly_mega_gengar_ex": "gengar",
+    "cynthia_s_gible_cynthia_s_gabite": "garchomp",
+    "hop_s_snorlax_hop_s_cramorant": "snorlax",
+}
+
+
+def short_of(deckname):
+    """全名/哈希 → 简洁主体名（认不出就当单线处理：取 archetype 首段）。"""
+    if "__" not in deckname:
+        return deckname
+    arch = deckname.split("__")[0]
+    return ARCH2SHORT.get(arch, arch.split("_")[0])
+
+
 # ---------- cards：真人天梯档案的卡组分布 ----------
 arch = list(csv.DictReader(open(os.path.join(ROOT, "data", "ladder_games.tsv")), delimiter="\t"))
 appear = collections.Counter()
@@ -60,7 +126,28 @@ for r in arch:
 tot = sum(appear.values())
 cards = []
 for h, n in appear.most_common():
-    cards.append(dict(DeckID=h, 卡组=name_of(h), Meta占比=round(n / tot * 100, 2), 样本局数=n))
+    cards.append(dict(DeckID=h, 卡组=short_of(name_of(h)), Meta占比=n / tot * 100, 样本局数=n))
+
+# 主体名 → 代表哈希（样本最多的那个 decklist），match 表合并后用它填 DeckID
+REP = {}
+for c in cards:
+    k = c["卡组"]
+    if k not in REP or c["样本局数"] > REP[k][0]:
+        REP[k] = (c["样本局数"], c["DeckID"])
+
+# cards 按主体名聚合：同一主体的不同 decklist 合并成一行（样本多者当代表哈希）
+_agg = {}
+for c in cards:
+    k = c["卡组"]
+    if k not in _agg:
+        _agg[k] = dict(DeckID=c["DeckID"], 卡组=k, Meta占比=0.0, 样本局数=0, _mx=0)
+    _agg[k]["Meta占比"] += c["Meta占比"]
+    _agg[k]["样本局数"] += c["样本局数"]
+    if c["样本局数"] > _agg[k]["_mx"]:
+        _agg[k]["DeckID"], _agg[k]["_mx"] = c["DeckID"], c["样本局数"]
+cards = sorted(_agg.values(), key=lambda r: -r["样本局数"])
+for r in cards:
+    r.pop("_mx", None); r["Meta占比"] = round(r["Meta占比"], 2)
 
 # ---------- match ----------
 matches = []
@@ -77,8 +164,8 @@ for r in arch:
 for (d0, a0, d1, a1), (win, lose) in sorted(pair.items(), key=lambda t: -(t[1][0] + t[1][1])):
     if win + lose < 3:          # 少于 3 局的组合噪声太大
         continue
-    matches.append(dict(DeckID=d0, 玩家卡组=name_of(d0), 玩家=a0, DeckID2=d1,
-                        对手卡组=name_of(d1), 对手=a1, 胜局=win, 败局=lose, 平局=0))
+    matches.append(dict(DeckID=d0, 玩家卡组=short_of(name_of(d0)), 玩家=a0, DeckID2=d1,
+                        对手卡组=short_of(name_of(d1)), 对手=a1, 胜局=win, 败局=lose, 平局=0))
 n_human = len(matches)
 
 # ② 我们 vs 对手
@@ -93,8 +180,8 @@ for r in ours:
     if r["result"] == "1": pm[key][0] += 1
     else:                  pm[key][1] += 1
 for (d0, sub, d1, opp), (w, l) in sorted(pm.items(), key=lambda t: -(t[1][0] + t[1][1])):
-    matches.append(dict(DeckID=d0, 玩家卡组=name_of(d0), 玩家=sub, DeckID2=d1,
-                        对手卡组=name_of(d1), 对手=opp, 胜局=w, 败局=l, 平局=0))
+    matches.append(dict(DeckID=d0, 玩家卡组=short_of(name_of(d0)), 玩家=sub, DeckID2=d1,
+                        对手卡组=short_of(name_of(d1)), 对手=opp, 胜局=w, 败局=l, 平局=0))
 n_ours = len(matches) - n_human
 
 # ③ 端口 vs 端口（49 格矩阵）
@@ -104,9 +191,9 @@ if os.path.exists(mp):
     for r in csv.DictReader(open(mp)):
         n = int(float(r["n_games"])); wr = float(r["cand_win"])
         win = round(wr * n); lose = n - win
-        matches.append(dict(DeckID=r["cand_deck"], 玩家卡组=name_of(r["cand_deck"]),
+        matches.append(dict(DeckID=r["cand_deck"], 玩家卡组=short_of(name_of(r["cand_deck"])),
                             玩家="端口权重", DeckID2=r["opp_deck"],
-                            对手卡组=name_of(r["opp_deck"]), 对手="端口权重",
+                            对手卡组=short_of(name_of(r["opp_deck"])), 对手="端口权重",
                             胜局=win, 败局=lose, 平局=0))
         n_matrix += 1
 
@@ -122,8 +209,8 @@ except ImportError:                            # 没装就用码位（ASCII 名�
 # 以「(卡组, 玩家) 实体对」为唯一键；同一对只保留一条，两个方向相加
 pair_tot = {}          # frozenset({实体A, 实体B}) → {(实体): [胜, 负, 平]}
 for m in matches:
-    a = (m["DeckID"], m["玩家卡组"], m["玩家"])
-    b = (m["DeckID2"], m["对手卡组"], m["对手"])
+    a = (m["玩家卡组"], m["玩家"])
+    b = (m["对手卡组"], m["对手"])
     key = tuple(sorted([a, b]))
     cur = pair_tot.setdefault(key, {a: [0, 0, 0], b: [0, 0, 0]})
     cur.setdefault(a, [0, 0, 0]); cur.setdefault(b, [0, 0, 0])
@@ -137,8 +224,9 @@ for (e1, e2), per in pair_tot.items():
         continue
     if w1 / (w1 + l1) < w2 / (w2 + l2):      # 胜率高的放左边
         e1, e2, w1, l1, d1, w2, l2, d2 = e2, e1, w2, l2, d2, w1, l1, d1
-    merged.append(dict(DeckID=e1[0], 玩家卡组=e1[1], 玩家=e1[2], DeckID2=e2[0],
-                       对手卡组=e2[1], 对手=e2[2], 胜局=w1, 败局=l1, 平局=d1))
+    merged.append(dict(DeckID=REP.get(e1[0], ("", ""))[1], 玩家卡组=e1[0], 玩家=e1[1],
+                       DeckID2=REP.get(e2[0], ("", ""))[1], 对手卡组=e2[0], 对手=e2[1],
+                       胜局=w1, 败局=l1, 平局=d1))
 # 排序：优先按前几列（左卡组名 → 左玩家 → 右卡组名 → 右玩家）
 merged.sort(key=lambda m: (sort_key(m["玩家卡组"]), sort_key(m["玩家"]),
                            sort_key(m["对手卡组"]), sort_key(m["对手"])))
@@ -155,7 +243,7 @@ for r in arch:
         if h and a: pg[(h, a)] += 1
 for (h, a), n in sorted(pg.items(), key=lambda t: (-t[1], t[0])):
     if n < 2: continue
-    players.append(dict(DeckID=h, 玩家=a, 类型="真人", 父玩家="", 卡组=name_of(h),
+    players.append(dict(DeckID=h, 玩家=a, 类型="真人", 父玩家="", 卡组=short_of(name_of(h)),
                         Checkpoint="", 数据来源=f"Kaggle 回放（{n} 局）"))
 
 # 本地 agent：从 deck.csv 反查卡组
@@ -204,7 +292,7 @@ for d in sorted(glob.glob(os.path.join(ROOT, "build", "agents", "*"))):
                    default=(0, ""))
         parent = best[1]
     players.append(dict(DeckID=deckname.split("__")[-1][:4], 玩家=base, 类型=kind,
-                        父玩家=parent, 卡组=deckname,
+                        父玩家=parent, 卡组=short_of(deckname),
                         Checkpoint=f"build/agents/{base}/model.pt",
                         数据来源="我们训练" if kind != "端口基线" else "端口仓库权重"))
 
