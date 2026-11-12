@@ -27,7 +27,21 @@ bash tools/h2h.sh build/agents/r1A_9d6e build/agents/port_on_9d6e 400 r1A_vs_por
 bash tools/h2h.sh build/agents/r2B_9d6e build/agents/port_on_9d6e 400 r2B_vs_port_9d6e 2>&1 | tail -1
 bash tools/h2h.sh build/agents/r2A_9d6e build/agents/r2B_9d6e     400 r2A_vs_r2B_9d6e 2>&1 | tail -1
 
-echo "===== [$(date +%H:%M)] ③ 高样本复核 ogerpon_7e39（n=1000）====="
+echo "===== [$(date +%H:%M)] ③ 决定性对照：port vs r1A 各再跑 2 个种子（合并后 n≈600/格）====="
+# 为什么不是"只把 ogerpon 一格加大样本"：+2.4pp 的 CI 是 [-1.0, +5.9]，
+# 半宽 ∝ 1/√n ⇒ 整面板再跑 2 个独立种子（等价 3× 样本）才能把半宽压到 ~1.4pp。
+# 只加一格只是砍掉一个方差项，其他 11 格的噪声还在。
+for sd in 950001 950002; do
+  for spec in "meta_port_9d6e:build/agents/port_on_9d6e" "r1A_9d6e:build/agents/r1A_9d6e"; do
+    tag="${spec%%:*}"; ag="${spec##*:}"
+    t="${tag}_s${sd}"
+    [ -f "logs/meta/$t/summary.json" ] && { echo "  [skip] $t（已完成）"; continue; }
+    echo "  --- $t"
+    SEED=$sd bash tools/meta_eval.sh --cand "$ag" --tag "$t" 2>&1 | tail -1
+  done
+done
+
+echo "===== [$(date +%H:%M)] ④ ogerpon_7e39 单格高样本（n=1000，作为补充证据）====="
 for c in r1A r2A port; do
   ag="build/agents/${c}_9d6e"; [ "$c" = port ] && ag=build/agents/port_on_9d6e
   [ -f "logs/hiN_7e39_${c}.json" ] && { echo "  [skip] $c（已有）"; continue; }
@@ -37,3 +51,7 @@ for c in r1A r2A port; do
     --logdir "logs/hiN_7e39_${c}" 2>&1 | tail -1
 done
 echo "===== [$(date +%H:%M)] 全部完成 ====="
+echo
+echo "合并多种子看显著性："
+echo "  ./tools/py tools/panel_ci.py --base meta_port_9d6e --base meta_port_9d6e_s950001 --base meta_port_9d6e_s950002 \\"
+echo "      --pool 'r1A=r1A_9d6e,r1A_9d6e_s950001,r1A_9d6e_s950002' "
