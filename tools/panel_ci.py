@@ -54,6 +54,8 @@ def main():
     ap.add_argument("--pool", action="append", default=[],
                     help="合并多个种子成一个候选，格式 name=tag1,tag2,...（可重复）")
     ap.add_argument("--draws", type=int, default=20000)
+    ap.add_argument("--per-cell", action="store_true",
+                    help="额外打印逐格 CI（判断'某格 +8pp'是否只是 n=200 的噪声）")
     a = ap.parse_args()
     rng = np.random.default_rng(12345)
     w = weights()
@@ -88,6 +90,26 @@ def main():
             p = rng.beta(k + 1, n - k + 1, size=a.draws)
             acc += ww * p
         return acc / tot
+
+    if a.per_cell:
+        print("\n逐格显著性（每格 n=200，两个独立抽样之差）")
+        for t, cells in cands:
+            common = sorted(set(bcells) & set(cells))
+            print(f"\n  {t}")
+            print(f"  {'格子':<18}{'基线':>7}{'候选':>7}{'Δ':>8}{'95% CI':>20}{'显著?':>8}")
+            nsig = 0
+            for c in common:
+                s0, n0 = bcells[c]
+                s1, n1 = cells[c]
+                b = rng.beta(int(round(s0 * n0)) + 1, n0 - int(round(s0 * n0)) + 1, size=a.draws)
+                x = rng.beta(int(round(s1 * n1)) + 1, n1 - int(round(s1 * n1)) + 1, size=a.draws)
+                d = (x - b) * 100
+                lo, hi = np.percentile(d, [2.5, 97.5])
+                sig = lo > 0 or hi < 0
+                nsig += sig
+                print(f"  {c:<18}{s0:>7.3f}{s1:>7.3f}{(s1 - s0) * 100:>+7.1f}p"
+                      f"{'[%+.1f, %+.1f]' % (lo, hi):>20}{'是' if sig else '否':>8}")
+            print(f"  → 12 格里 {nsig} 格单独显著")
 
     for t, cells in cands:
         common = sorted(set(bcells) & set(cells))
