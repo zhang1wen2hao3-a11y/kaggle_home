@@ -50,7 +50,11 @@ def collect():
             "meta_port_26c6": ("26c6", "init"),          # slowking 基线
             "meta_r1A": ("26c6", "r1A"),                 # 10M 步 slowking 专才
             "meta_g6_db04": ("db04", "g6_db04"), "meta_ph3_2617_v2": ("2617", "ph3_2617_v2"),
-            "meta_ph3_2617_v1": ("2617", "ph3_2617_v1"), "meta_ph3_9d6e_v2": ("9d6e", "ph3_9d6e_v2")}
+            "meta_ph3_2617_v1": ("2617", "ph3_2617_v1"), "meta_ph3_9d6e_v2": ("9d6e", "ph3_9d6e_v2"),
+            # 2026-11-13 A/B 四轮（舰牌 9d6e）。★ 名字带 ab9d6e_ 前缀，和上一轮 slowking 专才的
+            # r1A/r1B 区分开（那个不带前缀，见 data/ab_run1/）。
+            "ab9d6e_r1A": ("9d6e", "ab9d6e_r1A"), "ab9d6e_r1B": ("9d6e", "ab9d6e_r1B"),
+            "ab9d6e_r2A": ("9d6e", "ab9d6e_r2A"), "ab9d6e_r2B": ("9d6e", "ab9d6e_r2B")}
     for arm, (ch, pilot) in META.items():
         for f in glob.glob(os.path.join(ROOT, "logs/meta", arm, "vs_*.json")):
             cell = os.path.basename(f)[3:-5]

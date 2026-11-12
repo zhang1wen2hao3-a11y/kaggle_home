@@ -48,6 +48,35 @@ def load_detail():
     return out
 
 
+SIDECAR = os.path.join(ROOT, "docs", "the-pockmon-battle-choices-win-rate-pilot.csv")
+
+
+def load_pilots():
+    """sidecar：{我方卡组: (驾驶员, [面板 tag...])}"""
+    out = {}
+    if not os.path.exists(SIDECAR):
+        return out
+    txt = open(SIDECAR, "rb").read().decode("gb18030", errors="replace")
+    for r in csv.DictReader(io.StringIO(txt)):
+        out[r["我方卡组"]] = (r["驾驶员"], [t for t in r["面板tag"].split(";") if t])
+    return out
+
+
+def pooled_panel(tags):
+    """把同协议多个种子的面板结果按格子池化：{对手卡组: (胜率, n)}"""
+    acc = {}
+    for t in tags:
+        for f in glob.glob(os.path.join(ROOT, "logs", "meta", t, "vs_*.json")):
+            try:
+                o = json.load(open(f))["overall"]
+            except Exception:
+                continue
+            c = os.path.basename(f)[3:-5]
+            k, n = acc.get(c, (0.0, 0))
+            acc[c] = (k + float(o["score"]) * int(o["n"]), n + int(o["n"]))
+    return {c: (k / n, n) for c, (k, n) in acc.items()}
+
+
 def load_new():
     """tools/fill_winrate.sh 的新结果：{(a,b): (胜率, n)}"""
     out = {}
@@ -67,6 +96,8 @@ def main():
     a = ap.parse_args()
 
     old, new = load_detail(), load_new()
+    pilots = load_pilots()                    # {我方卡组: (驾驶员, tags)}
+    pilot_cells = {k: pooled_panel(v[1]) for k, v in pilots.items()}
     val, src, miss = {}, {}, []
     for x in DECKS:
         for y in DECKS:
@@ -74,7 +105,11 @@ def main():
                 val[(x, y)] = "/"                       # 自己打自己：不填
                 src[(x, y)] = "对角"
                 continue
-            if (x, y) in new:
+            if x in pilot_cells and y in pilot_cells[x]:
+                sc, n = pilot_cells[x][y]
+                val[(x, y)] = f"{sc:.4f}"
+                src[(x, y)] = f"驾驶员{pilots[x][0]}(n={n})"
+            elif (x, y) in new:
                 val[(x, y)] = f"{new[(x, y)][0]:.4f}"
                 src[(x, y)] = f"新跑(n={new[(x, y)][1]})"
             elif (x, y) in old:
@@ -88,6 +123,9 @@ def main():
     n_fill = sum(1 for k, v in val.items() if v not in ("", "/"))
     print(f"覆盖 {n_fill}/{len(DECKS) * (len(DECKS) - 1)} 个非对角格"
           f"（新跑 {len(new)}，老 eval {len(old)}，对角 {len(DECKS)} 填 /）")
+    for k, (pname, tags) in pilots.items():
+        cnt = len(pilot_cells.get(k, {}))
+        print(f"  指定驾驶员：{k} 行 → {pname}（{cnt} 格来自 {len(tags)} 个面板 tag）")
     if miss:
         print(f"仍缺 {len(miss)} 格：" + " ".join(miss))
     if a.dry:
