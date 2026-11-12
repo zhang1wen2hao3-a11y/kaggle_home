@@ -57,15 +57,17 @@ echo "=== 引擎自检（ctypes 加载 libcg.so）==="
 PYTHONPATH=. $PY -c "import cg.game as g; print('cg 引擎 OK', type(g))" || { echo "✗ 引擎加载失败（glibc/架构不符？）"; exit 1; }
 
 echo "=== 铺 12 个 agent 目录 ==="
+# ★ 目录名必须与仓库里 fill_winrate.sh 的 AG 映射**逐字一致**（agent 名 = 卡的短名映射），
+#   否则会报 "无法识别的 agent 路径: build/agents/xxx" 静默失败（本地实测踩过）。
 declare -A D=(
-  [0904]=z_dragapult_dreepy_petit__0904 [0bf5]=dunsparce_abra__0bf5
-  [0d86]=shuppet_dhelmise__0d86          [2617]=grookey_thwackey__2617
-  [26c6]=slowpoke_slowking__26c6         [3eaa]=dreepy_drakloak__3eaa
-  [7e39]=teal_mask_ogerpon_ex_applin__7e39 [9d6e]=dunsparce_abra__9d6e
-  [db04]=dunsparce_abra__db04            [e1d7]=z_ogerpon_toolbox_miwa__e1d7
-  [e8ee]=abra_kadabra__e8ee              [f5f8]=abra_kadabra__f5f8 )
+  [port_0904]=z_dragapult_dreepy_petit__0904        [opp_dunsparce_0bf5]=dunsparce_abra__0bf5
+  [port_0d86]=shuppet_dhelmise__0d86                [c_grookey]=grookey_thwackey__2617
+  [port_26c6]=slowpoke_slowking__26c6               [opp_3eaa]=dreepy_drakloak__3eaa
+  [port_7e39]=teal_mask_ogerpon_ex_applin__7e39     [port_on_9d6e]=dunsparce_abra__9d6e
+  [port_db04]=dunsparce_abra__db04                  [port_e1d7]=z_ogerpon_toolbox_miwa__e1d7
+  [port_e8ee]=abra_kadabra__e8ee                    [c_abra]=abra_kadabra__f5f8 )
 for k in "${!D[@]}"; do
-  bash tools/make_agent_dir.sh "build/agents/port_$k" build/port_plain/model.pt "decks/pool_field/${D[$k]}.csv" >/dev/null \
+  bash tools/make_agent_dir.sh "build/agents/$k" build/port_plain/model.pt "decks/pool_field/${D[$k]}.csv" >/dev/null \
     || { echo "✗ 铺 $k 失败"; exit 1; }
 done
 echo "  ✓ $(ls build/agents | wc -l) 个 agent 就绪（共用 model.pt $(md5sum build/port_plain/model.pt | cut -c1-8)）"
