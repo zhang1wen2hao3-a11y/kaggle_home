@@ -27,7 +27,9 @@ cp -a decks/pool_field "$STAGE/decks/pool_field"
 
 echo "④ 评估器与工具"
 cp -f ptcg_league/eval_pair.py "$STAGE/ptcg_league/"
-for f in tools/bo3_eval.py tools/make_agent_dir.sh tools/fill_winrate.sh tools/build_winrate_table.py; do cp -f "$f" "$STAGE/tools/"; done
+for f in tools/bo3_eval.py tools/make_agent_dir.sh tools/fill_winrate.sh tools/build_winrate_table.py \
+         tools/meta_eval.sh tools/h2h.sh tools/queue_remaining.sh \
+         tools/panel_ci.py tools/panel_compare.py; do cp -f "$f" "$STAGE/tools/"; done
 # tools/py 做成可移植的 shell 壳（目标机不一定是 conda 布局）
 cat > "$STAGE/tools/py" <<'EOS'
 #!/usr/bin/env bash
@@ -35,8 +37,13 @@ exec "${PYTHON:-python3}" "$@"
 EOS
 chmod +x "$STAGE/tools/py" "$STAGE/tools/"*.sh
 
-echo "⑤ 依赖数据：choice-detail（生成表用）+ 已跑出的结果（跳过重算）"
+echo "⑤ 依赖数据：choice-detail + 12 格测试集 + 已跑出的结果（跳过重算）"
 cp -f docs/the-pockmon-battle-choice-detail.csv "$STAGE/docs/"
+cp -f decks/testset_meta.tsv "$STAGE/decks/"
+mkdir -p "$STAGE/models_ppo"
+for k in r1A r1B r2A r2B; do
+  [ -f "models/ppo/$k.pt" ] && cp -f "models/ppo/$k.pt" "$STAGE/models_ppo/" && echo "   候选 $k.pt"
+done
 n=$(ls logs/winrate/*.json 2>/dev/null | wc -l)
 [ "$n" -gt 0 ] && cp -f logs/winrate/*.json "$STAGE/logs/winrate/" 2>/dev/null
 echo "   带上已完成的 $n 格"
@@ -72,7 +79,15 @@ for k in "${!D[@]}"; do
 done
 echo "  ✓ $(ls build/agents | wc -l) 个 agent 就绪（共用 model.pt $(md5sum build/port_plain/model.pt | cut -c1-8)）"
 echo
-echo "=== 开始跑缺格： bash tools/fill_winrate.sh ==="
+echo "=== 铺候选（我方权重 @ 9d6e）==="
+for k in r1A r1B r2A r2B; do
+  [ -f "models_ppo/$k.pt" ] || continue
+  bash tools/make_agent_dir.sh "build/agents/${k}_9d6e" "models_ppo/$k.pt" decks/pool_field/dunsparce_abra__9d6e.csv >/dev/null \
+    || { echo "✗ 铺 $k 失败"; exit 1; }
+done
+echo
+echo "=== 跑剩余评估： bash tools/queue_remaining.sh ==="
+echo "=== 补 a→b 胜率矩阵缺格： bash tools/fill_winrate.sh ==="
 EOS
 chmod +x "$STAGE/setup.sh"
 

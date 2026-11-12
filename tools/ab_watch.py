@@ -65,6 +65,41 @@ def weighted(banks, weights):
     return (num / den) if den > 0 else None
 
 
+def kill_matching(pattern, a_kill_requires="train_native.py"):
+    """按 cmdline 模式杀进程，但**排除自己**。
+
+    为什么不能用 `pkill -f`：watcher 自己的命令行里就带着 `--kill-pattern <pattern>`，
+    pkill -f 会匹配到自己 ⇒ 触发时 watcher 先把自己杀掉，TRIGGER 行永远打不出来
+    （实测四个阶段的日志里都缺这一行；换成括号写法只是绕过，脚本里没法这么写）。
+    """
+    me = os.getpid()
+    out = subprocess.run(["pgrep", "-f", pattern], capture_output=True, text=True)
+    killed = []
+    for pid_s in out.stdout.split():
+        try:
+            pid = int(pid_s)
+        except ValueError:
+            continue
+        if pid == me:
+            continue
+        try:
+            cmd = open(f"/proc/{pid}/cmdline", "rb").read().replace(b"\0", b" ").decode(errors="replace")
+        except OSError:
+            continue
+        if "ab_watch.py" in cmd:          # 另一个 watcher（比如热换下来的旧实例），别误杀
+            continue
+        # 只杀真正的训练进程：模式串经常也会出现在启动它的 shell（`bash -c "..."`）命令行里，
+        # 误杀 shell 会把整条链路带走（实测把自己杀掉两次）。
+        if a_kill_requires and a_kill_requires not in cmd:
+            continue
+        try:
+            os.kill(pid, 15)
+            killed.append(pid)
+        except OSError:
+            pass
+    return killed
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--log", required=True)
@@ -76,7 +111,9 @@ def main():
                     help="跳过最前 N 个 epoch（样本极少，lgw 抖动到 0.9，会把基线抬高）")
     ap.add_argument("--ema", type=int, default=20, help="最近 N 个 epoch 做 EMA")
     ap.add_argument("--baseline-ref", type=float, default=None, help="B 模式：baseline 直接用这个值")
-    ap.add_argument("--kill-pattern", default="", help="触发后 pkill -f 这个模式")
+    ap.add_argument("--kill-pattern", default="", help="触发后杀掉 cmdline 匹配这个模式的进程")
+    ap.add_argument("--kill-requires", default="train_native.py",
+                    help="额外护栏：只杀 cmdline 里同时含这个串的进程（防误杀启动它的 shell；默认 train_native.py）")
     ap.add_argument("--max-steps", type=int,
                     default=int(os.environ.get("AB_MAX_STEPS", "4000000") or 0),
                     help="timebox：本阶段跑满这么多步就换边（0=关闭，默认 4M）")
@@ -148,11 +185,11 @@ def main():
                       flush=True)
                 ok = ok or tb
                 if ok:
-                    if a.kill_pattern:
-                        subprocess.run(["pkill", "-f", a.kill_pattern], check=False)
-                        print(f"[watch] 已 pkill -f '{a.kill_pattern}'", flush=True)
                     why = f"timebox(step={step}>={a.max_steps})" if tb else f"gain(Δ={d:+.1f}pp)"
                     print(f"[watch] TRIGGER ep={ep} step={step} ema={ema:.4f} base={base:.4f} reason={why}", flush=True)
+                    if a.kill_pattern:
+                        killed = kill_matching(a.kill_pattern, a.kill_requires)
+                        print(f"[watch] 已杀 {len(killed)} 个进程 {killed}（模式 '{a.kill_pattern}'）", flush=True)
                     return 0
         time.sleep(a.poll)
 

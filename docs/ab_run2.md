@@ -117,3 +117,29 @@ B：基线 0.351，全程 Δ −1.8…+1.2pp，前半 0.343 → 后半 0.344 →
 3. **通才 B 在镜像格反而赢端口 4.5pp**，但整体加权 −0.5pp。
 4. 没有任何一个候选在 `meta_w / champ / local / worst` 四个维度上全面占优 ⇒ **不足以替换现有提交**，
    除非拿 LB 当裁判（每天 2 次提交机会，取最高）。
+
+## 7. 换边规则的真机验证（四条路径都跑到了）
+
+| 阶段 | 触发条件 | 日志原文 | 说明 |
+|---|---|---|---|
+| r1A | 增益 | `ep93 step3047424 Δ=+2.1pp ★触发(增益)` | 阈值 2pp（热换的 watcher），此时实际已跑到 4.8M |
+| r1B | timebox | `ep123 step4030464 Δ=-1.4pp ★触发(timebox 4030464>=4000000)` | 到 4M 就换，不看胜率 |
+| r2A | timebox | `ep123 step4030464 Δ=-3.2pp ★触发(timebox 4030464>=4000000)` | 同上 |
+| r2B | 增益 | `ep112 step3670016 Δ=+3.3pp ★触发(增益)` | 阈值 3pp（teacher_loop 传的），唯一由增益停下的 B |
+
+两个结论：
+1. **timebox 与增益两条路径都验证过**，且 A/B 两侧各触发过一次；
+2. 三个阶段的 `TRIGGER ep=... reason=...` 行**在日志里都缺**——原因是 `pkill -f <pattern>` 会匹配到 watcher
+   自己的命令行（`--kill-pattern <pattern>` 就在它自己的 cmdline 里），**触发瞬间 watcher 先杀了自己**。
+   已修：改用 `kill_matching()`（`pgrep` 后逐个 `/proc/<pid>/cmdline` 检查，排除自身 + 排除其他 watcher +
+   要求 cmdline 里同时含 `train_native.py` 才杀），并加了 `--kill-requires` 护栏防止误杀启动它的 shell。
+
+## 8. 评估机部署（明天用）
+
+```bash
+bash tools/pack_eval_cpu.sh                 # 打自足 kit（93 MB，含 4 份候选 .pt）
+bash tools/deploy_eval_cpu.sh root@HOST      # 推包 → 解包 → setup → 后台起 queue_remaining
+bash tools/pull_eval_results.sh root@HOST    # 拉回 meta/ h2h/ hiN_* 结果
+./tools/py tools/panel_compare.py --base meta_port_9d6e --tag r1A_9d6e ...
+./tools/py tools/panel_ci.py --base meta_port_9d6e --pool 'r1A=r1A_9d6e,r1A_9d6e_s950001,r1A_9d6e_s950002'
+```
