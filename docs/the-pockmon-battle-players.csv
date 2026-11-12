@@ -103,3 +103,4 @@ db04,port_db04,端口基线,,alakazam-dunsparce,build/agents/port_db04/model.pt,端口
 e1d7,port_e1d7,端口基线,,ogerpon,build/agents/port_e1d7/model.pt,端口仓库权重
 e8ee,port_e8ee,端口基线,,alakazam-dunsparce,build/agents/port_e8ee/model.pt,端口仓库权重
 9d6e,port_on_9d6e,端口基线,,alakazam-dunsparce,build/agents/port_on_9d6e/model.pt,端口仓库权重
+26c6,r1A_26c6,PPO训练,,slowking,build/agents/r1A_26c6/model.pt,我们训练

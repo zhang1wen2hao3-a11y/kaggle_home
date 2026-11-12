@@ -50,6 +50,40 @@ def hid(deck_str):
 
 LB = json.load(open(os.path.join(ROOT, "data", "lb_scores.json")))
 
+# 每副牌「最高可查 LB」：优先外部强玩家的分数；我们自己创造/提交的用我们的天梯分；
+# 两者都没有 → NA。hash → 分数。
+OUR_LB = {   # 我们真实提交过的天梯分（data/lb_ours.json 的 deck 视角）
+    "db04": 1060.3, "9d6e": 992.1, "7e39": 880.9, "e1d7": 875.5, "0d86": 779.6,
+}
+
+
+def deck_lb_map():
+    """hash → 外部使用者最高 LB（来自语料 + lb_scores）。"""
+    users = collections.defaultdict(set)
+    try:
+        for r in csv.DictReader(open(os.path.join(ROOT, "data", "deck_corpus.csv"))):
+            users[(r.get("deck_hash") or "")[:4]].add(r.get("team") or "")
+    except Exception:
+        pass
+    out = {}
+    for h, teams in users.items():
+        best = max((LB.get(t, 0) for t in teams), default=0)
+        if best > 0:
+            out[h] = best
+    return out
+
+
+FIELD_LB = deck_lb_map()
+
+
+def best_lb(hashes):
+    """一组 deck hash 里的最高可查 LB：外部使用者 vs 我们自己取 max；都没有 → NA。"""
+    vals = []
+    for h in hashes:
+        if h in FIELD_LB: vals.append(FIELD_LB[h])
+        if h in OUR_LB: vals.append(OUR_LB[h])
+    return f"{max(vals):.1f}" if vals else "NA"
+
 # ---------- 卡组名聚合：archetype → 简洁主体名 ----------
 # 规则：取牌组"主体"（通常是主攻手/最终进化）作为名字，主体基本一致就归同一个名字。
 # 多线牌组按"卡数最多的那条线"判（例：9d6e/0bf5/db04 的 60 张里 Abra+Kadabra+Alakazam
@@ -125,7 +159,8 @@ for r in arch:
 tot = sum(appear.values())
 cards = []
 for h, n in appear.most_common():
-    cards.append(dict(DeckID=h, 卡组=short_of(name_of(h)), Meta占比=n / tot * 100, 样本局数=n))
+    cards.append(dict(DeckID=h, 卡组=short_of(name_of(h)), Meta占比=n / tot * 100,
+                      样本局数=n, _hashes={h}))
 
 # 主体名 → 代表哈希（样本最多的那个 decklist），match 表合并后用它填 DeckID
 REP = {}
@@ -139,14 +174,30 @@ _agg = {}
 for c in cards:
     k = c["卡组"]
     if k not in _agg:
-        _agg[k] = dict(DeckID=c["DeckID"], 卡组=k, Meta占比=0.0, 样本局数=0, _mx=0)
+        _agg[k] = dict(DeckID=c["DeckID"], 卡组=k, Meta占比=0.0, 样本局数=0, _mx=0, _hashes=set())
     _agg[k]["Meta占比"] += c["Meta占比"]
     _agg[k]["样本局数"] += c["样本局数"]
+    _agg[k]["_hashes"] |= c["_hashes"]
     if c["样本局数"] > _agg[k]["_mx"]:
         _agg[k]["DeckID"], _agg[k]["_mx"] = c["DeckID"], c["样本局数"]
 cards = sorted(_agg.values(), key=lambda r: -r["样本局数"])
 for r in cards:
-    r.pop("_mx", None); r["Meta占比"] = round(r["Meta占比"], 2)
+    r.pop("_mx", None)
+    r["最高LB"] = best_lb(r.pop("_hashes"))
+    r["Meta占比"] = round(r["Meta占比"], 2)
+
+# 补：我们自己提交过、但档案里没出现的牌（否则它的天梯分会被 archetype 聚合吞掉）
+# 我们提交过的牌：如果它自己的天梯分被 archetype 聚合"抬高"盖掉了，单独补一行
+# （让"这个 archetype 能到多少"和"我们的 decklist 打到多少"两个数都能看到）
+_row_by_name = {r["卡组"]: r for r in cards}
+for h, lbv in OUR_LB.items():
+    full = H2NAME.get(h, h)
+    grp = short_of(full)
+    row = _row_by_name.get(grp)
+    if row is not None and abs(float(row["最高LB"]) - lbv) < 0.05 if row["最高LB"] != "NA" else False:
+        continue                      # 组内最高就是它自己，不需要补
+    cards.append(dict(DeckID=h, 卡组=f"{grp}（{h}·我们）", Meta占比=0.0,
+                      样本局数=0, 最高LB=f"{lbv:.1f}"))
 
 # ---------- match ----------
 matches = []
@@ -304,7 +355,8 @@ def write(path, header, rows, fields):
             w.writerow([r.get(k, "") for k in fields])
 
 write(os.path.join(DOCS, "the-pockmon-battle-cards.csv"),
-      ["DeckID", "卡组", "Meta 占比", "样本局数"], cards, ["DeckID", "卡组", "Meta占比", "样本局数"])
+      ["DeckID", "卡组", "Meta 占比", "样本局数", "最高LB"], cards,
+      ["DeckID", "卡组", "Meta占比", "样本局数", "最高LB"])
 write(os.path.join(DOCS, "the-pockmon-battle-match.csv"),
       ["DeckID", "玩家卡组", "玩家", "DeckID", "对手卡组", "对手", "胜局", "败局", "平局"],
       matches, ["DeckID", "玩家卡组", "玩家", "DeckID2", "对手卡组", "对手", "胜局", "败局", "平局"])
