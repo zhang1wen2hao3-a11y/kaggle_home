@@ -1,4 +1,21 @@
-# A/B 交替自博弈 · 第 1 轮 A 阶段权重（9d6e 专精）
+# A/B 交替自博弈 · 四阶段权重（9d6e）
+
+## ★ 命名规则（重要）
+
+文件名与"驾驶员名"统一用 **`ab9d6e_<阶段>`**，因为**上一轮的 slowking 专才也叫 `r1A` / `r1B`**（无前缀）
+（`data/ab_run1/r1A.bin`，choice 表里 26c6 那两格用的就是它）。不加前缀会在表里撞车、也会互相覆盖
+`models/ppo/r1A.pt`。
+
+```
+ab9d6e_r1A         第 1 轮 A：钉 9d6e 的专精，4,849,664 步
+ab9d6e_r1A_blend   上一行 + α=0.10 往端口 KL 回拉
+ab9d6e_r1B         第 1 轮 B：通才，4,030,464 步
+ab9d6e_r2A         第 2 轮 A：对手换成 ab9d6e_r1B（不钉牌），4,030,464 步
+ab9d6e_r2A_blend   上一行 + α=0.10 回拉
+ab9d6e_r2B         第 2 轮 B：3,670,016 步
+```
+
+对照：`r1A`（无前缀）= **上一轮 slowking 10M 步专才**（`data/ab_run1/r1A.bin`），两者不是同一个模型。
 
 本目录是 **MODE=ab（纯交替）长跑第 1 轮的 A 侧产物**，`.bin` 为引擎原生权重格式，
 可直接当训练起点（`INIT=`）或转成 `model.pt` 做评估。
@@ -7,12 +24,12 @@
 
 | 文件 | 大小 | md5 | 说明 |
 |---|---|---|---|
-| `r1A.bin` | 18,205,408 | `28d27691c9aa548c4f22f76a23039645` | A 阶段训练产物（4,849,664 步，ep148） |
-| `r1A_blend.bin` | 18,205,408 | `babd27ac173291b006ad07d604dc9787` | `r1A` 按 α=0.10 往端口权重做了 **KL 回拉**（混合 125 个张量，沿用 2 个缓冲） |
-| `r1B.bin` | 18,205,408 | `56ab89c926e3296351522b49c4e1578e` | B 阶段训练产物（通才，4,030,464 步，ep123，timebox 停） |
-| `r2A.bin` | 18,205,408 | `dcd1c3013f40dcb3d89e0c15b20b1f20` | 第 2 轮 A（对手换成 `r1B` 且不钉牌），4,030,464 步，位移 3.12% |
-| `r2A_blend.bin` | 18,205,408 | `e250ef9739ad28093912a411f17cde90` | `r2A` 按 α=0.10 往端口 KL 回拉 |
-| `r2B.bin` | 18,205,408 | `fb7ae0ff99a1d6377a5b1254756ab8dd` | 第 2 轮 B（对手 = `r2A_blend` 钉 9d6e），**增益触发**停于 ep112 / 3,670,016 步；权重取最后一个 checkpoint（3,276,800 步） |
+| `ab9d6e_r1A.bin` | 18,205,408 | `28d27691c9aa548c4f22f76a23039645` | A 阶段训练产物（4,849,664 步，ep148） |
+| `ab9d6e_r1A_blend.bin` | 18,205,408 | `babd27ac173291b006ad07d604dc9787` | `ab9d6e_r1A` 按 α=0.10 往端口权重做了 **KL 回拉**（混合 125 个张量，沿用 2 个缓冲） |
+| `ab9d6e_r1B.bin` | 18,205,408 | `56ab89c926e3296351522b49c4e1578e` | B 阶段训练产物（通才，4,030,464 步，ep123，timebox 停） |
+| `ab9d6e_r2A.bin` | 18,205,408 | `dcd1c3013f40dcb3d89e0c15b20b1f20` | 第 2 轮 A（对手换成 `ab9d6e_r1B` 且不钉牌），4,030,464 步，位移 3.12% |
+| `ab9d6e_r2A_blend.bin` | 18,205,408 | `e250ef9739ad28093912a411f17cde90` | `ab9d6e_r2A` 按 α=0.10 往端口 KL 回拉 |
+| `ab9d6e_r2B.bin` | 18,205,408 | `fb7ae0ff99a1d6377a5b1254756ab8dd` | 第 2 轮 B（对手 = `r2A_blend` 钉 9d6e），**增益触发**停于 ep112 / 3,670,016 步；权重取最后一个 checkpoint（3,276,800 步） |
 
 ## 怎么来的
 
@@ -55,17 +72,17 @@
 
 ```bash
 # ① 直接当训练起点（引擎原生格式）
-INIT=models/weights/ab/r1A_blend.bin bash tools/db04_line.sh
+INIT=models/weights/ab/ab9d6e_r1A_blend.bin bash tools/db04_line.sh
 
 # ② 转 model.pt 做评估
 PYTHONPATH=build/port_plain:. ./tools/py port_repo/native/tools/native_weights.py import \
-  models/weights/ab/r1A.bin models/ppo/r1A.pt
-bash tools/make_agent_dir.sh build/agents/r1A_9d6e models/ppo/r1A.pt decks/pool_field/dunsparce_abra__9d6e.csv
-bash tools/meta_eval.sh --cand build/agents/r1A_9d6e --tag r1A_9d6e
+  models/weights/ab/ab9d6e_r1A.bin models/ppo/ab9d6e_r1A.pt
+bash tools/make_agent_dir.sh build/agents/ab9d6e_r1A models/ppo/ab9d6e_r1A.pt decks/pool_field/dunsparce_abra__9d6e.csv
+bash tools/meta_eval.sh --cand build/agents/ab9d6e_r1A --tag ab9d6e_r1A
 
 # ③ 重做 KL 回拉
 PYTHONPATH=. PTCG_NW=port_repo/native/tools/native_weights.py PTCG_BUNDLE=. \
-  ./tools/py tools/kl_blend.py --new-bin models/weights/ab/r1A.bin \
+  ./tools/py tools/kl_blend.py --new-bin models/weights/ab/ab9d6e_r1A.bin \
   --init-bin models/weights/kl/port_w.bin --alpha 0.10 --out-bin /tmp/blend.bin
 ```
 
@@ -115,8 +132,8 @@ PYTHONPATH=. PTCG_NW=port_repo/native/tools/native_weights.py PTCG_BUNDLE=. \
 
 | 阶段 | 步数 | 学习者 | 对手 | 位移（中位 L2） | 结束方式 | 训练期 lgw |
 |---|---|---|---|---|---|---|
-| r2A | 4,030,464 | A 钉 9d6e | `r1B` **不钉牌**（按覆盖率抽 187 副） | **3.12%**（max 33.8%） | timebox 4M | 0.356 → 0.338（Δ −0.75pp 均值） |
-| r2B | 3,670,016 | B 不钉牌 | `r2A_blend` 钉 9d6e | 2.80%（max 73.6%） | **增益触发 Δ=+3.3pp** | 0.340 → 0.356（+1.6pp） |
+| ab9d6e_r2A | 4,030,464 | A 钉 9d6e | `ab9d6e_r1B` **不钉牌**（按覆盖率抽 187 副） | **3.12%**（max 33.8%） | timebox 4M | 0.356 → 0.338（Δ −0.75pp 均值） |
+| ab9d6e_r2B | 3,670,016 | B 不钉牌 | `r2A_blend` 钉 9d6e | 2.80%（max 73.6%） | **增益触发 Δ=+3.3pp** | 0.340 → 0.356（+1.6pp） |
 
 两个可对照的点：
 

@@ -14,25 +14,19 @@ cd "$(dirname "$0")/.."
 need() { [ -e "$1" ] || { echo "✗ 缺 $1 —— 先在目标机解包 dist/eval_cpu_kit.tar.gz 并跑 setup.sh"; exit 1; }; }
 for f in tools/meta_eval.sh tools/h2h.sh build/agents/port_on_9d6e build/agents/port_7e39; do need "$f"; done
 for k in r1A r1B r2A r2B; do
-  [ -d "build/agents/${k}_9d6e" ] || need "models_ppo/$k.pt"
-  [ -d "build/agents/${k}_9d6e" ] || bash tools/make_agent_dir.sh "build/agents/${k}_9d6e" "models_ppo/$k.pt" decks/pool_field/dunsparce_abra__9d6e.csv
+  [ -d "build/agents/ab9d6e_$k" ] || need "models_ppo/ab9d6e_$k.pt"
+  [ -d "build/agents/ab9d6e_$k" ] || bash tools/make_agent_dir.sh "build/agents/ab9d6e_$k" "models_ppo/ab9d6e_$k.pt" decks/pool_field/dunsparce_abra__9d6e.csv
 done
 
 echo "===== [$(date +%H:%M)] ① r2B@9d6e 12 格面板 ====="
-bash tools/meta_eval.sh --cand build/agents/r2B_9d6e --tag r2B_9d6e 2>&1 | tail -2
+bash tools/meta_eval.sh --cand build/agents/ab9d6e_r2B --tag ab9d6e_r2B 2>&1 | tail -2
 
-echo "===== [$(date +%H:%M)] ② 头对头（400 场）====="
-bash tools/h2h.sh build/agents/r2A_9d6e build/agents/r1A_9d6e     400 r2A_vs_r1A_9d6e 2>&1 | tail -1
-bash tools/h2h.sh build/agents/r1A_9d6e build/agents/port_on_9d6e 400 r1A_vs_port_9d6e 2>&1 | tail -1
-bash tools/h2h.sh build/agents/r2B_9d6e build/agents/port_on_9d6e 400 r2B_vs_port_9d6e 2>&1 | tail -1
-bash tools/h2h.sh build/agents/r2A_9d6e build/agents/r2B_9d6e     400 r2A_vs_r2B_9d6e 2>&1 | tail -1
-
-echo "===== [$(date +%H:%M)] ③ 决定性对照：port vs r1A 各再跑 2 个种子（合并后 n≈600/格）====="
+echo "===== [$(date +%H:%M)] ② 决定性对照：port vs r1A 各再跑 2 个种子（合并后 n≈600/格）====="
 # 为什么不是"只把 ogerpon 一格加大样本"：+2.4pp 的 CI 是 [-1.0, +5.9]，
 # 半宽 ∝ 1/√n ⇒ 整面板再跑 2 个独立种子（等价 3× 样本）才能把半宽压到 ~1.4pp。
 # 只加一格只是砍掉一个方差项，其他 11 格的噪声还在。
 for sd in 950001 950002; do
-  for spec in "meta_port_9d6e:build/agents/port_on_9d6e" "r1A_9d6e:build/agents/r1A_9d6e"; do
+  for spec in "meta_port_9d6e:build/agents/port_on_9d6e" "ab9d6e_r1A:build/agents/ab9d6e_r1A"; do
     tag="${spec%%:*}"; ag="${spec##*:}"
     t="${tag}_s${sd}"
     [ -f "logs/meta/$t/summary.json" ] && { echo "  [skip] $t（已完成）"; continue; }
@@ -41,9 +35,15 @@ for sd in 950001 950002; do
   done
 done
 
+echo "===== [$(date +%H:%M)] ③ 头对头（400 场）====="
+bash tools/h2h.sh build/agents/ab9d6e_r2A build/agents/ab9d6e_r1A     400 ab9d6e_r2A_vs_r1A 2>&1 | tail -1
+bash tools/h2h.sh build/agents/ab9d6e_r1A build/agents/port_on_9d6e 400 ab9d6e_r1A_vs_port 2>&1 | tail -1
+bash tools/h2h.sh build/agents/ab9d6e_r2B build/agents/port_on_9d6e 400 ab9d6e_r2B_vs_port 2>&1 | tail -1
+bash tools/h2h.sh build/agents/ab9d6e_r2A build/agents/ab9d6e_r2B     400 ab9d6e_r2A_vs_r2B 2>&1 | tail -1
+
 echo "===== [$(date +%H:%M)] ④ ogerpon_7e39 单格高样本（n=1000，作为补充证据）====="
 for c in r1A r2A port; do
-  ag="build/agents/${c}_9d6e"; [ "$c" = port ] && ag=build/agents/port_on_9d6e
+  ag="build/agents/ab9d6e_$c"; [ "$c" = port ] && ag=build/agents/port_on_9d6e
   [ -f "logs/hiN_7e39_${c}.json" ] && { echo "  [skip] $c（已有）"; continue; }
   echo "  --- $c"
   ./tools/py ptcg_league/eval_pair.py --cand "$ag" --opp "ogerpon_7e39=build/agents/port_7e39" \
@@ -54,4 +54,4 @@ echo "===== [$(date +%H:%M)] 全部完成 ====="
 echo
 echo "合并多种子看显著性："
 echo "  ./tools/py tools/panel_ci.py --base meta_port_9d6e --base meta_port_9d6e_s950001 --base meta_port_9d6e_s950002 \\"
-echo "      --pool 'r1A=r1A_9d6e,r1A_9d6e_s950001,r1A_9d6e_s950002' "
+echo "      --pool 'ab9d6e_r1A=ab9d6e_r1A,ab9d6e_r1A_s950001,ab9d6e_r1A_s950002' "

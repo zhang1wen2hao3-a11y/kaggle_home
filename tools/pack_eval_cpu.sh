@@ -42,7 +42,8 @@ cp -f docs/the-pockmon-battle-choice-detail.csv "$STAGE/docs/"
 cp -f decks/testset_meta.tsv "$STAGE/decks/"
 mkdir -p "$STAGE/models_ppo"
 for k in r1A r1B r2A r2B; do
-  [ -f "models/ppo/$k.pt" ] && cp -f "models/ppo/$k.pt" "$STAGE/models_ppo/" && echo "   候选 $k.pt"
+  src="models/ppo/ab9d6e_$k.pt"
+  [ -f "$src" ] && cp -f "$src" "$STAGE/models_ppo/" && echo "   候选 ab9d6e_$k.pt"
 done
 n=$(ls logs/winrate/*.json 2>/dev/null | wc -l)
 [ "$n" -gt 0 ] && cp -f logs/winrate/*.json "$STAGE/logs/winrate/" 2>/dev/null
@@ -81,9 +82,9 @@ echo "  ✓ $(ls build/agents | wc -l) 个 agent 就绪（共用 model.pt $(md5s
 echo
 echo "=== 铺候选（我方权重 @ 9d6e）==="
 for k in r1A r1B r2A r2B; do
-  [ -f "models_ppo/$k.pt" ] || continue
-  bash tools/make_agent_dir.sh "build/agents/${k}_9d6e" "models_ppo/$k.pt" decks/pool_field/dunsparce_abra__9d6e.csv >/dev/null \
-    || { echo "✗ 铺 $k 失败"; exit 1; }
+  [ -f "models_ppo/ab9d6e_$k.pt" ] || continue
+  bash tools/make_agent_dir.sh "build/agents/ab9d6e_$k" "models_ppo/ab9d6e_$k.pt" decks/pool_field/dunsparce_abra__9d6e.csv >/dev/null \
+    || { echo "✗ 铺 ab9d6e_$k 失败"; exit 1; }
 done
 echo
 echo "=== 跑剩余评估： bash tools/queue_remaining.sh ==="
