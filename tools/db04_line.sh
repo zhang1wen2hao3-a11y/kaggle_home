@@ -199,7 +199,9 @@ rm -rf "$RD"; mkdir -p "$RD"
 cp -f "$INIT" "$RD/init.bin"
 [ -s "$RD/init.bin" ] || { echo "✗ init.bin 拷贝失败（0 字节）"; exit 1; }
 
-PYTHONPATH=data:.:native PTCG_TABLES=native/ptcg_tables_field.bin OMP_WAIT_POLICY=PASSIVE \
+# ★ PYTHONUNBUFFERED：否则 python 块缓冲（~8KB）会让 logs/$RUN.log 滞后 ~27 epoch，
+#   在线 watcher / 监控全都看滞后数据（曾导致基线错位与"日志卡住"误判）
+PYTHONUNBUFFERED=1 PYTHONPATH=data:.:native PTCG_TABLES=native/ptcg_tables_field.bin OMP_WAIT_POLICY=PASSIVE \
 "$PY" native/train_native.py --run-name "$RUN" \
   --timesteps "$T" --no-anneal-lr \
   --total-agents "$AG" --minibatch "$MB" --num-threads "$THREADS" \
@@ -209,7 +211,8 @@ PYTHONPATH=data:.:native PTCG_TABLES=native/ptcg_tables_field.bin OMP_WAIT_POLIC
   --p-anchor-learner "$P_ANCHOR_LEARNER" --p-anchor-self-opp "$P_ANCHOR_SELF_OPP" --p-anchor-league-opp "$P_ANCHOR_LEAGUE_OPP" \
   ${BANKS:+--league-ckpts "$BANKS" --league-pct "$LEAGUE_PCT"} \
   ${BANKDECKS:+--bank-decks "$BANKDECKS"} \
-  2>&1 | tee "logs/$RUN.log" | grep -E "anchor decks resolved|deck weights|REJECTED|epoch 5 |epoch 10 |final" | head -8
+  2>&1 | tee "logs/$RUN.log" | grep -E "anchor decks resolved|bank decks|deck weights|REJECTED|epoch 5 |epoch 10 |final"
+# ↑ 原来末尾还有 `| head -8`：攒够 8 条匹配后 head 退出 → tee/python 收到 SIGPIPE → 训练被静默杀掉。已去掉。
 
 # ── ③ 硬门槛（缺证据就不算数）────────────────────────────────────────
 echo

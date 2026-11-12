@@ -8,10 +8,25 @@
     epoch 50 step 1638400 ... lgfrac 0.486 lgw 0.612 [1:0.58/0.05][2:0.71/0.05]...
     ↑ 每个 bank 的胜率/出现率  ← bank 钉死了卡组，所以这是"对某副牌的胜率"
 
+## 指标口径（★ 2025-11 修正：A 阶段必须换算到学习者视角）
+    A 阶段：日志里的 [b:wr] 是**冻结对手**（bank 驾驶员）的胜率，对手胜率**下降** = 我们变强。
+            所以本脚本用 learner_wr = 1 − Σ(coverage·bank_wr) 做指标（单 bank 时就等于 lgw）。
+            旧版直接盯对手胜率、要求"上涨 2pp"，方向反了 ⇒ 10M 步一次都没触发（血泪）。
+    B 阶段：lgw 就是学习者自己的胜率，直接用。
+
+## 换边规则（★ 修正：参考工程里"换边"和"晋升"是两件事）
+    参考工程 `--cross-gate-delta 0.03` 是**晋升门**（candidate vs teacher 镜像 h2h，n=400，CI ±2.5pp），
+    而换边靠 `--ft-phase-timebox`（固定预算到点就换）。我们把两者混成一个阈值后，A 阶段对冻结端口的
+    真实增益只有 +1pp/2M 步 ⇒ 3pp 永远到不了，只能跑满上限（实测 12M cap，白烧 1.5h）。
+
+    ⇒ 现在规则 =「timebox 优先 + 增益兜底」：
+      · 本阶段步数 >= MAX_STEPS（默认 4M，`AB_MAX_STEPS` 可改，0=关）⇒ 立刻换边
+      · 或 ema − baseline >= THRESH_PP ⇒ 提前换边（谁先到算谁）
+
 ## 触发规则
-    baseline = 前 WARM 个 epoch 的加权胜率均值（默认 20~50）
-    ema      = 最近 EMA_N 个 epoch 的加权胜率
-    当 ema - baseline >= THRESH_PP（默认 2.0pp，A 阶段）/ ema >= baseline - MARGIN（B 阶段）⇒ 触发
+    baseline = 前 WARM 个 epoch 的 learner_wr 均值（默认 20~50）
+    ema      = 最近 EMA_N 个 epoch 的 learner_wr
+    当 ema - baseline >= THRESH_PP（默认 3.0pp，对齐参考工程 cross-gate-delta 0.03）⇒ 杀掉本阶段
 
 ## 用法
     # A 阶段：涨 2pp 就触发（触发后杀掉 run-name 含 r1A 的训练进程）
@@ -62,6 +77,9 @@ def main():
     ap.add_argument("--ema", type=int, default=20, help="最近 N 个 epoch 做 EMA")
     ap.add_argument("--baseline-ref", type=float, default=None, help="B 模式：baseline 直接用这个值")
     ap.add_argument("--kill-pattern", default="", help="触发后 pkill -f 这个模式")
+    ap.add_argument("--max-steps", type=int,
+                    default=int(os.environ.get("AB_MAX_STEPS", "4000000") or 0),
+                    help="timebox：本阶段跑满这么多步就换边（0=关闭，默认 4M）")
     ap.add_argument("--poll", type=float, default=5.0)
     ap.add_argument("--max-wait", type=float, default=0.0, help="秒；0=不限")
     ap.add_argument("--pid", type=int, default=0, help="训练进程 pid；它退出就结束（防止无限等待）")
@@ -94,7 +112,11 @@ def main():
                 ep, step, banks, lgw = r
                 if seen and seen[-1][0] >= ep:
                     continue
-                wr = weighted(banks, weights) if a.mode == "A" else lgw
+                if a.mode == "A":
+                    wb = weighted(banks, weights)
+                    wr = None if wb is None else 1.0 - wb    # 学习者视角：对手胜率↓ = 我们↑
+                else:
+                    wr = lgw
                 if wr is None:
                     continue
                 seen.append((ep, step, wr))
@@ -115,13 +137,22 @@ def main():
                     ok = d >= a.thresh_pp
                 else:
                     ok = d >= -abs(a.thresh_pp) if a.baseline_ref is not None else d >= a.thresh_pp
-                print(f"[watch] ep{ep} step{step} wr={wr:.3f} ema={ema:.3f} base={base:.3f} Δ={d:+.1f}pp"
-                      + ("  ★触发" if ok else ""), flush=True)
+                tb = a.max_steps > 0 and step >= a.max_steps     # timebox 到点
+                if tb:
+                    tag = f"  ★触发(timebox {step}>={a.max_steps})"
+                elif ok:
+                    tag = "  ★触发(增益)"
+                else:
+                    tag = ""
+                print(f"[watch] ep{ep} step{step} wr={wr:.3f} ema={ema:.3f} base={base:.3f} Δ={d:+.1f}pp{tag}",
+                      flush=True)
+                ok = ok or tb
                 if ok:
                     if a.kill_pattern:
                         subprocess.run(["pkill", "-f", a.kill_pattern], check=False)
                         print(f"[watch] 已 pkill -f '{a.kill_pattern}'", flush=True)
-                    print(f"[watch] TRIGGER ep={ep} step={step} ema={ema:.4f} base={base:.4f}", flush=True)
+                    why = f"timebox(step={step}>={a.max_steps})" if tb else f"gain(Δ={d:+.1f}pp)"
+                    print(f"[watch] TRIGGER ep={ep} step={step} ema={ema:.4f} base={base:.4f} reason={why}", flush=True)
                     return 0
         time.sleep(a.poll)
 

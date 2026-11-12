@@ -43,7 +43,9 @@ MODE="${MODE:-ab}"
 B_SLOTS="${B_SLOTS:-2}"        # A 阶段里 B 占几个 bank 槽
 B_OPP="${B_OPP:-A}"            # B 阶段的对手用 A 还是 init
 DYN="${DYN:-1}"
-THRESH_PP="${THRESH_PP:-3.0}"   # 对齐参考工程 cross-gate-delta 0.03
+# ★ 换边靠 timebox（tools/ab_watch.py 的 --max-steps，默认 4M 步/侧），THRESH_PP 只是"提前换边"的兜底；
+#   参考工程的 3pp 是**晋升门**（h2h n=400），不是换边阈值——两者别再混用。
+THRESH_PP="${THRESH_PP:-2.0}"   # 提前换边兜底阈值（2pp，与 launch_ab 统一）
 # 权重快照间隔（epoch；1 epoch = 32768 步）：
 #   DYN 模式杀训练会丢"最后一个未落盘的 epoch 段"，所以默认加密到 20 epoch（655k 步）；
 #   固定步数模式默认 100 epoch（3.28M 步）。每个快照都能用 tools/weight_dist.py 量位移。
@@ -80,7 +82,7 @@ if [ -z "$PLAN_BANKS" ]; then
   echo "⚠️ choice 取不到 $SHIP_HASH 这一行，A 阶段退回单 bank（旧行为）"
   PLAN_BANKS="$B"; PLAN_DECKS=""; PLAN_PCT="0.49"
 fi
-echo "A 阶段对手驾驶员 bank: $(echo "$PLAN_BANKS" | tr ',' '\n' | wc -l) 个槽位, league_pct=$PLAN_PCT"
+[ "$MODE" = "ab" ] || echo "A 阶段对手驾驶员 bank: $(echo "$PLAN_BANKS" | tr ',' '\n' | wc -l) 个槽位, league_pct=$PLAN_PCT"
 
 # 镜像基线 B0：起点时 A vs teacher（同一个文件）先量一次座位偏置
 gate() { # gate <cand.bin> <teacher.bin> -> 胜率(0~1)
@@ -121,6 +123,8 @@ for i in $(seq 1 "$ROUNDS"); do
     echo "  [round $i] A 阶段对手 = $N_MATRIX 个矩阵槽（B 还是 init，不额外挂）"
   fi
   fi
+  # ★ 训练前清空同名日志：watcher 会把残留的旧 epoch 当成本阶段的早期样本（曾让基线错位）
+  : > "$R/logs/r${i}A.log"; : > "$LOG/r${i}A.watch.log"
   echo "===== 第 $i 轮 A：训舰牌专精（对手=B 冻结，打所有牌）====="
   cd "$R"
   TRAIN_A="env PYTHON=$PY INIT=$A OUT=$OUT RUN=r${i}A T=$STEPS THREADS=8 \
@@ -141,7 +145,11 @@ for i in $(seq 1 "$ROUNDS"); do
         --kill-pattern "run-name r${i}A" >> "$LOG/r${i}A.watch.log" 2>&1
     wait "$TRAIN_PID" 2>/dev/null || true
     # 被杀时没有 final.bin，取最新快照
-    A_NEW=$(ls -t "$R/experiments/native-r${i}A/"*.bin 2>/dev/null | grep -v state | head -1)
+    # ★ 快照目录里有两类 bin：`<step>.bin`（纯权重，18MB）与 `state_<step>.bin`（含优化器，36MB，
+    #   不能当权重用——import 会 assert 失败）。只取纯权重；万一连第一个 checkpoint 都没到，
+    #   退回 init.bin 并显式告警（老代码这里会静默拿到 init.bin）。
+    A_NEW=$(ls -t "$R/experiments/native-r${i}A/"*.bin 2>/dev/null | grep -vE "/(state_|init\.bin)" | head -1)
+    if [ -z "$A_NEW" ]; then echo "  ⚠️ r${i}A 没有权重快照（未到第一个 checkpoint），退回 init"; A_NEW="$R/experiments/native-r${i}A/init.bin"; fi
     [ -n "$A_NEW" ] && cp -f "$A_NEW" "$OUT/r${i}A.bin" && A_NEW="$OUT/r${i}A.bin"
     echo "  [DYN] A 阶段结束于 $(basename "${A_NEW:-none}")"
   else
@@ -165,6 +173,7 @@ for i in $(seq 1 "$ROUNDS"); do
 
   # ── ④ 训 B：learner=B 打所有牌，对手=冻结 A 绑舰牌 ──
   if [ "$B_OPP" = "init" ]; then B_OPP_BIN="$INIT_A"; else B_OPP_BIN="$A"; fi
+  : > "$R/logs/r${i}B.log"; : > "$LOG/r${i}B.watch.log"
   echo "===== 第 $i 轮 B：训通才（对手=A 用 $(basename "$B_OPP_BIN")，打舰牌）====="
   TRAIN_B="env PYTHON=$PY INIT=$B OUT=$OUT RUN=r${i}B T=$STEPS THREADS=8 \
     LEAGUE_PCT=$([ "$MODE" = "ab" ] && echo 1.0 || echo 0.49) SEED=$((424242 + i + 1000)) ANCHOR=$SHIP TRACK=$SHIP \
@@ -181,7 +190,8 @@ for i in $(seq 1 "$ROUNDS"); do
     $PY_WATCH tools/ab_watch.py --pid "$TRAIN_PID" --log "$R/logs/r${i}B.log" --mode B \
         --thresh-pp "$THRESH_PP" --kill-pattern "run-name r${i}B" >> "$LOG/r${i}B.watch.log" 2>&1
     wait "$TRAIN_PID" 2>/dev/null || true
-    B_NEW=$(ls -t "$R/experiments/native-r${i}B/"*.bin 2>/dev/null | grep -v state | head -1)
+    B_NEW=$(ls -t "$R/experiments/native-r${i}B/"*.bin 2>/dev/null | grep -vE "/(state_|init\.bin)" | head -1)
+    if [ -z "$B_NEW" ]; then echo "  ⚠️ r${i}B 没有权重快照（未到第一个 checkpoint），本轮沿用旧 B"; B_NEW="$B"; fi
     [ -n "$B_NEW" ] && cp -f "$B_NEW" "$OUT/r${i}B.bin"
     echo "  [DYN] B 阶段结束于 $(basename "${B_NEW:-none}")"
   else

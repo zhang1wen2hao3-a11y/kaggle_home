@@ -19,7 +19,8 @@ SHIP="${SHIP:-slowpoke_slowking__26c6}"
 STEPS="${STEPS:-25000000}"        # 每阶段步数；总计 = 2 × STEPS × ROUNDS
 ROUNDS="${ROUNDS:-3}"          # 跑满 N 轮后两侧停止（参考工程 6–8 轮，我们先用 3）
 MODE="${MODE:-ab}"             # ab = 纯交替（A/B 互相当对手，100% 行）；matrix = 旧混合方案
-THRESH_PP="${THRESH_PP:-2.0}"  # 一侧稳定提升 2pp 就换边（参考工程写盘口径；代码默认 3pp）
+THRESH_PP="${THRESH_PP:-2.0}"  # 提前换边兜底阈值（2pp）；主换边机制是 ab_watch 的 --max-steps timebox
+PHASE_STEPS="${PHASE_STEPS:-4000000}"  # 每侧 timebox 步数（到点就换边，避免跑满上限空烧）
 INIT="${INIT:-/root/kl/port_w.bin}"
 OUT="${OUT:-/root/autodl-tmp/teacher_loop_ab}"
 ALPHA="${ALPHA:-0.10}"
@@ -45,14 +46,15 @@ grep -q bank_deck native/ptcg/env.c 2>/dev/null && echo "  ✓ bank-decks 补丁
 [ "$fail" = 0 ] || { echo "✗ 预检失败，先补齐缺件（tools/push_ab_kit.sh 从本地推）"; exit 1; }
 
 TOTAL=$(( STEPS * 2 * ROUNDS ))
-HRS=$(awk -v s="$TOTAL" 'BEGIN{printf "%.1f", s/957/3600}')
+SPS="${SPS:-1650}"          # 实测：RTX 4080S 1660（旧 2080Ti 816）
+HRS=$(awk -v s="$TOTAL" -v r="$SPS" 'BEGIN{printf "%.1f", s/r/3600}')
 echo
 echo "A/B 长跑：SHIP=$SHIP  MODE=$MODE  每阶段上限 $((STEPS/1000000))M 步 × 2 × $ROUNDS 轮 = $((TOTAL/1000000))M 步（上限）"
-echo "换边阈值：一侧覆盖率加权胜率 +${THRESH_PP}pp（动态，早到顶早换边，不会跑满上限）"
-echo "预计 ${HRS} 小时（957 SPS）  快照间隔 $((CHECKPOINT_INTERVAL*32768/1000000)).2M 步"
+echo "换边规则：每侧最多 ${PHASE_STEPS} 步（timebox）或学习者胜率涨 +${THRESH_PP}pp（谁先到算谁）"
+echo "预计 ${HRS} 小时（${SPS} SPS）  快照间隔 $((CHECKPOINT_INTERVAL*32768/1000000)).2M 步"
 
 nohup env STEPS="$STEPS" ROUNDS="$ROUNDS" OUT="$OUT" ALPHA="$ALPHA" MODE="$MODE" \
-  THRESH_PP="$THRESH_PP" CHECKPOINT_INTERVAL="$CHECKPOINT_INTERVAL" \
+  THRESH_PP="$THRESH_PP" CHECKPOINT_INTERVAL="$CHECKPOINT_INTERVAL" AB_MAX_STEPS="$PHASE_STEPS" \
   PROMOTE_MARGIN="$PROMOTE_MARGIN" N_GATE="$N_GATE" \
   bash tools/teacher_loop.sh "$SHIP" "$INIT" "$INIT" "$ROUNDS" "$STEPS" "$ALPHA" \
   > "$OUT/run.log" 2>&1 &
