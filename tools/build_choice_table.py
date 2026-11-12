@@ -47,6 +47,8 @@ def collect():
                      float(r["cand_win"]), int(float(r["n_games"])), "matrix_full"))
     # ② 12 格 meta 面板
     META = {"meta_port_2617": ("2617", "init"), "meta_port_9d6e": ("9d6e", "init"),
+            "meta_port_26c6": ("26c6", "init"),          # slowking 基线
+            "meta_r1A": ("26c6", "r1A"),                 # 10M 步 slowking 专才
             "meta_g6_db04": ("db04", "g6_db04"), "meta_ph3_2617_v2": ("2617", "ph3_2617_v2"),
             "meta_ph3_2617_v1": ("2617", "ph3_2617_v1"), "meta_ph3_9d6e_v2": ("9d6e", "ph3_9d6e_v2")}
     for arm, (ch, pilot) in META.items():
