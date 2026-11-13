@@ -1,93 +1,130 @@
 #!/usr/bin/env python3
-"""**生成 docs/the-pockmon-battle-choice-self.csv：每副牌"自己的最强驾驶员"**
+"""**生成 docs/the-pockmon-battle-choice-self.csv：每副牌"自己的最佳驾驶员"**
 
     ./tools/py tools/build_pilot_table.py            # 生成/刷新
     ./tools/py tools/build_pilot_table.py --dry      # 只看结论
 
-## 为什么单独一张表
+## 这张表回答什么
 
-`the-pockmon-battle-choice.csv` 的格子是「**我方**打这格该用谁」；它回答不了
-"这**副牌**交给谁驾驶最强"，而训练时的对手池需要后者（`choice_to_banks.py --strong`）。
+> **这副牌交给谁驾驶最强？** → 训练时**对手池**就按这个结论给每副对手牌配驾驶员。
 
-本表把这层推导**落成文件**，成为唯一真源：训练对手驾驶员一律从这张表读，
-不再在脚本里硬编码字典。
+⚠️ 与 `the-pockmon-battle-choice.csv` 的区别（2026-11-14 修正）：
+- `choice.csv` 的格子 =「我方用牌 a 打对手牌 b 时**我方**派谁」→ 回答"这一格我方用谁"；
+- 本表 =「牌 b **自己**交给谁」→ 回答"训练时对手的牌 b 该由谁驾驶"。
+  两者不能互相替代：`9d6e` 行里 `ab9d6e_r2A` 只在 `→e8ee`/`→f5f8` 两格更强，
+  但**整副牌**的场地加权最高者仍是 `init`（0.7248 vs r1A 0.7211 vs r2A 0.7202）。
 
-## 推导规则
+## 判据
 
-对每副牌 b，收集"b 作为挑战者"那一行里所有**非 init** 的驾驶员记录（`choice-detail.csv`），
-按 `胜率` 取最高者；若该行全是 init（例：`7e39` 行目前就是全部 init），则 b 的最强驾驶员 = `init`。
-
-同时给出 `行内 init 胜率` 与 `提升`，便于判断"这条到底有多可信"。
+该牌的 **12 格面板 × 多种子池化**后的场地加权胜率（Σ 场地权重 × 胜率）。
+非 init 候选需比 init 高 **≥ THRESH**（默认 1.0pp）才替换，否则记 init；无面板数据记「待测」。
 """
 from __future__ import annotations
 
 import argparse
-import collections
 import csv
-import io
+import glob
+import json
 import os
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DETAIL = os.path.join(ROOT, "docs", "the-pockmon-battle-choice-detail.csv")
 OUT = os.path.join(ROOT, "docs", "the-pockmon-battle-choice-self.csv")
+THRESH = 1.0   # pp
+
+# 牌 → [(驾驶员, [面板 tag；多个 = 多种子池化])]，tag 目录在 logs/meta/<tag>/vs_*.json
+FAMILY = {
+    "9d6e": [("init", ["meta_port_9d6e", "meta_port_9d6e_s950001", "meta_port_9d6e_s950002"]),
+             ("ab9d6e_r1A", ["ab9d6e_r1A", "ab9d6e_r1A_s950001", "ab9d6e_r1A_s950002"]),
+             ("ab9d6e_r2A", ["ab9d6e_r2A", "ab9d6e_r2A_s950001", "ab9d6e_r2A_s950002"]),
+             ("ab9d6e_r1B", ["ab9d6e_r1B"]),
+             ("ab9d6e_r2B", ["ab9d6e_r2B"]),
+             ("ph3_9d6e_v2", ["meta_ph3_9d6e_v2"])],
+    "26c6": [("init", ["meta_port_26c6"]), ("r1A", ["meta_r1A"])],
+    "2617": [("init", ["meta_port_2617"]), ("ph3_2617_v1", ["meta_ph3_2617_v1"]),
+             ("ph3_2617_v2", ["meta_ph3_2617_v2"])],
+    "db04": [("g6_db04", ["meta_g6_db04"])],
+    "7e39": [("init", ["port_7e39_s950000", "port_7e39_s950001", "port_7e39_s950002"]),
+             ("cand7e39S", ["cand7e39S_s950000", "cand7e39S_s950001", "cand7e39S_s950002"])],
+    "0d86": [("init", ["port_0d86_s950000", "port_0d86_s950001", "port_0d86_s950002"]),
+             ("g8_bc_parent", ["g8_bc_parent_s950000", "g8_bc_parent_s950001", "g8_bc_parent_s950002"]),
+             ("g8_shuppet", ["g8_shuppet_s950000", "g8_shuppet_s950001", "g8_shuppet_s950002"])],
+    "e1d7": [("init", ["port_e1d7_s950000", "port_e1d7_s950001", "port_e1d7_s950002"]),
+             ("candE1D7S", ["candE1D7S_s950000", "candE1D7S_s950001", "candE1D7S_s950002"])],
+}
 
 
-def load_detail():
-    txt = open(DETAIL, "rb").read().decode("gb18030", errors="replace")
-    return list(csv.DictReader(io.StringIO(txt)))
+def field_weights():
+    w = {}
+    for line in open(os.path.join(ROOT, "decks", "weights_field_b05.txt")):
+        p = line.split()
+        if len(p) == 2 and "__" in p[0]:
+            w[p[0].split("__")[-1][:4]] = float(p[1])
+    tot = sum(w.values()) or 1.0
+    return {k: v / tot for k, v in w.items()}
+
+
+def pooled_wr(tags, W):
+    cells, used = {}, 0
+    for t in tags:
+        files = glob.glob(os.path.join(ROOT, "logs", "meta", t, "vs_*.json"))
+        if not files:
+            continue
+        used += 1
+        for f in files:
+            o = json.load(open(f))["overall"]
+            c = os.path.basename(f)[3:-5].split("_")[-1]
+            k, n = cells.get(c, (0.0, 0))
+            cells[c] = (k + float(o["score"]) * int(o["n"]), n + int(o["n"]))
+    if not cells:
+        return None, 0
+    tot = sum(W.get(c, 0.0) for c in cells)
+    if tot <= 0:
+        return None, used
+    return sum(W.get(c, 0.0) * (k / n) for c, (k, n) in cells.items()) / tot, used
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry", action="store_true")
     a = ap.parse_args()
-    rows = load_detail()
-
-    # 同格 init 基线（从 choice-all 里取，便于算"同一格的提升"）
-    init_cell = {}
-    p_all = os.path.join(ROOT, "docs", "the-pockmon-battle-choice-all.csv")
-    if os.path.exists(p_all):
-        t = open(p_all, "rb").read().decode("gb18030", errors="replace")
-        for r in csv.DictReader(io.StringIO(t)):
-            if r.get("驾驶员") == "init" and r.get("胜率"):
-                try: init_cell[(r["挑战者"], r["被挑战者"])] = float(r["胜率"])
-                except ValueError: pass
-
-    by_row = collections.defaultdict(list)
-    for r in rows:
-        try:
-            wr = float(r["胜率"]) if r.get("胜率") else None
-        except ValueError:
-            wr = None
-        by_row[r["挑战者"]].append((r["驾驶员"], wr, r.get("样本场次", ""), r["被挑战者"], r["状态"]))
-
-    out = []
-    for deck in sorted(by_row):
-        cells = by_row[deck]
-        trained = [(p, wr, n, b) for (p, wr, n, b, st) in cells if p != "init" and wr is not None]
-        if trained:
-            p, wr, n, b = max(trained, key=lambda t: t[1])
-            base = init_cell.get((deck, b))
-            gain = (wr - base) * 100 if base is not None else None
-            why = (f"{len(trained)} 格非 init；最优在 →{b}（同格 init {base:.4f}）" if base is not None
-                   else f"{len(trained)} 格非 init；最优在 →{b}（该格无 init 数据）")
-            out.append([deck, p, f"{wr:.4f}", n, f"{gain:+.1f}pp" if gain is not None else "NA", why])
+    W = field_weights()
+    rows = []
+    for deck in sorted(FAMILY):
+        cand = []
+        for pilot, tags in FAMILY[deck]:
+            wr, seedn = pooled_wr(tags, W)
+            if wr is not None:
+                cand.append((pilot, wr, seedn))
+        if not cand:
+            rows.append([deck, "待测", "NA", "0", "NA", "还没有 12 格面板数据"])
+            print(f"{deck:<8}待测")
+            continue
+        base = next((wr for p, wr, _ in cand if p == "init"), None)
+        if base is None:      # 没有任何 init 基线 ⇒ 没法比较，标待测（别急着选候选）
+            rows.append([deck, "待测", "NA", str(max(t[2] for t in cand)), "NA",
+                         "缺 init 基线：" + " > ".join(f"{p} {wr:.4f}" for p, wr, _ in cand)])
+            print(f"{deck:<8}待测（缺 init 基线）：" + " > ".join(f"{p} {wr:.4f}" for p, wr, _ in cand))
+            continue
+        best = max(cand, key=lambda t: t[1])
+        if best[0] != "init" and base is not None and (best[1] - base) * 100 >= THRESH:
+            pick, gain = best, (best[1] - base) * 100
         else:
-            why = "该行无非 init 驾驶员（全部格子 init 就最合适）"
-            out.append([deck, "init", "NA", "NA", "NA", why])
-
-    print(f"{'卡组':<8}{'最强驾驶员':<20}{'胜率':>8}{'样本':>7}{'提升':>9}  依据")
-    for r in out:
-        print(f"{r[0]:<8}{r[1]:<20}{r[2]:>8}{str(r[3]):>7}{r[4]:>9}  {r[5][:52]}")
-    n_init = sum(1 for r in out if r[1] == "init")
-    print(f"\n共 {len(out)} 副牌：{len(out)-n_init} 副有非 init 驾驶员，{n_init} 副只能用 init")
+            pick = next((t for t in cand if t[0] == "init"), best)
+            gain = 0.0
+        detail = " > ".join(f"{p} {wr:.4f}" for p, wr, _ in sorted(cand, key=lambda t: -t[1]))
+        rows.append([deck, pick[0], f"{pick[1]:.4f}", str(pick[2]),
+                     f"{gain:+.1f}pp" if gain else "0.0pp",
+                     f"面板场地加权排序：{detail}"])
+        print(f"{deck:<8}{pick[0]:<14}{pick[1]:.4f}  {detail}")
+    n_other = sum(1 for r in rows if r[1] not in ("init", "待测"))
+    print(f"\n{len(rows)} 副牌：{n_other} 副由非 init 驾驶员驾驶")
     if a.dry:
         return 0
     with open(OUT, "w", newline="", encoding="gb18030") as f:
         w = csv.writer(f, lineterminator="\r\n")
-        w.writerow(["卡组", "最强驾驶员", "胜率", "样本场次", "相对 init 提升", "依据"])
-        w.writerows(out)
+        w.writerow(["卡组", "最佳驾驶员", "面板场地加权", "池化种子数", "相对 init 提升", "依据"])
+        w.writerows(rows)
     print(f"→ {OUT}")
     return 0
 
