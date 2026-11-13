@@ -9,13 +9,17 @@ LOG=logs/cpu_monitor.log; mkdir -p logs
 for i in $(seq 1 576); do   # 最多 48 小时
   if $SSH true 2>/dev/null; then
     st=$($SSH 'cd /root/eval_cpu_kit 2>/dev/null || exit 0
-      q=$(pgrep -f "queue_ceilin[g]" >/dev/null && echo ceil || true)
-      l=$(pgrep -f "queue_lon[g]" >/dev/null && echo long || true)
-      t=$(pgrep -f "run_in_tabl[e]" >/dev/null && echo intable || true)
+      q=""
+      pgrep -f "queue_v[0-9]"    >/dev/null && q="${q}v2,"
+      pgrep -f "queue_ceilin[g]" >/dev/null && q="${q}ceil,"
+      pgrep -f "queue_lon[g]"    >/dev/null && q="${q}long,"
+      pgrep -f "run_in_tabl[e]"  >/dev/null && q="${q}intable,"
+      pgrep -f "run_cpu_al[l]"   >/dev/null && q="${q}runall,"
+      t=""
       n=$(ls logs/meta/*_s9500*/vs_*.json 2>/dev/null | wc -l)
       done_=$(ls -d logs/meta/*_s9500* 2>/dev/null | while read d; do [ -f "$d/summary.json" ] && echo x; done | wc -l)
       load=$(cut -d" " -f1 /proc/loadavg)
-      echo "queues=[$q$l$t] 面板格数=$n 完成面板=$done_ load=$load"' 2>/dev/null)
+      echo "queues=[$q] 面板格数=$n 完成面板=$done_ load=$load"' 2>/dev/null)
     echo "[$(date +%m-%d\ %H:%M)] $st" >> "$LOG"
     # ★ 每轮都增量拉回结果：机器随时可能被释放，**不能只记状态不拉数据**
     rsync -az -e "ssh -o StrictHostKeyChecking=no -p $PORT" \
