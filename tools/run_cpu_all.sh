@@ -4,9 +4,32 @@
 #   ② 给还只有单种子数据的驾驶员补种子（ab9d6e_r1B / r2B）
 #   ③b r1B vs 端口 头对头（上次机器断线没拿到）
 #   ③c 候选『打 9d6e』：我方换 7e39/2617/0d86/e8ee，对手固定端口@9d6e
-#   ④ 评估 blend 版（决定下一轮还要不要做 kl_blend；可删）
+#   ⓪ 现成 0d86/26c6 BC 模型的 12 格面板（决定 ship deck，优先级最高）
 set -uo pipefail
 cd "$(dirname "$0")/.."
+echo "===== [$(date +%H:%M)] ⓪ 现成 0d86/26c6 模型的 12 格面板（决定 ship deck）====="
+# 我们已有 BC 模型（无需再训）：g8_bc_parent（ミワハルキ shuppet，一致率 73.9%）+ g8_shuppet（PPO）
+# 以及 bc_26c6（slowking BC，一致率 89.5%，从未测过）。
+# 关键：它们**从没跑过 12 格面板**——矩阵里 0d86 行 0.331 是「端口驾驶员」的成绩，
+# 而文档自己写着端口在 shuppet 上 0.0025 能力塌缩、g8_bc_parent 镜像打端口 0.9325。
+declare -A CEIL=(
+  [g8_bc_parent]=shuppet_dhelmise__0d86
+  [g8_shuppet]=shuppet_dhelmise__0d86
+  [bc_26c6]=slowpoke_slowking__26c6 )
+for k in g8_bc_parent g8_shuppet bc_26c6; do
+  ag="build/agents/$k"
+  if [ ! -d "$ag" ] && [ -f "models_ceiling/$k.pt" ]; then
+    bash tools/make_agent_dir.sh "$ag" "models_ceiling/$k.pt" "decks/pool_field/${CEIL[$k]}.csv" >/dev/null 2>&1
+  fi
+  [ -d "$ag" ] || { echo "  ✗ 缺 agent $k（需要 models_ceiling/$k.pt）"; continue; }
+  for sd in 950000 950001 950002; do
+    t="${k}_s${sd}"
+    [ -f "logs/meta/$t/summary.json" ] && { echo "  [skip] $t"; continue; }
+    echo "  --- $t"
+    SEED=$sd bash tools/meta_eval.sh --cand "$ag" --tag "$t" 2>&1 | tail -1
+  done
+done
+
 echo "===== [$(date +%H:%M)] ① 内部对局 ====="
 bash tools/run_in_table.sh 2>&1 | tail -3
 
@@ -60,20 +83,6 @@ done
 # ③（9d6e→2617 高样本 n=1000）已删除：该格 n=600 的 CI 已是 ±4.0pp、区间整体在 0.5 以下，
 # 再加 1000 场只能把加权精度改善 0.15pp，不成比例。
 
-echo "===== [$(date +%H:%M)] ④ KL 回拉（blend）到底有没有伤性能？3 种子面板 ====="
-# r1A_blend 是第 1 轮 B 实际面对的对手；它=0.9*r1A+0.1*端口，位移 1.791%→1.612%。
-# 我们**从未**评估过 blend 版本的强度，而下一轮还要不要做 kl_blend 取决于这个答案。
-for spec in "ab9d6e_r1A_blend:models_ppo/ab9d6e_r1A_blend.pt"; do
-  tag="${spec%%:*}"; pt="${spec##*:}"
-  [ -f "$pt" ] || { echo "  ✗ 缺 $pt，跳过"; continue; }
-  ag="build/agents/$tag"
-  [ -d "$ag" ] || bash tools/make_agent_dir.sh "$ag" "$pt" decks/pool_field/dunsparce_abra__9d6e.csv >/dev/null 2>&1
-  for sd in 950000 950001 950002; do
-    t="${tag}_s${sd}"
-    [ -f "logs/meta/$t/summary.json" ] && { echo "  [skip] $t"; continue; }
-    echo "  --- $t"
-    SEED=$sd bash tools/meta_eval.sh --cand "$ag" --tag "$t" 2>&1 | tail -1
-  done
-done
+# ④（blend 3 种子面板）已删：A/B 交替路线已停，kl_blend 不再进入训练；真要用再加回。
 
 echo "===== [$(date +%H:%M)] 全部完成 ====="

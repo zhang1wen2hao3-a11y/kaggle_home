@@ -50,6 +50,12 @@ for k in g6_db04 ph3_2617_v1 r1A_26c6 g8_bc_parent; do
   src="build/agents/$k/model.pt"
   [ -f "$src" ] && cp -f "$src" "$STAGE/models_pilot/$k.pt" && echo "   驾驶员 $k.pt"
 done
+# 天花板候选：0d86 的 BC/PPO 模型 + 26c6 的 BC 模型（12 格面板从未跑过）
+mkdir -p "$STAGE/models_ceiling"
+for k in g8_bc_parent g8_shuppet bc_26c6; do
+  src="build/agents/$k/model.pt"
+  [ -f "$src" ] && cp -f "$src" "$STAGE/models_ceiling/$k.pt" && echo "   天花板候选 $k.pt"
+done
 [ -f logs/in_table_missing.txt ] && cp -f logs/in_table_missing.txt "$STAGE/logs/" && echo "   内部对局缺清单"
 n=$(ls logs/winrate/*.json 2>/dev/null | wc -l)
 [ "$n" -gt 0 ] && cp -f logs/winrate/*.json "$STAGE/logs/winrate/" 2>/dev/null
