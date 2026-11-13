@@ -34,6 +34,15 @@ DEFAULT_PILOT_MAP = {
     "ph3_9d6e_v2": "/root/kl/ph3_9d6e_v2.bin",
     "bc_grookey3": "/root/kl/bc_grookey3.bin",
 }
+# ★ "每个牌各自最强驾驶员"（模拟天梯上真正会遇到的强驾驶员）。
+#   依据 docs/opponent_library.md §D.3③ 的端口能力筛查：
+#   同一副 0d86，端口驾驶时 g6_db04 赢 98%，换成 g8_bc_parent 只赢 6.75% —— 难度差一个数量级。
+BEST_PILOT = {          # key = 4 位短名（与 choice 表的列名一致）
+    "db04": "g6_db04",
+    "2617": "ph3_2617_v1",
+    "0d86": "shuppet_specialist",   # = g8_bc_parent
+    "26c6": "bc_26c6",              # 弱于端口，仅占位；有更好的再换
+}
 MAX_BANKS = 16
 TOTAL_QUOTA = 0.49     # league_pct * n_banks 必须 < 0.5
 
@@ -83,6 +92,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--a-deck", required=True, help="A 的卡组 hash（如 26c6 / db04）")
     ap.add_argument("--choice", default=os.path.join(ROOT, "docs/the-pockmon-battle-choice.csv"))
+    ap.add_argument("--strong", action="store_true",
+                    help="对手侧按牌换最强驾驶员（BEST_PILOT），而不是照抄 choice 表")
     ap.add_argument("--pilot-map", default="", help="JSON: 驾驶员→权重路径（默认内置）")
     ap.add_argument("--max-banks", type=int, default=MAX_BANKS)
     ap.add_argument("--quota", type=float, default=TOTAL_QUOTA)
@@ -94,6 +105,8 @@ def main():
         pmap.update(json.load(open(a.pilot_map)))
 
     pilots = read_choice(a.choice, a.a_deck)
+    if a.strong:                      # 对手侧：按牌换成该牌的最强驾驶员
+        pilots = {h: BEST_PILOT.get(h[-4:], "init") for h in pilots}
     cov = coverage()
     h2n = hash2full()
 
