@@ -61,6 +61,22 @@ def read_choice(path, a_deck):
     raise SystemExit(f"✗ choice 表里没有挑战者行 {a_deck}")
 
 
+PILOT_TABLE = os.path.join(ROOT, "docs", "the-pockmon-battle-choice-self.csv")
+
+
+def drivers_from_table(path=None):
+    """读 **docs/the-pockmon-battle-choice-self.csv**（tools/build_pilot_table.py 产出）。
+
+    这是"每副牌自己的最强驾驶员"的唯一真源；训练对手驾驶员一律从这里取。
+    返回 {短名: 驾驶员}。
+    """
+    path = path or PILOT_TABLE
+    if not os.path.exists(path):
+        return {}
+    txt = open(path, "rb").read().decode("gb18030", errors="replace")
+    return {r["卡组"]: r["最强驾驶员"] for r in csv.DictReader(io.StringIO(txt)) if r.get("最强驾驶员")}
+
+
 def drivers_from_choice(choice_path):
     """**从 choice 表反推每副牌自己的最强驾驶员。**
 
@@ -121,6 +137,8 @@ def main():
                     help="对手侧按牌换最强驾驶员（BEST_PILOT），而不是照抄 choice 表")
     ap.add_argument("--pilot-map", default="", help="JSON: 驾驶员→权重路径（默认内置）")
     ap.add_argument("--max-banks", type=int, default=MAX_BANKS)
+    ap.add_argument("--pilot-table", default=PILOT_TABLE,
+                    help="每副牌最强驾驶员表（tools/build_pilot_table.py 产出）")
     ap.add_argument("--cov-src", choices=["our_games", "weights"], default="our_games",
                     help="槽位分配的覆盖率来源：our_games（我们 582 局实测）或 weights（场地权重文件）")
     ap.add_argument("--quota", type=float, default=TOTAL_QUOTA,
@@ -134,8 +152,9 @@ def main():
 
     pilots = read_choice(a.choice, a.a_deck)
     if a.strong:                      # 对手侧：按牌换成该牌的最强驾驶员
-        derived = drivers_from_choice(a.choice)     # ① 先按 choice 表反推
-        merged = dict(BEST_PILOT); merged.update(derived)
+        merged = dict(BEST_PILOT)
+        merged.update(drivers_from_choice(a.choice))        # ① 现算（choice 表反推）
+        merged.update(drivers_from_table(a.pilot_table))    # ② 落盘表优先（build_pilot_table 的产物）
         pilots = {h: merged.get(h[-4:], "init") for h in pilots}
     if a.cov_src == "weights":
         cov = {}

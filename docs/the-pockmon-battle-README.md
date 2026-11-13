@@ -340,3 +340,33 @@ bash tools/watch_cpu_and_run.sh root@113.44.139.218    # 每 60 秒探一次，�
 | ③ | `9d6e→2617`（权重 9.6% 的最大漏分格）做到 n=1000 | 2 个候选 |
 
 4. 跑完自动拉回 `logs/{in_table,meta,hiN_*}` 并执行 `build_in_table.py` 刷新表。
+
+## the-pockmon-battle-choice-self.csv —— 每副牌"自己的最强驾驶员"（2026-11-13 新增）
+
+**为什么需要**：`choice.csv` 的格子是「**我方**打这格该用谁」，回答不了"这**副牌**交给谁驾驶最强"。
+而训练时的对手池需要后者 —— 每副对手牌都应该由它自己的最强驾驶员来开。
+
+**生成器**：`./tools/py tools/build_pilot_table.py`
+（读 `choice-detail.csv` 推导 + `choice-all.csv` 取同格 init 基线）
+
+**规则**：对该牌自己那一行里所有**非 init** 驾驶员记录，取胜率最高者；该行全是 init 则记 `init`。
+
+**当前结果（12 副牌，5 副有非 init 驾驶员）**：
+
+| 卡组 | 最强驾驶员 | 胜率 | 样本 | 相对同格 init |
+|---|---|---|---|---|
+| `db04` | `g6_db04` | 0.9800 | 200 | **+96.0pp**（init 0.02） |
+| `9d6e` | `ab9d6e_r2A` | 0.6700 | 600 | **+15.7pp**（init 0.5133） |
+| `0d86` | `shuppet_specialist` | 0.5618 | 178 | **+12.2pp**（init 0.4400） |
+| `2617` | `ph3_2617_v1` | 0.3300 | 200 | +8.0pp（init 0.2500） |
+| `26c6` | `r1A`（slowking 专才） | 0.9200 | 200 | +7.0pp（init 0.8500） |
+| `0904` / `0bf5` / `3eaa` / `7e39` / `e1d7` / `e8ee` / `f5f8` | `init` | — | — | 该行无非 init 驾驶员 |
+
+**消费方**：`tools/choice_to_banks.py --strong` 默认读这张表（`--pilot-table` 可覆盖），
+把"对手驾驶员"逐槽填进 `BANKS`，按场地权重分配槽位（`--cov-src weights`）、
+`--quota 1.0` 时全部行都是冻结对手。
+
+```bash
+./tools/py tools/build_pilot_table.py                       # 先刷新表
+./tools/py tools/choice_to_banks.py --a-deck 7e39 --strong --max-banks 8 --quota 1.0 --cov-src weights --emit-env
+```

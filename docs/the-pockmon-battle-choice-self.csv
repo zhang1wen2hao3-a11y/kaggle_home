@@ -1,0 +1,13 @@
+卡组,最强驾驶员,胜率,样本场次,相对 init 提升,依据
+0904,init,NA,NA,NA,该行无非 init 驾驶员（全部格子 init 就最合适）
+0bf5,init,NA,NA,NA,该行无非 init 驾驶员（全部格子 init 就最合适）
+0d86,shuppet_specialist,0.5618,178,+12.2pp,1 格非 init；最优在 →3eaa（同格 init 0.4400）
+2617,ph3_2617_v1,0.3300,200,+8.0pp,1 格非 init；最优在 →26c6（同格 init 0.2500）
+26c6,r1A,0.9200,200,+7.0pp,2 格非 init；最优在 →0d86（同格 init 0.8500）
+3eaa,init,NA,NA,NA,该行无非 init 驾驶员（全部格子 init 就最合适）
+7e39,init,NA,NA,NA,该行无非 init 驾驶员（全部格子 init 就最合适）
+9d6e,ab9d6e_r2A,0.6700,600,+15.7pp,3 格非 init；最优在 →e8ee（同格 init 0.5133）
+db04,g6_db04,0.9800,200,+96.0pp,8 格非 init；最优在 →0d86（同格 init 0.0200）
+e1d7,init,NA,NA,NA,该行无非 init 驾驶员（全部格子 init 就最合适）
+e8ee,init,NA,NA,NA,该行无非 init 驾驶员（全部格子 init 就最合适）
+f5f8,init,NA,NA,NA,该行无非 init 驾驶员（全部格子 init 就最合适）
