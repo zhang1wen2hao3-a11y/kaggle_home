@@ -1,2 +1,29 @@
 挑战者,被挑战者,驾驶员,胜率,样本场次,来源
-0904,0bf5,init,0.5722,180,panel_d0904
+0904,0bf5,init,0.6061,400,derived 0904→0bf5/0bf5→0904
+0904,3eaa,init,0.5665,400,derived 0904→3eaa/3eaa→0904
+0904,9d6e,init,0.5423,400,derived 0904→9d6e/9d6e→0904
+0904,e8ee,init,0.7750,400,derived 0904→e8ee/e8ee→0904
+0904,f5f8,init,0.8195,400,derived 0904→f5f8/f5f8→0904
+0bf5,3eaa,init,0.6372,400,derived 0bf5→3eaa/3eaa→0bf5
+0bf5,7e39,init,0.8667,400,derived 0bf5→7e39/7e39→0bf5
+0bf5,e1d7,init,0.9200,400,derived 0bf5→e1d7/e1d7→0bf5
+0bf5,e8ee,init,0.5375,400,derived 0bf5→e8ee/e8ee→0bf5
+3eaa,e1d7,init,0.5500,400,derived 3eaa→e1d7/e1d7→3eaa
+3eaa,e8ee,init,0.5775,400,derived 3eaa→e8ee/e8ee→3eaa
+3eaa,f5f8,init,0.5613,400,derived 3eaa→f5f8/f5f8→3eaa
+7e39,0904,init,0.6097,400,derived 0904→7e39/7e39→0904
+7e39,3eaa,init,0.5839,400,derived 3eaa→7e39/7e39→3eaa
+7e39,e1d7,init,0.6525,400,derived 7e39→e1d7/e1d7→7e39
+9d6e,0bf5,init,0.5475,400,derived 0bf5→9d6e/9d6e→0bf5
+9d6e,3eaa,init,0.6324,400,derived 3eaa→9d6e/9d6e→3eaa
+9d6e,7e39,init,0.8942,400,derived 7e39→9d6e/9d6e→7e39
+9d6e,e1d7,init,0.9391,400,derived 9d6e→e1d7/e1d7→9d6e
+9d6e,f5f8,init,0.5116,400,derived 9d6e→f5f8/f5f8→9d6e
+e1d7,0904,init,0.5125,400,derived 0904→e1d7/e1d7→0904
+e8ee,7e39,init,0.6150,400,derived 7e39→e8ee/e8ee→7e39
+e8ee,9d6e,init,0.5133,400,derived 9d6e→e8ee/e8ee→9d6e
+e8ee,e1d7,init,0.7775,400,derived e1d7→e8ee/e8ee→e1d7
+f5f8,0bf5,init,0.5333,400,derived 0bf5→f5f8/f5f8→0bf5
+f5f8,7e39,init,0.6200,400,derived 7e39→f5f8/f5f8→7e39
+f5f8,e1d7,init,0.7675,400,derived e1d7→f5f8/f5f8→e1d7
+f5f8,e8ee,init,0.5875,400,derived e8ee→f5f8/f5f8→e8ee
