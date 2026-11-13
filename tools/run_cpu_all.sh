@@ -2,7 +2,9 @@
 # **CPU 机的一次性总队列**（幂等，机器随时断都能续）：
 #   ① 补 choice-in-table 缺的自家对局（38 对 × 2 种子）
 #   ② 给还只有单种子数据的驾驶员补种子（ab9d6e_r1B / r2B）
-#   ③ 把 9d6e 行漏分最大的格子（2617，权重 9.6%）做到 n=1000，给矩阵定个准数
+#   ③b r1B vs 端口 头对头（上次机器断线没拿到）
+#   ③c 候选『打 9d6e』：我方换 7e39/2617/0d86/e8ee，对手固定端口@9d6e
+#   ④ 评估 blend 版（决定下一轮还要不要做 kl_blend；可删）
 set -uo pipefail
 cd "$(dirname "$0")/.."
 echo "===== [$(date +%H:%M)] ① 内部对局 ====="
@@ -55,15 +57,9 @@ for cand in r1B r2B; do
   done
 done
 
-echo "===== [$(date +%H:%M)] ③ 9d6e→2617 高样本（n=1000）====="
-for spec in "port:build/agents/port_on_9d6e" "r2A:build/agents/ab9d6e_r2A"; do
-  c="${spec%%:*}"; ag="${spec##*:}"
-  [ -d "$ag" ] || { echo "  ✗ 缺 $ag，跳过"; continue; }
-  f="logs/hiN_2617_${c}.json"
-  [ -f "$f" ] && { echo "  [skip] $c（已有）"; continue; }
-  ./tools/py ptcg_league/eval_pair.py --cand "$ag" --opp "grookey_2617=build/agents/c_grookey" \
-    --matches 1000 --workers 0 --seed-base 1400000 --out "$f" --logdir "logs/hiN_2617_${c}" 2>&1 | tail -1
-done
+# ③（9d6e→2617 高样本 n=1000）已删除：该格 n=600 的 CI 已是 ±4.0pp、区间整体在 0.5 以下，
+# 再加 1000 场只能把加权精度改善 0.15pp，不成比例。
+
 echo "===== [$(date +%H:%M)] ④ KL 回拉（blend）到底有没有伤性能？3 种子面板 ====="
 # r1A_blend 是第 1 轮 B 实际面对的对手；它=0.9*r1A+0.1*端口，位移 1.791%→1.612%。
 # 我们**从未**评估过 blend 版本的强度，而下一轮还要不要做 kl_blend 取决于这个答案。
