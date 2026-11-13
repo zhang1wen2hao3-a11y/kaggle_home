@@ -20,6 +20,13 @@ for spec in "ab9d6e_r1B:build/agents/ab9d6e_r1B" "ab9d6e_r2B:build/agents/ab9d6e
   done
 done
 
+echo "===== [$(date +%H:%M)] ③b 头对头：ab9d6e_r1B vs 端口（9d6e，400 场）====="
+if [ ! -f logs/h2h/ab9d6e_r1B_vs_port_9d6e.json ] && [ -d build/agents/ab9d6e_r1B ]; then
+  bash tools/h2h.sh build/agents/ab9d6e_r1B build/agents/port_on_9d6e 400 ab9d6e_r1B_vs_port_9d6e 2>&1 | tail -1
+else
+  echo "  [skip] 已有或缺 agent"
+fi
+
 echo "===== [$(date +%H:%M)] ③ 9d6e→2617 高样本（n=1000）====="
 for spec in "port:build/agents/port_on_9d6e" "r2A:build/agents/ab9d6e_r2A"; do
   c="${spec%%:*}"; ag="${spec##*:}"
