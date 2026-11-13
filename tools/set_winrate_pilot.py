@@ -34,7 +34,7 @@ def load_tag(tag):
     out = {}
     for f in files:
         o = json.load(open(f))["overall"]
-        out[os.path.basename(f)[3:-5]] = (float(o["score"]), int(o["n"]))
+        out[os.path.basename(f)[3:-5].split("_")[-1]] = (float(o["score"]), int(o["n"]))
     return out
 
 

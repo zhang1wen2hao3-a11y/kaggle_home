@@ -54,7 +54,13 @@ def collect():
             # 2026-11-13 A/B 四轮（舰牌 9d6e）。★ 名字带 ab9d6e_ 前缀，和上一轮 slowking 专才的
             # r1A/r1B 区分开（那个不带前缀，见 data/ab_run1/）。
             "ab9d6e_r1A": ("9d6e", "ab9d6e_r1A"), "ab9d6e_r1B": ("9d6e", "ab9d6e_r1B"),
-            "ab9d6e_r2A": ("9d6e", "ab9d6e_r2A"), "ab9d6e_r2B": ("9d6e", "ab9d6e_r2B")}
+            "ab9d6e_r2A": ("9d6e", "ab9d6e_r2A"), "ab9d6e_r2B": ("9d6e", "ab9d6e_r2B"),
+            # ab9d6e_r1A 另外两个种子：同名驾驶员，下面 POOL 会合并成 n≈600
+            "ab9d6e_r1A_s950001": ("9d6e", "ab9d6e_r1A"),
+            "ab9d6e_r1A_s950002": ("9d6e", "ab9d6e_r1A"),
+            # 基线（端口）也补两个种子，保证"候选 vs 基线"两边都是 n≈600
+            "meta_port_9d6e_s950001": ("9d6e", "init"),
+            "meta_port_9d6e_s950002": ("9d6e", "init")}
     for arm, (ch, pilot) in META.items():
         for f in glob.glob(os.path.join(ROOT, "logs/meta", arm, "vs_*.json")):
             cell = os.path.basename(f)[3:-5]
@@ -91,7 +97,9 @@ SRC_PRI = {"matrix_full": 1}
 
 
 def pri_of(src):
-    """同协议优先：n=200 的 meta/panel 面板 > opp_matrix > 49 格矩阵（n=300 remote）。"""
+    """同协议优先：多种子池化 > n=200 的 meta/panel 面板 > opp_matrix > 49 格矩阵（n=300 remote）。"""
+    if src.startswith("meta_pooled"):
+        return 4
     if src.startswith("meta_") or src.startswith("panel/"):
         return 3
     if src.startswith("panel_") or src.startswith("panel"):
@@ -99,8 +107,37 @@ def pri_of(src):
     return SRC_PRI.get(src, 2)
 
 
+# ★ 只有**多种子验证过**的新驾驶员才有资格改表：
+#   单种子 n=200 的 ±6.5pp 噪声会让"取最高"系统性地挑中幸运值（赢家诅咒），
+#   ab9d6e_r1B / r2A / r2B 目前只有单种子数据，因此只入明细、不参与选表。
+UNVERIFIED = {"ab9d6e_r1B", "ab9d6e_r2A", "ab9d6e_r2B"}
+# 需要把多个种子的面板合并的驾驶员（同 (格, 驾驶员) 的胜场与场次相加）
+# ★ 池化必须限定"同协议来源"：早先不加限定把 init 的所有来源（49 格矩阵 n=300 remote、
+#   7 格面板、多种子 meta）混在一起求和，导致 9d6e 行出现 +44pp 的假结论（init 基线被污染）。
+POOL_SPEC = {
+    "ab9d6e_r1A": {"ab9d6e_r1A", "ab9d6e_r1A_s950001", "ab9d6e_r1A_s950002"},
+    "init": {"meta_port_9d6e", "meta_port_9d6e_s950001", "meta_port_9d6e_s950002"},
+}
+
+
 def main():
     recs = collect()
+    # 池化：把同一驾驶员多个种子臂的记录按格合并
+    if POOL_SPEC:
+        acc = {}
+        keep = []
+        for r in recs:
+            ch, de, pilot, w, n, src = r
+            allowed = POOL_SPEC.get(pilot)
+            if allowed and src in allowed:
+                k = (ch, de, pilot)
+                pw, pn = acc.get(k, (0.0, 0))
+                acc[k] = (pw + w * n, pn + n)
+            else:
+                keep.append(r)
+        for (ch, de, pilot), (pw, pn) in acc.items():
+            keep.append((ch, de, pilot, pw / pn, pn, "meta_pooled/" + pilot))
+        recs = keep
     # 每个 (格, 驾驶员) 保留：先比来源优先级，再比胜率、样本数
     by = collections.defaultdict(dict)
     for ch, de, pilot, w, n, src in recs:
@@ -121,11 +158,15 @@ def main():
         ini = pilots.get("init")
         trained = {p: v for p, v in pilots.items() if p != "init"}
         if ini is not None:
-            cands = {p: v for p, v in trained.items() if v[1] - ini[1] >= THRESH}
+            cands = {p: v for p, v in trained.items()
+                     if v[1] - ini[1] >= THRESH and p not in UNVERIFIED}
             if cands:
                 best = max(cands.items(), key=lambda t: (t[1][1], t[1][2]))
                 choice[k] = best[0]
-                why[k] = f"训练件 {best[1][1]:.3f} vs init {ini[1]:.3f}（+{(best[1][1]-ini[1])*100:.1f}pp ≥5pp）"
+                is_pooled = str(best[1][3]).startswith("meta_pooled")
+                tag = ("多种子验证 n=%d" if is_pooled else "单种子 n=%d") % best[1][2]
+                why[k] = (f"训练件 {best[1][1]:.3f} vs init {ini[1]:.3f}"
+                          f"（+{(best[1][1]-ini[1])*100:.1f}pp ≥5pp；{tag}）")
             else:
                 choice[k] = "init"
                 why[k] = "init（无训练件领先 ≥5pp）"

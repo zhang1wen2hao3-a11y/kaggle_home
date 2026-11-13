@@ -71,7 +71,9 @@ def pooled_panel(tags):
                 o = json.load(open(f))["overall"]
             except Exception:
                 continue
-            c = os.path.basename(f)[3:-5]
+            # 面板格子名是长的（ogerpon_7e39 / champ_0d86 / dunsparce_9d6e），
+            # 表头用的是短名（7e39 / 0d86 / 9d6e）⇒ 统一取最后一段
+            c = os.path.basename(f)[3:-5].split("_")[-1]
             k, n = acc.get(c, (0.0, 0))
             acc[c] = (k + float(o["score"]) * int(o["n"]), n + int(o["n"]))
     return {c: (k / n, n) for c, (k, n) in acc.items()}
