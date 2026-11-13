@@ -193,3 +193,24 @@ BC 的优势域 = 端口的能力空白。
 
 **当前唯一需要"继续训对手"的格子是 shuppet**，而且需要的是**中间难度档**
 （现有两档：端口=我们赢 99.75%、BC=我们赢 3.25%，中间是空的）。
+
+## D.8 牌表来源核对：**我们池里的 7e39 / 0d86 不是顶尖玩家的那两张表**（2026-11-13）
+
+用 `epsoide_miwa`（667 局，ミワハルキ）抽样 300 局，从 `steps[0][i].visualize[0].action[0]` 抽出牌表：
+
+| 事实 | 数据 |
+|---|---|
+| 抽样窗口内 ミワハルキ 只打了 **1 副牌**（145 局） | 60 张 / 23 种：4× Teal Mask Ogerpon ex、4× Prism Energy、4× Ultra Ball、2× Latias ex、2× Lillie's Clefairy ex、1× Wellspring Mask Ogerpon ex、1× Munkidori、1× Pecharunt、11× Basic {G} Energy |
+| 这副牌 **在我们池里** | 就是 `z_ogerpon_toolbox_miwa__e1d7`（**差异 0 张**，完全一致） |
+| 我们的 `teal_mask_ogerpon_ex_applin__7e39` **不是**他这张 | 差异 **29 种**：我们是 Applin/Dipplin/Hydrapple ex + 14 草地能量；他是 Prism Energy + Latias/Lillie's Clefairy/Chi-Yu 的 toolbox 线 |
+| 我们的 `shuppet_dhelmise__0d86` **不是**他这张 | 差异 **38 种**（而且这批回放里他没有打过 shuppet） |
+
+**三条要记住的推论：**
+
+1. **「某副牌的天花板 LB」只对那张确切的 60 张表成立**，而池里按原型聚合的 deck（7e39 / 0d86）是**别人**的 build
+   ⇒ 引用 1446.2 / 1594.4 时必须先确认"是不是同一张表"。
+2. 我们唯一**确认是顶尖玩家本人那张表**的是 `e1d7`（ミワハルキ toolbox）。
+   它在我们矩阵里的期望胜率只有 0.454（端口驾驶；`port@e1d7 vs g6_db04 = 0.145`），
+   而它的 BC 克隆 `bc_miwa_e1d7`（一致率 82.3%）实测 **0.0700 vs g6_db04 / 镜像 0.4450** ⇒ BC 也没救。
+3. ⇒ **「换到上限更高的牌」这条路，目前卡在"我们没有那张表 + BC 克隆打不过"两道门上**；
+   想走这条路，下一步必须先把顶尖玩家的**确切牌表**补齐进池（`e1d7` 已有，其余缺），再谈训练与天花板。
