@@ -27,6 +27,34 @@ else
   echo "  [skip] 已有或缺 agent"
 fi
 
+echo "===== [$(date +%H:%M)] ③c 关键实验：候选『打 9d6e』（我方换牌，对手固定端口@9d6e）====="
+# 面板一直只测"候选拿 9d6e 打"，从没测过"候选拿别的牌打 9d6e"——
+# 后者才是 r1B/r2B 的训练任务，也是要填 choice 表 9d6e 列所需的证据。
+# 先做权重最高的 4 副场地牌 × {r1B, r2B}，每格 2 种子 × 200 场。
+OPP9=build/agents/port_on_9d6e
+declare -A FULL=(
+  [7e39]=teal_mask_ogerpon_ex_applin__7e39 [2617]=grookey_thwackey__2617
+  [0d86]=shuppet_dhelmise__0d86             [e8ee]=abra_kadabra__e8ee )
+mkdir -p logs/vs9d6e
+for cand in r1B r2B; do
+  pt="models_ppo/ab9d6e_${cand}.pt"
+  [ -f "$pt" ] || { echo "  ✗ 缺 $pt，跳过 $cand"; continue; }
+  for dk in 7e39 2617 0d86 e8ee; do
+    tmp="build/agents/cand_${cand}_on_${dk}"
+    [ -d "$tmp" ] || bash tools/make_agent_dir.sh "$tmp" "$pt" "decks/pool_field/${FULL[$dk]}.csv" >/dev/null \
+      || { echo "  ✗ 铺 $cand@$dk 失败"; continue; }
+    for spec in "1500000:" "1600000:__s2"; do
+      sb="${spec%%:*}"; suf="${spec##*:}"
+      f="logs/vs9d6e/${cand}_on_${dk}${suf}.json"
+      [ -f "$f" ] && { echo "  [skip] $cand@$dk$suf"; continue; }
+      echo "  --- ${cand}@${dk} vs 端口@9d6e$suf"
+      ./tools/py ptcg_league/eval_pair.py --cand "$tmp" --opp "enemy=$OPP9" \
+        --matches 200 --workers 0 --seed-base "$sb" --out "$f" \
+        --logdir "logs/vs9d6e/${cand}_on_${dk}${suf}" 2>&1 | tail -1
+    done
+  done
+done
+
 echo "===== [$(date +%H:%M)] ③ 9d6e→2617 高样本（n=1000）====="
 for spec in "port:build/agents/port_on_9d6e" "r2A:build/agents/ab9d6e_r2A"; do
   c="${spec%%:*}"; ag="${spec##*:}"
