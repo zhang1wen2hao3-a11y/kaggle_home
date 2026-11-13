@@ -64,4 +64,20 @@ for spec in "port:build/agents/port_on_9d6e" "r2A:build/agents/ab9d6e_r2A"; do
   ./tools/py ptcg_league/eval_pair.py --cand "$ag" --opp "grookey_2617=build/agents/c_grookey" \
     --matches 1000 --workers 0 --seed-base 1400000 --out "$f" --logdir "logs/hiN_2617_${c}" 2>&1 | tail -1
 done
+echo "===== [$(date +%H:%M)] ④ KL 回拉（blend）到底有没有伤性能？3 种子面板 ====="
+# r1A_blend 是第 1 轮 B 实际面对的对手；它=0.9*r1A+0.1*端口，位移 1.791%→1.612%。
+# 我们**从未**评估过 blend 版本的强度，而下一轮还要不要做 kl_blend 取决于这个答案。
+for spec in "ab9d6e_r1A_blend:models_ppo/ab9d6e_r1A_blend.pt"; do
+  tag="${spec%%:*}"; pt="${spec##*:}"
+  [ -f "$pt" ] || { echo "  ✗ 缺 $pt，跳过"; continue; }
+  ag="build/agents/$tag"
+  [ -d "$ag" ] || bash tools/make_agent_dir.sh "$ag" "$pt" decks/pool_field/dunsparce_abra__9d6e.csv >/dev/null 2>&1
+  for sd in 950000 950001 950002; do
+    t="${tag}_s${sd}"
+    [ -f "logs/meta/$t/summary.json" ] && { echo "  [skip] $t"; continue; }
+    echo "  --- $t"
+    SEED=$sd bash tools/meta_eval.sh --cand "$ag" --tag "$t" 2>&1 | tail -1
+  done
+done
+
 echo "===== [$(date +%H:%M)] 全部完成 ====="
