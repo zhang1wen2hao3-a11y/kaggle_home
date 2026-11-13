@@ -50,7 +50,10 @@ for i in $(seq 1 720); do          # 12 小时内每 60 秒探一次
   # ② 推脚本 + 缺对清单（每次都同步，脚本可能改过）
   rsync -az -e "ssh -o StrictHostKeyChecking=no -p $PORT" \
     tools/run_in_table.sh tools/run_cpu_all.sh tools/build_in_table.py tools/meta_eval.sh tools/h2h.sh \
-    tools/bo3_eval.py tools/make_agent_dir.sh tools/py "$HOST:$R/tools/" 2>/dev/null
+    tools/bo3_eval.py tools/make_agent_dir.sh "$HOST:$R/tools/" 2>/dev/null
+  # ★ tools/py 必须是目标机自己的可移植壳；推本地那份会把 /home/zhang/... 的绝对路径带过去，
+  #   导致所有评估报"✗ 找不到 /home/zhang/miniforge3/envs/py310/bin/python"（2026-11-14 踩过）
+  $SSH "cd $R && printf '#!/usr/bin/env bash\nexec \"\${PYTHON:-python3}\" \"\$@\"\n' > tools/py && chmod +x tools/py" 2>/dev/null
   rsync -az -e "ssh -o StrictHostKeyChecking=no -p $PORT" logs/in_table_missing.txt "$HOST:$R/logs/" 2>/dev/null
 
   # ③ 起跑（后台，幂等）
