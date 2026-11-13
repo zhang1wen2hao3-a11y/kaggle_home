@@ -40,11 +40,17 @@ chmod +x "$STAGE/tools/py" "$STAGE/tools/"*.sh
 echo "⑤ 依赖数据：choice-detail + 12 格测试集 + 已跑出的结果（跳过重算）"
 cp -f docs/the-pockmon-battle-choice-detail.csv "$STAGE/docs/"
 cp -f decks/testset_meta.tsv "$STAGE/decks/"
-mkdir -p "$STAGE/models_ppo"
+mkdir -p "$STAGE/models_ppo" "$STAGE/models_pilot"
 for k in r1A r1B r2A r2B; do
   src="models/ppo/ab9d6e_$k.pt"
   [ -f "$src" ] && cp -f "$src" "$STAGE/models_ppo/" && echo "   候选 ab9d6e_$k.pt"
 done
+# 内部对局表（choice-in-table）要用的 4 个历史最佳驾驶员：db04/2617/26c6/0d86
+for k in g6_db04 ph3_2617_v1 r1A_26c6 g8_bc_parent; do
+  src="build/agents/$k/model.pt"
+  [ -f "$src" ] && cp -f "$src" "$STAGE/models_pilot/$k.pt" && echo "   驾驶员 $k.pt"
+done
+[ -f logs/in_table_missing.txt ] && cp -f logs/in_table_missing.txt "$STAGE/logs/" && echo "   内部对局缺清单"
 n=$(ls logs/winrate/*.json 2>/dev/null | wc -l)
 [ "$n" -gt 0 ] && cp -f logs/winrate/*.json "$STAGE/logs/winrate/" 2>/dev/null
 echo "   带上已完成的 $n 格"
@@ -87,6 +93,14 @@ for k in r1A r1B r2A r2B; do
     || { echo "✗ 铺 ab9d6e_$k 失败"; exit 1; }
 done
 echo
+echo "=== 铺 4 个历史最佳驾驶员（内部对局表用）==="
+declare -A PL=( [g6_db04]=dunsparce_abra__db04 [ph3_2617_v1]=grookey_thwackey__2617
+                [r1A_26c6]=slowpoke_slowking__26c6 [g8_bc_parent]=shuppet_dhelmise__0d86 )
+for k in "${!PL[@]}"; do
+  [ -f "models_pilot/$k.pt" ] || continue
+  bash tools/make_agent_dir.sh "build/agents/$k" "models_pilot/$k.pt" "decks/pool_field/${PL[$k]}.csv" >/dev/null \
+    || { echo "✗ 铺驾驶员 $k 失败"; exit 1; }
+done
 echo "=== 跑剩余评估： bash tools/queue_remaining.sh ==="
 echo "=== 补 a→b 胜率矩阵缺格： bash tools/fill_winrate.sh ==="
 EOS

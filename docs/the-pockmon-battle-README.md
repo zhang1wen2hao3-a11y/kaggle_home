@@ -318,3 +318,25 @@ NA 只剩 2 行（`girafarig`、`voltorb`，各 1~2 局、无分数记录）。
 **当前状态**：28/66 已填；缺的 38 对全部涉及 4 个非 `init` 驾驶员
 （`shuppet_specialist` 12 对、`ph3_2617_v1` 11 对、`r1A` 11 对、`g6_db04` 12 对，含互相之间的 6 对），
 评估机在跑到一半时失联，待机器恢复后 `bash tools/run_in_table.sh` 幂等补齐。
+
+### 2026-11-13：CPU 机自动接手（`tools/watch_cpu_and_run.sh` + `tools/run_cpu_all.sh`）
+
+评估机会随时被停，所以把"等机器 → 部署 → 跑完 → 拉结果 → 刷新表"做成一个可挂着的守护脚本：
+
+```bash
+bash tools/watch_cpu_and_run.sh root@113.44.139.218    # 每 60 秒探一次，最多 12 小时
+```
+
+机器上线后它会（全部幂等，断线重连后继续）：
+
+1. **远端没 kit** ⇒ 本地 `pack_eval_cpu.sh`（162 MB，含 12 个面板对手 + 4 个候选 + 4 个历史驾驶员）→ 推 → `setup.sh`；
+2. **有 kit 但缺驾驶员** ⇒ 只补推 4 个 `model.pt` 并铺 agent 目录；
+3. 起 `tools/run_cpu_all.sh`，串行跑三件事：
+
+| # | 任务 | 规模 |
+|---|---|---|
+| ① | 补 `choice-in-table` 缺的自家对局 | 38 对 × 2 种子 × 200 场 |
+| ② | 给只有单种子数据的驾驶员补种子（`ab9d6e_r1B` / `ab9d6e_r2B`） | 4 个面板 |
+| ③ | `9d6e→2617`（权重 9.6% 的最大漏分格）做到 n=1000 | 2 个候选 |
+
+4. 跑完自动拉回 `logs/{in_table,meta,hiN_*}` 并执行 `build_in_table.py` 刷新表。
