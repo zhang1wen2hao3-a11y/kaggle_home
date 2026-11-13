@@ -33,6 +33,9 @@ DEFAULT_PILOT_MAP = {
     "ph3_2617_v2": "/root/kl/ph3_2617_v2.bin",
     "ph3_9d6e_v2": "/root/kl/ph3_9d6e_v2.bin",
     "bc_grookey3": "/root/kl/bc_grookey3.bin",
+    "bc_26c6": "/root/kl/bc_26c6.bin",
+    "r1A": "/root/kl/r1A_slowking.bin",          # 上一轮 slowking 10M 专才（无前缀的那个 r1A）
+    "ab9d6e_r2A": "/root/kl/ab9d6e_r2A.bin",    # 本轮 9d6e 第 2 轮 A
 }
 # ★ "每个牌各自最强驾驶员"（模拟天梯上真正会遇到的强驾驶员）。
 #   依据 docs/opponent_library.md §D.3③ 的端口能力筛查：
@@ -56,6 +59,28 @@ def read_choice(path, a_deck):
         if r[0] == a_deck:
             return {hdr[i]: r[i] for i in range(1, len(hdr))}
     raise SystemExit(f"✗ choice 表里没有挑战者行 {a_deck}")
+
+
+def drivers_from_choice(choice_path):
+    """**从 choice 表反推每副牌自己的最强驾驶员。**
+
+    choice 表是「我方牌 a × 对手牌 b → 我方用谁」；把某一副牌 b 当作"它自己的牌"来看时，
+    它在自己那一行里最常出现的非 init 驾驶员，就是"该牌的最强驾驶员"
+    （例：db04 行 8 格 g6_db04、26c6 行 2 格 r1A、0d86 行 1 格 shuppet_specialist）。
+
+    返回 {短名: 驾驶员}；没有非 init 驾驶员的牌不出现在结果里（调用方回退 init）。
+    """
+    txt = open(choice_path, "rb").read().decode("gb18030", errors="replace")
+    rows = list(csv.reader(io.StringIO(txt)))
+    out = {}
+    for row in rows[1:]:
+        if not row:
+            continue
+        a, vals = row[0], row[1:]          # 第一列是行名，后面是 12 格
+        cnt = collections.Counter(v for v in vals if v and v != "init")
+        if cnt:
+            out[a] = cnt.most_common(1)[0][0]
+    return out
 
 
 def coverage():
@@ -96,7 +121,10 @@ def main():
                     help="对手侧按牌换最强驾驶员（BEST_PILOT），而不是照抄 choice 表")
     ap.add_argument("--pilot-map", default="", help="JSON: 驾驶员→权重路径（默认内置）")
     ap.add_argument("--max-banks", type=int, default=MAX_BANKS)
-    ap.add_argument("--quota", type=float, default=TOTAL_QUOTA)
+    ap.add_argument("--cov-src", choices=["our_games", "weights"], default="our_games",
+                    help="槽位分配的覆盖率来源：our_games（我们 582 局实测）或 weights（场地权重文件）")
+    ap.add_argument("--quota", type=float, default=TOTAL_QUOTA,
+                    help="总配额（league_pct × 槽位数）；引擎上限 1.0 = 全冻结对手")
     ap.add_argument("--emit-env", action="store_true", help="只输出 BANKS=... 三行")
     a = ap.parse_args()
 
@@ -106,8 +134,19 @@ def main():
 
     pilots = read_choice(a.choice, a.a_deck)
     if a.strong:                      # 对手侧：按牌换成该牌的最强驾驶员
-        pilots = {h: BEST_PILOT.get(h[-4:], "init") for h in pilots}
-    cov = coverage()
+        derived = drivers_from_choice(a.choice)     # ① 先按 choice 表反推
+        merged = dict(BEST_PILOT); merged.update(derived)
+        pilots = {h: merged.get(h[-4:], "init") for h in pilots}
+    if a.cov_src == "weights":
+        cov = {}
+        for line in open(os.path.join(ROOT, "decks/weights_field_b05.txt")):
+            sp = line.split()
+            if len(sp) == 2 and "__" in sp[0]:
+                cov[sp[0].split("__")[-1][:4]] = float(sp[1])
+        tot = sum(cov.values())
+        cov = {k: v / tot for k, v in cov.items()}
+    else:
+        cov = coverage()
     h2n = hash2full()
 
     # 只考虑 choice 表里出现、且我们有覆盖率的对手牌

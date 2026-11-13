@@ -40,6 +40,7 @@ MB="${MB:-512}"
 LR="${LR:-2e-4}"
 SEED="${SEED:-424242}"           # ★ 与 G4-B 相同：只许"卡组"这一个变量动
 THREADS="${THREADS:-8}"
+CG="${CG:-10}"          # cudagraph 数量；多 bank 时 cudagraph 会把 bank 指针烘进去，12 个会 cudaGraphInstantiate 失败 ⇒ 用 CG=0
 ANCHOR="${ANCHOR:-dunsparce_abra__db04}"
 TRACK="${TRACK:-dunsparce_abra__db04,teal_mask_ogerpon_ex_applin__7e39}"
 DWF="${DWF:-decks/weights_real.txt}"
@@ -204,7 +205,7 @@ cp -f "$INIT" "$RD/init.bin"
 PYTHONUNBUFFERED=1 PYTHONPATH=data:.:native PTCG_TABLES=native/ptcg_tables_field.bin OMP_WAIT_POLICY=PASSIVE \
 "$PY" native/train_native.py --run-name "$RUN" \
   --timesteps "$T" --no-anneal-lr \
-  --total-agents "$AG" --minibatch "$MB" --num-threads "$THREADS" \
+  --total-agents "$AG" --minibatch "$MB" --num-threads "$THREADS" --cudagraphs "$CG" \
   --lr "$LR" --seed "$SEED" --checkpoint-interval "$CHECKPOINT_INTERVAL" \
   --deck-pool "$POOL" --deck-weights-file "$DWF" \
   --anchor-decks "$ANCHOR" --track-decks "$TRACK" \
