@@ -17,6 +17,11 @@ for i in $(seq 1 576); do   # 最多 48 小时
       load=$(cut -d" " -f1 /proc/loadavg)
       echo "queues=[$q$l$t] 面板格数=$n 完成面板=$done_ load=$load"' 2>/dev/null)
     echo "[$(date +%m-%d\ %H:%M)] $st" >> "$LOG"
+    # ★ 每轮都增量拉回结果：机器随时可能被释放，**不能只记状态不拉数据**
+    rsync -az -e "ssh -o StrictHostKeyChecking=no -p $PORT" \
+      --include='meta/***' --include='in_table/***' --include='h2h/***' --include='vs9d6e/***' \
+      --include='hiN_*' --exclude='*' "$HOST:/root/eval_cpu_kit/logs/" logs/ 2>/dev/null \
+      && echo "[$(date +%m-%d\ %H:%M)]   已增量拉回结果" >> "$LOG"
   else
     echo "[$(date +%m-%d\ %H:%M)] ✗ 机器不可达" >> "$LOG"
   fi
