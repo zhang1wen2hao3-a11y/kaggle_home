@@ -58,6 +58,9 @@ def collect():
             # ab9d6e_r1A 另外两个种子：同名驾驶员，下面 POOL 会合并成 n≈600
             "ab9d6e_r1A_s950001": ("9d6e", "ab9d6e_r1A"),
             "ab9d6e_r1A_s950002": ("9d6e", "ab9d6e_r1A"),
+            # ab9d6e_r2A 的另外两个种子（同样池化成 n≈600 后才允许改表）
+            "ab9d6e_r2A_s950001": ("9d6e", "ab9d6e_r2A"),
+            "ab9d6e_r2A_s950002": ("9d6e", "ab9d6e_r2A"),
             # 基线（端口）也补两个种子，保证"候选 vs 基线"两边都是 n≈600
             "meta_port_9d6e_s950001": ("9d6e", "init"),
             "meta_port_9d6e_s950002": ("9d6e", "init")}
@@ -110,12 +113,13 @@ def pri_of(src):
 # ★ 只有**多种子验证过**的新驾驶员才有资格改表：
 #   单种子 n=200 的 ±6.5pp 噪声会让"取最高"系统性地挑中幸运值（赢家诅咒），
 #   ab9d6e_r1B / r2A / r2B 目前只有单种子数据，因此只入明细、不参与选表。
-UNVERIFIED = {"ab9d6e_r1B", "ab9d6e_r2A", "ab9d6e_r2B"}
+UNVERIFIED = {"ab9d6e_r1B", "ab9d6e_r2B"}   # r2A 已补 2 个种子，进入验证集合
 # 需要把多个种子的面板合并的驾驶员（同 (格, 驾驶员) 的胜场与场次相加）
 # ★ 池化必须限定"同协议来源"：早先不加限定把 init 的所有来源（49 格矩阵 n=300 remote、
 #   7 格面板、多种子 meta）混在一起求和，导致 9d6e 行出现 +44pp 的假结论（init 基线被污染）。
 POOL_SPEC = {
     "ab9d6e_r1A": {"ab9d6e_r1A", "ab9d6e_r1A_s950001", "ab9d6e_r1A_s950002"},
+    "ab9d6e_r2A": {"ab9d6e_r2A", "ab9d6e_r2A_s950001", "ab9d6e_r2A_s950002"},
     "init": {"meta_port_9d6e", "meta_port_9d6e_s950001", "meta_port_9d6e_s950002"},
 }
 
