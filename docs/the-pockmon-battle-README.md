@@ -370,3 +370,34 @@ bash tools/watch_cpu_and_run.sh root@113.44.139.218    # 每 60 秒探一次，�
 ./tools/py tools/build_pilot_table.py                       # 先刷新表
 ./tools/py tools/choice_to_banks.py --a-deck 7e39 --strong --max-banks 8 --quota 1.0 --cov-src weights --emit-env
 ```
+
+## 数据母表与重建流程（2026-11-14）
+
+**母表**：`the-pockmon-battle-choice-in-table.csv`（列：`挑战者, 被挑战者, 驾驶员, 胜率, 样本场次, 来源`）
+= **唯一证据源**，两条命令即可从它重建出两张交付表：
+
+```bash
+./tools/py tools/export_master.py       # ① 从所有证据源导出母表
+./tools/py tools/build_from_master.py   # ② 由母表重建 choice / choice-detail / win-rate / pilot
+```
+
+### 证据源（按优先级）
+
+| 优先级 | 来源 | 说明 |
+|---|---|---|
+| 3 | `logs/meta/<tag>/vs_*.json` | 12 格面板；多种子（`_s95000x`）先按格池化 |
+| 2 | `data/opp_matrix/panel_*.json` | 7 格历史面板（cand = 我方 agent） |
+| 1 | `data/scheduler/matrix_full.csv` | 49 格远程矩阵（双方端口） |
+
+### 由母表重建的四张表
+
+| 表 | 规则 |
+|---|---|
+| `choice.csv` / `choice-detail.csv` | **格级**：该格非 init 驾驶员需比同格 init 高 **≥5pp 且池化 n≥400**（多种子验证），否则用 `init` |
+| `choices-win-rate.csv` | **行级**：每副牌按 12 格**场地加权**选一个驾驶员（比 init 高 ≥1pp 才替换），整行用该驾驶员的胜率；对角线填 `/` |
+| `choices-win-rate-pilot.csv` | 每行的驾驶员 + 场地加权 + 样本（可追溯） |
+
+> 两张表的判据不同是有意的：`choice.csv` 回答"这一格我方派谁"，可以逐格换人；
+> `choices-win-rate.csv` 回答"这副牌整体交给谁"，必须整行一致，否则矩阵不可比。
+
+**当前母表**：219 条记录 / 95 格 / 14 个驾驶员。

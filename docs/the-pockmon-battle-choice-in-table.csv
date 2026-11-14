@@ -1,29 +1,220 @@
 挑战者,被挑战者,驾驶员,胜率,样本场次,来源
-0904,0bf5,init,0.6061,400,derived 0904→0bf5/0bf5→0904
-0904,3eaa,init,0.5665,400,derived 0904→3eaa/3eaa→0904
-0904,9d6e,init,0.5423,400,derived 0904→9d6e/9d6e→0904
-0904,e8ee,init,0.7750,400,derived 0904→e8ee/e8ee→0904
-0904,f5f8,init,0.8195,400,derived 0904→f5f8/f5f8→0904
-0bf5,3eaa,init,0.6372,400,derived 0bf5→3eaa/3eaa→0bf5
-0bf5,7e39,init,0.8667,400,derived 0bf5→7e39/7e39→0bf5
-0bf5,e1d7,init,0.9200,400,derived 0bf5→e1d7/e1d7→0bf5
-0bf5,e8ee,init,0.5375,400,derived 0bf5→e8ee/e8ee→0bf5
-3eaa,e1d7,init,0.5500,400,derived 3eaa→e1d7/e1d7→3eaa
-3eaa,e8ee,init,0.5775,400,derived 3eaa→e8ee/e8ee→3eaa
-3eaa,f5f8,init,0.5613,400,derived 3eaa→f5f8/f5f8→3eaa
-7e39,0904,init,0.6097,400,derived 0904→7e39/7e39→0904
-7e39,3eaa,init,0.5839,400,derived 3eaa→7e39/7e39→3eaa
-7e39,e1d7,init,0.6525,400,derived 7e39→e1d7/e1d7→7e39
-9d6e,0bf5,init,0.5475,400,derived 0bf5→9d6e/9d6e→0bf5
-9d6e,3eaa,init,0.6324,400,derived 3eaa→9d6e/9d6e→3eaa
-9d6e,7e39,init,0.8942,400,derived 7e39→9d6e/9d6e→7e39
-9d6e,e1d7,init,0.9391,400,derived 9d6e→e1d7/e1d7→9d6e
-9d6e,f5f8,init,0.5116,400,derived 9d6e→f5f8/f5f8→9d6e
-e1d7,0904,init,0.5125,400,derived 0904→e1d7/e1d7→0904
-e8ee,7e39,init,0.6150,400,derived 7e39→e8ee/e8ee→7e39
-e8ee,9d6e,init,0.5133,400,derived 9d6e→e8ee/e8ee→9d6e
-e8ee,e1d7,init,0.7775,400,derived e1d7→e8ee/e8ee→e1d7
-f5f8,0bf5,init,0.5333,400,derived 0bf5→f5f8/f5f8→0bf5
-f5f8,7e39,init,0.6200,400,derived 7e39→f5f8/f5f8→7e39
-f5f8,e1d7,init,0.7675,400,derived e1d7→f5f8/f5f8→e1d7
-f5f8,e8ee,init,0.5875,400,derived e8ee→f5f8/f5f8→e8ee
+0904,0bf5,init,0.5722,180,panel7:panel_d0904
+0904,0d86,init,0.4333,180,panel7:panel_d0904
+0904,2617,init,0.7222,180,panel7:panel_d0904
+0904,3eaa,init,0.5730,178,panel7:panel_d0904
+0904,7e39,init,0.3556,180,panel7:panel_d0904
+0904,9d6e,init,0.5562,178,panel7:panel_d0904
+0904,f5f8,init,0.8090,178,panel7:panel_d0904
+0bf5,0bf5,init,0.5267,300,matrix_full
+0bf5,0d86,init,0.0067,300,matrix_full
+0bf5,2617,init,0.3867,300,matrix_full
+0bf5,3eaa,init,0.5967,300,matrix_full
+0bf5,7e39,init,0.8867,300,matrix_full
+0bf5,9d6e,init,0.4400,300,matrix_full
+0bf5,f5f8,init,0.4733,300,matrix_full
+0d86,0bf5,init,0.9333,300,matrix_full
+0d86,0bf5,shuppet_specialist,0.9278,180,panel7:panel_shbc
+0d86,0d86,init,0.4833,300,matrix_full
+0d86,0d86,shuppet_specialist,0.4778,180,panel7:panel_shbc
+0d86,2617,init,0.2900,300,matrix_full
+0d86,2617,shuppet_specialist,0.3167,180,panel7:panel_shbc
+0d86,3eaa,init,0.4400,300,matrix_full
+0d86,3eaa,shuppet_specialist,0.5618,178,panel7:panel_shbc
+0d86,7e39,init,0.2367,300,matrix_full
+0d86,7e39,shuppet_specialist,0.2500,180,panel7:panel_shbc
+0d86,9d6e,init,0.9633,300,matrix_full
+0d86,9d6e,shuppet_specialist,0.9551,178,panel7:panel_shbc
+0d86,f5f8,init,0.9333,300,matrix_full
+0d86,f5f8,shuppet_specialist,0.9494,178,panel7:panel_shbc
+2617,0904,init,0.3400,200,meta:meta_port_2617
+2617,0904,ph3_2617_v1,0.3050,200,meta:meta_ph3_2617_v1
+2617,0904,ph3_2617_v2,0.3000,200,meta:meta_ph3_2617_v2
+2617,0bf5,init,0.6500,200,meta:meta_port_2617
+2617,0bf5,ph3_2617_v1,0.7000,200,meta:meta_ph3_2617_v1
+2617,0bf5,ph3_2617_v2,0.5700,200,meta:meta_ph3_2617_v2
+2617,0d86,init,1.0000,200,meta:meta_port_2617
+2617,0d86,ph3_2617_v1,0.9900,200,meta:meta_ph3_2617_v1
+2617,0d86,ph3_2617_v2,0.9900,200,meta:meta_ph3_2617_v2
+2617,2617,init,0.5350,200,meta:meta_port_2617
+2617,2617,ph3_2617_v1,0.5250,200,meta:meta_ph3_2617_v1
+2617,2617,ph3_2617_v2,0.5550,200,meta:meta_ph3_2617_v2
+2617,26c6,init,0.2500,200,meta:meta_port_2617
+2617,26c6,ph3_2617_v1,0.3300,200,meta:meta_ph3_2617_v1
+2617,26c6,ph3_2617_v2,0.2850,200,meta:meta_ph3_2617_v2
+2617,3eaa,init,0.3200,200,meta:meta_port_2617
+2617,3eaa,ph3_2617_v1,0.3400,200,meta:meta_ph3_2617_v1
+2617,3eaa,ph3_2617_v2,0.2850,200,meta:meta_ph3_2617_v2
+2617,7e39,init,0.7450,200,meta:meta_port_2617
+2617,7e39,ph3_2617_v1,0.7200,200,meta:meta_ph3_2617_v1
+2617,7e39,ph3_2617_v2,0.7550,200,meta:meta_ph3_2617_v2
+2617,9d6e,init,0.5700,200,meta:meta_port_2617
+2617,9d6e,ph3_2617_v1,0.6100,200,meta:meta_ph3_2617_v1
+2617,9d6e,ph3_2617_v2,0.5900,200,meta:meta_ph3_2617_v2
+2617,db04,init,0.4450,200,meta:meta_port_2617
+2617,db04,ph3_2617_v1,0.4750,200,meta:meta_ph3_2617_v1
+2617,db04,ph3_2617_v2,0.4400,200,meta:meta_ph3_2617_v2
+2617,e1d7,init,0.6100,200,meta:meta_port_2617
+2617,e1d7,ph3_2617_v1,0.6200,200,meta:meta_ph3_2617_v1
+2617,e1d7,ph3_2617_v2,0.5700,200,meta:meta_ph3_2617_v2
+2617,e8ee,init,0.4750,200,meta:meta_port_2617
+2617,e8ee,ph3_2617_v1,0.5150,200,meta:meta_ph3_2617_v1
+2617,e8ee,ph3_2617_v2,0.5150,200,meta:meta_ph3_2617_v2
+2617,f5f8,init,0.5050,200,meta:meta_port_2617
+2617,f5f8,ph3_2617_v1,0.4950,200,meta:meta_ph3_2617_v1
+2617,f5f8,ph3_2617_v2,0.5600,200,meta:meta_ph3_2617_v2
+26c6,0904,init,0.3250,200,meta:meta_port_26c6
+26c6,0904,r1A,0.3100,200,meta:meta_r1A
+26c6,0bf5,init,0.2450,200,meta:meta_port_26c6
+26c6,0bf5,r1A,0.1900,200,meta:meta_r1A
+26c6,0d86,init,0.8500,200,meta:meta_port_26c6
+26c6,0d86,r1A,0.9200,200,meta:meta_r1A
+26c6,2617,init,0.7200,200,meta:meta_port_26c6
+26c6,2617,r1A,0.7400,200,meta:meta_r1A
+26c6,26c6,init,0.4425,200,meta:meta_port_26c6
+26c6,26c6,r1A,0.5625,200,meta:meta_r1A
+26c6,3eaa,init,0.1375,200,meta:meta_port_26c6
+26c6,3eaa,r1A,0.1400,200,meta:meta_r1A
+26c6,7e39,init,0.1150,200,meta:meta_port_26c6
+26c6,7e39,r1A,0.1275,200,meta:meta_r1A
+26c6,9d6e,init,0.3300,200,meta:meta_port_26c6
+26c6,9d6e,r1A,0.2625,200,meta:meta_r1A
+26c6,db04,init,0.3400,200,meta:meta_port_26c6
+26c6,db04,r1A,0.3700,200,meta:meta_r1A
+26c6,e1d7,init,0.1350,200,meta:meta_port_26c6
+26c6,e1d7,r1A,0.1625,200,meta:meta_r1A
+26c6,e8ee,init,0.0400,200,meta:meta_port_26c6
+26c6,e8ee,r1A,0.0400,200,meta:meta_r1A
+26c6,f5f8,init,0.3650,200,meta:meta_port_26c6
+26c6,f5f8,r1A,0.3500,200,meta:meta_r1A
+3eaa,0bf5,init,0.3222,180,panel7:panel_d3eaa
+3eaa,0d86,init,0.6111,180,panel7:panel_d3eaa
+3eaa,2617,init,0.6722,180,panel7:panel_d3eaa
+3eaa,3eaa,init,0.5225,178,panel7:panel_d3eaa
+3eaa,7e39,init,0.4389,180,panel7:panel_d3eaa
+3eaa,9d6e,init,0.3652,178,panel7:panel_d3eaa
+3eaa,f5f8,init,0.5393,178,panel7:panel_d3eaa
+7e39,0904,cand7e39S,0.5733,600,meta:cand7e39S
+7e39,0bf5,cand7e39S,0.1183,600,meta:cand7e39S
+7e39,0bf5,init,0.1533,300,matrix_full
+7e39,0d86,cand7e39S,1.0000,600,meta:cand7e39S
+7e39,0d86,init,0.7600,300,matrix_full
+7e39,2617,cand7e39S,0.2767,600,meta:cand7e39S
+7e39,2617,init,0.2000,300,matrix_full
+7e39,26c6,cand7e39S,0.8742,600,meta:cand7e39S
+7e39,3eaa,cand7e39S,0.5633,600,meta:cand7e39S
+7e39,3eaa,init,0.6067,300,matrix_full
+7e39,7e39,cand7e39S,0.5450,600,meta:cand7e39S
+7e39,7e39,init,0.4433,300,matrix_full
+7e39,9d6e,cand7e39S,0.1050,600,meta:cand7e39S
+7e39,9d6e,init,0.1100,300,matrix_full
+7e39,db04,cand7e39S,0.1467,600,meta:cand7e39S
+7e39,e1d7,cand7e39S,0.6167,600,meta:cand7e39S
+7e39,e8ee,cand7e39S,0.3633,600,meta:cand7e39S
+7e39,f5f8,cand7e39S,0.3700,600,meta:cand7e39S
+7e39,f5f8,init,0.4000,300,matrix_full
+9d6e,0904,ab9d6e_r1A,0.4067,600,meta:ab9d6e_r1A
+9d6e,0904,ab9d6e_r1B,0.4600,200,meta:ab9d6e_r1B
+9d6e,0904,ab9d6e_r2A,0.4650,600,meta:ab9d6e_r2A
+9d6e,0904,ab9d6e_r2B,0.3400,200,meta:ab9d6e_r2B
+9d6e,0904,init,0.4717,600,meta:meta_port_9d6e
+9d6e,0904,ph3_9d6e_v2,0.4250,200,meta:meta_ph3_9d6e_v2
+9d6e,0bf5,ab9d6e_r1A,0.5200,600,meta:ab9d6e_r1A
+9d6e,0bf5,ab9d6e_r1B,0.5650,200,meta:ab9d6e_r1B
+9d6e,0bf5,ab9d6e_r2A,0.5350,600,meta:ab9d6e_r2A
+9d6e,0bf5,ab9d6e_r2B,0.5600,200,meta:ab9d6e_r2B
+9d6e,0bf5,init,0.5350,600,meta:meta_port_9d6e
+9d6e,0bf5,ph3_9d6e_v1,0.5167,180,panel7:panel_ph3_9d6e
+9d6e,0bf5,ph3_9d6e_v2,0.5100,200,meta:meta_ph3_9d6e_v2
+9d6e,0d86,ab9d6e_r1A,0.9933,600,meta:ab9d6e_r1A
+9d6e,0d86,ab9d6e_r1B,0.9800,200,meta:ab9d6e_r1B
+9d6e,0d86,ab9d6e_r2A,0.9917,600,meta:ab9d6e_r2A
+9d6e,0d86,ab9d6e_r2B,0.9850,200,meta:ab9d6e_r2B
+9d6e,0d86,init,0.9850,600,meta:meta_port_9d6e
+9d6e,0d86,ph3_9d6e_v1,0.0500,180,panel7:panel_ph3_9d6e
+9d6e,0d86,ph3_9d6e_v2,0.9750,200,meta:meta_ph3_9d6e_v2
+9d6e,2617,ab9d6e_r1A,0.4017,600,meta:ab9d6e_r1A
+9d6e,2617,ab9d6e_r1B,0.4050,200,meta:ab9d6e_r1B
+9d6e,2617,ab9d6e_r2A,0.3983,600,meta:ab9d6e_r2A
+9d6e,2617,ab9d6e_r2B,0.4200,200,meta:ab9d6e_r2B
+9d6e,2617,init,0.4517,600,meta:meta_port_9d6e
+9d6e,2617,ph3_9d6e_v1,0.4111,180,panel7:panel_ph3_9d6e
+9d6e,2617,ph3_9d6e_v2,0.3900,200,meta:meta_ph3_9d6e_v2
+9d6e,26c6,ab9d6e_r1A,0.6992,600,meta:ab9d6e_r1A
+9d6e,26c6,ab9d6e_r1B,0.6700,200,meta:ab9d6e_r1B
+9d6e,26c6,ab9d6e_r2A,0.7125,600,meta:ab9d6e_r2A
+9d6e,26c6,ab9d6e_r2B,0.6400,200,meta:ab9d6e_r2B
+9d6e,26c6,init,0.7183,600,meta:meta_port_9d6e
+9d6e,26c6,ph3_9d6e_v2,0.6325,200,meta:meta_ph3_9d6e_v2
+9d6e,3eaa,ab9d6e_r1A,0.6000,600,meta:ab9d6e_r1A
+9d6e,3eaa,ab9d6e_r1B,0.6300,200,meta:ab9d6e_r1B
+9d6e,3eaa,ab9d6e_r2A,0.6233,600,meta:ab9d6e_r2A
+9d6e,3eaa,ab9d6e_r2B,0.5300,200,meta:ab9d6e_r2B
+9d6e,3eaa,init,0.6300,600,meta:meta_port_9d6e
+9d6e,3eaa,ph3_9d6e_v1,0.5944,180,panel7:panel_ph3_9d6e
+9d6e,3eaa,ph3_9d6e_v2,0.6300,200,meta:meta_ph3_9d6e_v2
+9d6e,7e39,ab9d6e_r1A,0.8900,600,meta:ab9d6e_r1A
+9d6e,7e39,ab9d6e_r1B,0.8400,200,meta:ab9d6e_r1B
+9d6e,7e39,ab9d6e_r2A,0.8533,600,meta:ab9d6e_r2A
+9d6e,7e39,ab9d6e_r2B,0.8600,200,meta:ab9d6e_r2B
+9d6e,7e39,init,0.8983,600,meta:meta_port_9d6e
+9d6e,7e39,ph3_9d6e_v1,0.8778,180,panel7:panel_ph3_9d6e
+9d6e,7e39,ph3_9d6e_v2,0.8550,200,meta:meta_ph3_9d6e_v2
+9d6e,9d6e,ab9d6e_r1A,0.4000,600,meta:ab9d6e_r1A
+9d6e,9d6e,ab9d6e_r1B,0.5300,200,meta:ab9d6e_r1B
+9d6e,9d6e,ab9d6e_r2A,0.4800,600,meta:ab9d6e_r2A
+9d6e,9d6e,ab9d6e_r2B,0.4850,200,meta:ab9d6e_r2B
+9d6e,9d6e,init,0.4883,600,meta:meta_port_9d6e
+9d6e,9d6e,ph3_9d6e_v1,0.4944,180,panel7:panel_ph3_9d6e
+9d6e,9d6e,ph3_9d6e_v2,0.4400,200,meta:meta_ph3_9d6e_v2
+9d6e,db04,ab9d6e_r1A,0.3167,600,meta:ab9d6e_r1A
+9d6e,db04,ab9d6e_r1B,0.2700,200,meta:ab9d6e_r1B
+9d6e,db04,ab9d6e_r2A,0.2900,600,meta:ab9d6e_r2A
+9d6e,db04,ab9d6e_r2B,0.2100,200,meta:ab9d6e_r2B
+9d6e,db04,init,0.2667,600,meta:meta_port_9d6e
+9d6e,db04,ph3_9d6e_v2,0.3050,200,meta:meta_ph3_9d6e_v2
+9d6e,e1d7,ab9d6e_r1A,0.9250,600,meta:ab9d6e_r1A
+9d6e,e1d7,ab9d6e_r1B,0.9300,200,meta:ab9d6e_r1B
+9d6e,e1d7,ab9d6e_r2A,0.9283,600,meta:ab9d6e_r2A
+9d6e,e1d7,ab9d6e_r2B,0.8950,200,meta:ab9d6e_r2B
+9d6e,e1d7,init,0.9333,600,meta:meta_port_9d6e
+9d6e,e1d7,ph3_9d6e_v2,0.9150,200,meta:meta_ph3_9d6e_v2
+9d6e,e8ee,ab9d6e_r1A,0.6417,600,meta:ab9d6e_r1A
+9d6e,e8ee,ab9d6e_r1B,0.5350,200,meta:ab9d6e_r1B
+9d6e,e8ee,ab9d6e_r2A,0.6700,600,meta:ab9d6e_r2A
+9d6e,e8ee,ab9d6e_r2B,0.6150,200,meta:ab9d6e_r2B
+9d6e,e8ee,init,0.5133,600,meta:meta_port_9d6e
+9d6e,e8ee,ph3_9d6e_v2,0.5100,200,meta:meta_ph3_9d6e_v2
+9d6e,f5f8,ab9d6e_r1A,0.6317,600,meta:ab9d6e_r1A
+9d6e,f5f8,ab9d6e_r1B,0.5050,200,meta:ab9d6e_r1B
+9d6e,f5f8,ab9d6e_r2A,0.6533,600,meta:ab9d6e_r2A
+9d6e,f5f8,ab9d6e_r2B,0.5600,200,meta:ab9d6e_r2B
+9d6e,f5f8,init,0.5133,600,meta:meta_port_9d6e
+9d6e,f5f8,ph3_9d6e_v1,0.5444,180,panel7:panel_ph3_9d6e
+9d6e,f5f8,ph3_9d6e_v2,0.5800,200,meta:meta_ph3_9d6e_v2
+db04,0904,g6_db04,0.1850,200,meta:meta_g6_db04
+db04,0bf5,g6_db04,0.8100,200,meta:meta_g6_db04
+db04,0bf5,ph3_db04_v1,0.7778,180,panel7:panel_ph3
+db04,0d86,g6_db04,0.9800,200,meta:meta_g6_db04
+db04,0d86,ph3_db04_v1,0.0833,180,panel7:panel_ph3
+db04,2617,g6_db04,0.4750,200,meta:meta_g6_db04
+db04,2617,ph3_db04_v1,0.5222,180,panel7:panel_ph3
+db04,26c6,g6_db04,0.6350,200,meta:meta_g6_db04
+db04,3eaa,g6_db04,0.3700,200,meta:meta_g6_db04
+db04,3eaa,ph3_db04_v1,0.3652,178,panel7:panel_ph3
+db04,7e39,g6_db04,0.7850,200,meta:meta_g6_db04
+db04,7e39,ph3_db04_v1,0.7611,180,panel7:panel_ph3
+db04,9d6e,g6_db04,0.7950,200,meta:meta_g6_db04
+db04,9d6e,ph3_db04_v1,0.7303,178,panel7:panel_ph3
+db04,db04,g6_db04,0.5300,200,meta:meta_g6_db04
+db04,e1d7,g6_db04,0.8150,200,meta:meta_g6_db04
+db04,e8ee,g6_db04,0.7550,200,meta:meta_g6_db04
+db04,f5f8,g6_db04,0.7150,200,meta:meta_g6_db04
+db04,f5f8,ph3_db04_v1,0.7135,178,panel7:panel_ph3
+f5f8,0bf5,init,0.5400,300,matrix_full
+f5f8,0d86,init,0.0667,300,matrix_full
+f5f8,2617,init,0.4967,300,matrix_full
+f5f8,3eaa,init,0.4167,300,matrix_full
+f5f8,7e39,init,0.6400,300,matrix_full
+f5f8,9d6e,init,0.4900,200,matrix_full
+f5f8,f5f8,init,0.5200,200,matrix_full
