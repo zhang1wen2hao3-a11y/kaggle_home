@@ -28,7 +28,7 @@ cp -a decks/pool_field "$STAGE/decks/pool_field"
 echo "④ 评估器与工具"
 cp -f ptcg_league/eval_pair.py "$STAGE/ptcg_league/"
 for f in tools/bo3_eval.py tools/make_agent_dir.sh tools/fill_winrate.sh tools/build_winrate_table.py \
-         tools/meta_eval.sh tools/h2h.sh tools/queue_remaining.sh \
+         tools/meta_eval.sh tools/h2h.sh tools/queue_remaining.sh tools/run_wishlist.sh tools/run_shard.sh \
          tools/panel_ci.py tools/panel_compare.py; do cp -f "$f" "$STAGE/tools/"; done
 # tools/py 做成可移植的 shell 壳（目标机不一定是 conda 布局）
 cat > "$STAGE/tools/py" <<'EOS'
@@ -40,19 +40,25 @@ chmod +x "$STAGE/tools/py" "$STAGE/tools/"*.sh
 echo "⑤ 依赖数据：choice-detail + 12 格测试集 + 已跑出的结果（跳过重算）"
 cp -f docs/the-pockmon-battle-choice-detail.csv "$STAGE/docs/"
 cp -f decks/testset_meta.tsv "$STAGE/decks/"
+cp -f decks/testset_meta_A.tsv "$STAGE/decks/" 2>/dev/null
+cp -f logs/wishlist.tsv "$STAGE/logs/"
 mkdir -p "$STAGE/models_ppo" "$STAGE/models_pilot"
 for k in r1A r1B r2A r2B; do
   src="models/ppo/ab9d6e_$k.pt"
   [ -f "$src" ] && cp -f "$src" "$STAGE/models_ppo/" && echo "   候选 ab9d6e_$k.pt"
 done
 # 内部对局表（choice-in-table）要用的 4 个历史最佳驾驶员：db04/2617/26c6/0d86
-for k in g6_db04 ph3_2617_v1 r1A_26c6 g8_bc_parent; do
+for k in g6_db04 ph3_2617_v1 ph3_2617_v2 r1A_26c6 g8_bc_parent; do
   src="build/agents/$k/model.pt"
   [ -f "$src" ] && cp -f "$src" "$STAGE/models_pilot/$k.pt" && echo "   驾驶员 $k.pt"
 done
+# 本轮新训候选（7e39 / e1d7 舰牌，起点 port）
+for k in cand7e39S candE1D7S; do
+  [ -f "models/ppo/$k.pt" ] && cp -f "models/ppo/$k.pt" "$STAGE/models_ppo/" && echo "   新候选 $k.pt"
+done
 # 天花板候选：0d86 的 BC/PPO 模型 + 26c6 的 BC 模型（12 格面板从未跑过）
 mkdir -p "$STAGE/models_ceiling"
-for k in g8_bc_parent g8_shuppet bc_26c6; do
+for k in g8_bc_parent g8_shuppet bc_26c6 ph3_9d6e_v2; do
   src="build/agents/$k/model.pt"
   [ -f "$src" ] && cp -f "$src" "$STAGE/models_ceiling/$k.pt" && echo "   天花板候选 $k.pt"
 done
@@ -101,12 +107,16 @@ done
 echo
 echo "=== 铺 4 个历史最佳驾驶员（内部对局表用）==="
 declare -A PL=( [g6_db04]=dunsparce_abra__db04 [ph3_2617_v1]=grookey_thwackey__2617
-                [r1A_26c6]=slowpoke_slowking__26c6 [g8_bc_parent]=shuppet_dhelmise__0d86 )
+                [ph3_2617_v2]=grookey_thwackey__2617 [r1A_26c6]=slowpoke_slowking__26c6
+                [g8_bc_parent]=shuppet_dhelmise__0d86 )
 for k in "${!PL[@]}"; do
   [ -f "models_pilot/$k.pt" ] || continue
   bash tools/make_agent_dir.sh "build/agents/$k" "models_pilot/$k.pt" "decks/pool_field/${PL[$k]}.csv" >/dev/null \
     || { echo "✗ 铺驾驶员 $k 失败"; exit 1; }
 done
+# 天花板区里多带的 9d6e 专才（boot 用，不覆盖 12 格里已有的 port_on_9d6e）
+[ -f models_ceiling/ph3_9d6e_v2.pt ] && bash tools/make_agent_dir.sh build/agents/ph3_9d6e_v2 \
+  models_ceiling/ph3_9d6e_v2.pt decks/pool_field/dunsparce_abra__9d6e.csv >/dev/null
 echo "=== 跑剩余评估： bash tools/queue_remaining.sh ==="
 echo "=== 补 a→b 胜率矩阵缺格： bash tools/fill_winrate.sh ==="
 EOS

@@ -39,9 +39,12 @@ THRESH_ROW = 1.0      # pp：行级替换门槛
 VERIFIED_N = 400      # 池化样本 ≥ 这个数才算"多种子验证"
 
 
+WEIGHTS_FILE = "decks/weights_field_b05.txt"   # 由 --weights 覆盖
+
+
 def field_weights():
     w = {}
-    for line in open(os.path.join(ROOT, "decks", "weights_field_b05.txt")):
+    for line in open(os.path.join(ROOT, WEIGHTS_FILE)):
         p = line.split()
         if len(p) == 2 and "__" in p[0]:
             w[p[0].split("__")[-1][:4]] = float(p[1])
@@ -68,8 +71,17 @@ def load_master():
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry", action="store_true")
+    ap.add_argument("--weights", default="decks/weights_field_b05.txt",
+                    help="场地权重文件；顶分段用 decks/weights_top.txt")
+    ap.add_argument("--suffix", default="", help="输出文件名后缀，如 _top")
     a = ap.parse_args()
+    global WEIGHTS_FILE
+    WEIGHTS_FILE = a.weights
     rec, W = load_master(), field_weights()
+    if a.suffix:
+        global CH, DET, WR, PILOT
+        f = lambda p: p[:-4] + a.suffix + ".csv"
+        CH, DET, WR, PILOT = f(CH), f(DET), f(WR), f(PILOT)
 
     # ── 1/2. 格级选人 ──
     choice, detail = {}, []
