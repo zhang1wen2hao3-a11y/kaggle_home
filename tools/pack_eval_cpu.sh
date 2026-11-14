@@ -12,6 +12,7 @@
 #   · 12 个 agent 目录由 setup.sh 现场铺（共用同一个 model.pt，不重复塞 20 MB）
 set -uo pipefail
 cd "$(dirname "$0")/.."
+PY=./tools/py
 STAGE="dist/eval_cpu_kit"
 OUTTAR="dist/eval_cpu_kit.tar.gz"
 rm -rf "$STAGE"; mkdir -p "$STAGE"/{build,decks,ptcg_league,tools,docs,logs/winrate}
@@ -61,6 +62,19 @@ mkdir -p "$STAGE/models_ceiling"
 for k in g8_bc_parent g8_shuppet bc_26c6 ph3_9d6e_v2; do
   src="build/agents/$k/model.pt"
   [ -f "$src" ] && cp -f "$src" "$STAGE/models_ceiling/$k.pt" && echo "   天花板候选 $k.pt"
+done
+# 陪练强度阶梯实测出来的"有梯度"的几个（其余 g7/g12 被打 99.5~100% ⇒ 只留作备查，仍打进包里）
+for k in deck_0d86_ deck_f5f8_ agent_sue124_; do
+  src="bc_pool/$k.pt"
+  [ -f "$src" ] && cp -f "$src" "$STAGE/models_ceiling/$k.pt" && echo "   BC 克隆 $k.pt"
+done
+# 纯权重 .bin → .pt（评测/当候选都要 .pt；导出无损，已用 md5 round-trip 验过）
+for k in g7b_shuppet g7a_db04_shuppet g12_db04_dreepy_shuppet; do
+  src="models/ppo/$k.bin"
+  if [ -f "$src" ] && [ -f tools/native_weights.py ]; then
+    PYTHONPATH=build/port_plain:. $PY tools/native_weights.py import "$src" "$STAGE/models_ceiling/$k.pt" >/dev/null 2>&1 \
+      && echo "   .bin→.pt $k"
+  fi
 done
 [ -f logs/in_table_missing.txt ] && cp -f logs/in_table_missing.txt "$STAGE/logs/" && echo "   内部对局缺清单"
 n=$(ls logs/winrate/*.json 2>/dev/null | wc -l)
@@ -117,6 +131,20 @@ done
 # 天花板区里多带的 9d6e 专才（boot 用，不覆盖 12 格里已有的 port_on_9d6e）
 [ -f models_ceiling/ph3_9d6e_v2.pt ] && bash tools/make_agent_dir.sh build/agents/ph3_9d6e_v2 \
   models_ceiling/ph3_9d6e_v2.pt decks/pool_field/dunsparce_abra__9d6e.csv >/dev/null
+echo
+echo "=== 铺陪练/考官（BC 克隆 + shuppet PPO；bank_ladder.sh 直接用）==="
+declare -A CE=( [g8_shuppet]=shuppet_dhelmise__0d86 [bc_26c6]=slowpoke_slowking__26c6
+                [deck_0d86_]=shuppet_dhelmise__0d86 [deck_f5f8_]=abra_kadabra__f5f8
+                [agent_sue124_]=shuppet_dhelmise__0d86
+                [g7b_shuppet]=shuppet_dhelmise__0d86 [g7a_db04_shuppet]=shuppet_dhelmise__0d86
+                [g12_db04_dreepy_shuppet]=shuppet_dhelmise__0d86
+                [cand7e39S]=teal_mask_ogerpon_ex_applin__7e39 [candE1D7S]=z_ogerpon_toolbox_miwa__e1d7 )
+for k in "${!CE[@]}"; do
+  [ -f "models_ceiling/$k.pt" ] || continue
+  bash tools/make_agent_dir.sh "build/agents/$k" "models_ceiling/$k.pt" "decks/pool_field/${CE[$k]}.csv" >/dev/null 2>&1 \
+    || echo "  ✗ 铺 $k 失败"
+done
+echo "  ✓ agent 总数 $(ls build/agents | wc -l)"
 echo "=== 跑剩余评估： bash tools/queue_remaining.sh ==="
 echo "=== 补 a→b 胜率矩阵缺格： bash tools/fill_winrate.sh ==="
 EOS
