@@ -23,6 +23,7 @@ while [ $# -gt 0 ]; do
 done
 [ -n "$CAND" ] || { echo "✗ 缺 --cand"; exit 2; }
 TAG="${TAG:-$(basename "$CAND")}"
+TS="${TS:-decks/testset_meta.tsv}"      # 测试集；方案A = decks/testset_meta_A.tsv（对手用各自最佳驾驶员）
 N="${N:-200}"; SEED="${SEED:-950000}"
 OUT="logs/meta/$TAG"
 mkdir -p "$OUT"
@@ -35,7 +36,7 @@ while IFS=$'\t' read -r cell dir _deck _grp _wt; do
   echo "########## $TAG vs $cell ##########"
   ./tools/py ptcg_league/eval_pair.py --cand "$CAND" --opp "$cell=$dir" \
       --matches "$N" --workers 0 --seed-base "$SEED" --out "$f" --logdir "$OUT/$cell" 2>&1 | tail -2
-done < decks/testset_meta.tsv
+done < "$TS"
 
 ./tools/py - "$OUT" "$N" "$SEED" <<'PY'
 import json, math, os, sys
