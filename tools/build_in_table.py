@@ -50,7 +50,7 @@ DECKS = ["0904", "0bf5", "0d86", "2617", "26c6", "3eaa", "7e39",
 
 # 每副卡组的最佳驾驶员（= win-rate 矩阵每行的口径）
 PILOT_OF = {"db04": "g6_db04", "2617": "ph3_2617_v1", "26c6": "r1A",
-            "0d86": "shuppet_specialist"}
+            "0d86": "g8_bc_parent"}
 DEFAULT_PILOT = "init"
 
 # (驾驶员, 卡组) → agent 目录（本地与评估机上同名）
@@ -62,7 +62,7 @@ AGENT_OF = {
     ("init", "db04"): "port_db04", ("init", "e1d7"): "port_e1d7",
     ("init", "e8ee"): "port_e8ee", ("init", "f5f8"): "c_abra",
     ("g6_db04", "db04"): "g6_db04", ("ph3_2617_v1", "2617"): "ph3_2617_v1",
-    ("r1A", "26c6"): "r1A_26c6", ("shuppet_specialist", "0d86"): "g8_bc_parent",
+    ("r1A", "26c6"): "r1A_26c6", ("g8_bc_parent", "0d86"): "g8_bc_parent",
 }
 
 

@@ -66,7 +66,7 @@ PANEL2CELL = {
     "panel_d0904": ("0904", "init"), "panel_d3eaa": ("3eaa", "init"),
     "panel_db04": ("db04", "g6_db04"), "panel_ph3": ("db04", "ph3_db04_v1"),
     "panel_ph3_2617": ("2617", "ph3_2617_v1"), "panel_ph3_9d6e": ("9d6e", "ph3_9d6e_v1"),
-    "panel_shbc": ("0d86", "shuppet_specialist"), "port_9d6e": ("9d6e", "init"),
+    "panel_shbc": ("0d86", "g8_bc_parent"), "port_9d6e": ("9d6e", "init"),
 }
 
 PRI = {"meta": 3, "panel7": 2, "matrix": 1}

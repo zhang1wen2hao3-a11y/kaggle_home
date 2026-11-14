@@ -51,7 +51,7 @@ DEFAULT_PILOT_MAP = {
 BEST_PILOT = {          # key = 4 位短名（与 choice 表的列名一致）
     "db04": "g6_db04",
     "2617": "ph3_2617_v1",
-    "0d86": "shuppet_specialist",   # = g8_bc_parent
+    "0d86": "g8_bc_parent",
     "26c6": "bc_26c6",              # 弱于端口，仅占位；有更好的再换
 }
 MAX_BANKS = 16
@@ -90,7 +90,7 @@ def drivers_from_choice(choice_path):
 
     choice 表是「我方牌 a × 对手牌 b → 我方用谁」；把某一副牌 b 当作"它自己的牌"来看时，
     它在自己那一行里最常出现的非 init 驾驶员，就是"该牌的最强驾驶员"
-    （例：db04 行 8 格 g6_db04、26c6 行 2 格 r1A、0d86 行 1 格 shuppet_specialist）。
+    （例：db04 行 8 格 g6_db04、26c6 行 2 格 r1A、0d86 行 1 格 g8_bc_parent）。
 
     返回 {短名: 驾驶员}；没有非 init 驾驶员的牌不出现在结果里（调用方回退 init）。
     """

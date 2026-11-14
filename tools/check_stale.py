@@ -7,7 +7,7 @@
 
 母表里每条记录都带 **对手驾驶员**：
 - 现在所有面板评测的对手都是 **端口权重（init）**；
-- 一旦 `the-pockmon-battle-choice-self.csv` 把某副对手牌升级成 `shuppet_specialist` / `r1A` / `cand7e39S` 等，
+- 一旦 `the-pockmon-battle-choice-self.csv` 把某副对手牌升级成 `g8_bc_parent` / `r1A` / `cand7e39S` 等，
   那么"我方模型 vs 该副牌"的旧胜率就是**对更弱的对手**测出来的，不能再用。
 
 ## 输出

@@ -84,7 +84,7 @@ def collect():
     OPP = {"panel_d0904": ("0904", "init"), "panel_d3eaa": ("3eaa", "init"),
            "panel_db04": ("db04", "g6_db04"), "panel_ph3": ("db04", "ph3_db04_v1"),
            "panel_ph3_2617": ("2617", "ph3_2617_v1"), "panel_ph3_9d6e": ("9d6e", "ph3_9d6e_v1"),
-           "panel_shbc": ("0d86", "shuppet_specialist")}
+           "panel_shbc": ("0d86", "g8_bc_parent")}
     for arm, (ch, pilot) in OPP.items():
         p = os.path.join(ROOT, "data/opp_matrix", arm + ".json")
         if not os.path.exists(p):

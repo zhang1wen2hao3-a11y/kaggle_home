@@ -18,7 +18,7 @@
 ----
 1. 表里出现的每个非 `init` 名字，都必须在这里登记；`tools/check_drivers.py` 会扫表校验。
 2. 未知名字 ⇒ 调用方必须**报错退出**，不许静默回退。
-3. 别名要显式登记（`shuppet_specialist` 就是 `g8_bc_parent`）。
+3. **一个实体只有一个名字**，不登记别名（历史上 `shuppet_specialist`/`g8_bc_parent` 是同一权重，已统一为 `g8_bc_parent`，旧名出现即报错）。
 4. 权重丢了的名字登记在 `RETIRED`，check 时只提示、不报错（历史表里仍在引用）。
 
 用法
@@ -41,6 +41,7 @@ DRIVERS = {
                  note="端口权重；所有卡组通用（对手侧就是目前 12 panel 的默认对手）"),
 
     # ── shuppet 0d86 ─────────────────────────────────────────────
+    # ★ 唯一名字：g8_bc_parent（旧名 shuppet_specialist 已弃用，不要再用/不要再加别名）
     "g8_bc_parent": dict(agent="g8_bc_parent", weights="build/agents/g8_bc_parent/model.pt",
                          remote="/root/kl/g8_bc_parent.bin", deck="0d86", fidelity=0.739,
                          note="ミワハルキ BC 克隆；全帧 171k；对 g6_db04 0.9675、同牌镜像 vs 端口 0.9325 ⇒ 唯一合格的强对手"),
@@ -89,11 +90,10 @@ DRIVERS = {
                       remote="/root/kl/candE1D7S.bin", deck="e1d7", fidelity=None, note="e1d7 舰牌候选"),
 }
 
-# 别名：表里可能用旧名字
-ALIASES = {
-    "shuppet_specialist": "g8_bc_parent",   # docs/the-pockmon-battle-README.md:306 明写
-    "port": "init", "port_w": "init", "端口权重": "init",
-}
+# ★ 一个实体只能有一个名字：这里**不保留任何别名**。
+#   历史名 `shuppet_specialist` 已彻底弃用（= 本文件里的 `g8_bc_parent`，同一权重）；
+#   任何表/脚本里再出现旧名，`driver_registry.py check` 会直接报错。
+ALIASES = {}
 
 # 权重已丢失的历史名字：历史表里仍可能出现，check 只提示不报错
 RETIRED = {
@@ -103,13 +103,21 @@ RETIRED = {
 }
 
 
+# 旧名提示：**不是别名**，只是报错时给一句人话（不会把它解析成别的名字）
+HINTS = {
+    "shuppet_specialist": "该名字已弃用，唯一名字是 g8_bc_parent",
+    "port": "端口权重请写 init",
+    "port_w": "端口权重请写 init",
+}
+
+
 class UnknownDriver(KeyError):
     pass
 
 
 def canonical(name: str) -> str:
-    n = (name or "init").strip()
-    return ALIASES.get(n, n)
+    """名字规范化：只做去空格/大小写不动，不认别名（别名一律当未知处理）。"""
+    return (name or "init").strip()
 
 
 def info(name: str) -> dict:
@@ -117,7 +125,9 @@ def info(name: str) -> dict:
     if n not in DRIVERS:
         if n in RETIRED:
             return dict(retired=True, note=RETIRED[n], agent=None, weights=None, remote=None, deck=None)
-        raise UnknownDriver(f"未登记的驾驶员：{name!r}（请在 tools/driver_registry.py 里登记）")
+        hint = HINTS.get(n)
+        raise UnknownDriver(f"未登记的驾驶员：{name!r}"
+                            + (f"（{hint}）" if hint else "（请在 tools/driver_registry.py 里登记）"))
     return dict(DRIVERS[n], retired=False, name=n)
 
 

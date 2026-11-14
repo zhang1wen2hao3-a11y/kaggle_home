@@ -136,7 +136,7 @@
 |---|---|---|
 | `init` | 68 | 端口权重（默认） |
 | `g6_db04` | 8 | db04 专精（天梯 1060），其中 5 格是"只有它测过" |
-| `shuppet_specialist` | 1 | `g8_bc_parent` 打 shuppet，`0d86→3eaa` +12.2pp |
+| `g8_bc_parent` | 1 | `g8_bc_parent` 打 shuppet，`0d86→3eaa` +12.2pp |
 | **`r1A`** | **2** | 10M 步 slowking 专才：`26c6→26c6`（镜像）+12.0pp、`26c6→0d86` +7.0pp |
 | `ph3_2617_v1` | 1 | `2617→26c6` +8.0pp |
 
@@ -207,7 +207,7 @@ NA 只剩 2 行（`girafarig`、`voltorb`，各 1~2 局、无分数记录）。
 
 | 侧 | 驾驶员 | 依据 |
 |---|---|---|
-| 我方 a | 该卡组**最强驾驶员** | 取自 `choice.csv` 选出来的那个：`db04→g6_db04`、`2617→ph3_2617_v1`、`26c6→r1A`、`0d86→shuppet_specialist`，其余 = `init`（端口权重） |
+| 我方 a | 该卡组**最强驾驶员** | 取自 `choice.csv` 选出来的那个：`db04→g6_db04`、`2617→ph3_2617_v1`、`26c6→r1A`、`0d86→g8_bc_parent`，其余 = `init`（端口权重） |
 | 对手 b | **端口权重 + 该卡组** | 与 testset_meta / panel 的口号"只差卡组"一致，保证格子之间只差牌 |
 
 **数据来源（两段，都能追到文件）**：
@@ -304,7 +304,7 @@ NA 只剩 2 行（`girafarig`、`voltorb`，各 1~2 局、无分数记录）。
 4. `驾驶员` 列 = **挑战者**用的驾驶员，被挑战者用的写在 `来源` 列里。
 
 **驾驶员口径**（与 win-rate 矩阵每行一致）：`db04→g6_db04`、`2617→ph3_2617_v1`、`26c6→r1A`（slowking 10M 专才）、
-`0d86→shuppet_specialist`（= `g8_bc_parent`），其余 = `init`（端口权重）。
+`0d86→g8_bc_parent`，其余 = `init`（端口权重）。
 
 **数据来源**：
 
@@ -317,7 +317,7 @@ NA 只剩 2 行（`girafarig`、`voltorb`，各 1~2 局、无分数记录）。
 **生成器**：`./tools/py tools/build_in_table.py`（`--dry` 只打印还缺哪些，并写 `logs/in_table_missing.txt`）。
 
 **当前状态**：28/66 已填；缺的 38 对全部涉及 4 个非 `init` 驾驶员
-（`shuppet_specialist` 12 对、`ph3_2617_v1` 11 对、`r1A` 11 对、`g6_db04` 12 对，含互相之间的 6 对），
+（`g8_bc_parent` 12 对、`ph3_2617_v1` 11 对、`r1A` 11 对、`g6_db04` 12 对，含互相之间的 6 对），
 评估机在跑到一半时失联，待机器恢复后 `bash tools/run_in_table.sh` 幂等补齐。
 
 ### 2026-11-13：CPU 机自动接手（`tools/watch_cpu_and_run.sh` + `tools/run_cpu_all.sh`）
@@ -358,7 +358,7 @@ bash tools/watch_cpu_and_run.sh root@113.44.139.218    # 每 60 秒探一次，�
 |---|---|---|---|---|
 | `db04` | `g6_db04` | 0.9800 | 200 | **+96.0pp**（init 0.02） |
 | `9d6e` | `ab9d6e_r2A` | 0.6700 | 600 | **+15.7pp**（init 0.5133） |
-| `0d86` | `shuppet_specialist` | 0.5618 | 178 | **+12.2pp**（init 0.4400） |
+| `0d86` | `g8_bc_parent` | 0.5618 | 178 | **+12.2pp**（init 0.4400） |
 | `2617` | `ph3_2617_v1` | 0.3300 | 200 | +8.0pp（init 0.2500） |
 | `26c6` | `r1A`（slowking 专才） | 0.9200 | 200 | +7.0pp（init 0.8500） |
 | `0904` / `0bf5` / `3eaa` / `7e39` / `e1d7` / `e8ee` / `f5f8` | `init` | — | — | 该行无非 init 驾驶员 |
