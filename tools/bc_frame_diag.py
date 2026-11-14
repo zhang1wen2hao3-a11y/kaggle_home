@@ -64,6 +64,7 @@ def semantic(opt, cur, sel, seat):
     card = opt.get("cardId") or 0
     tgt_card = 0
     tgt_slot = opt.get("inPlayIndex")
+    area = opt.get("inPlayArea")
     try:
         if ot == E.OT_PLAY:
             card = _res = opt.get("cardId") or 0
@@ -75,7 +76,7 @@ def semantic(opt, cur, sel, seat):
             tgt_slot = opt.get("index")
     except Exception:
         pass
-    return (name, sub, card, tgt_card, tgt_slot)
+    return (name, f"{sub}@{area}", card, tgt_card, tgt_slot)
 
 
 def main():
@@ -85,9 +86,22 @@ def main():
     ap.add_argument("--port", default="build/port_plain/model.pt")
     ap.add_argument("--games", type=int, default=40, help="最多多少个整局")
     ap.add_argument("--device", default="cpu")
+    ap.add_argument("--dump", default="", help="打印该类别的不一致帧（如 附着/打出/结束回合）")
+    ap.add_argument("--dump-n", type=int, default=15, help="最多打印多少条")
     ap.add_argument("--index", default="data/distill_index.jsonl",
                     help="决策索引；slowking 用 data/distill_index.jsonl，其它可用 all2/miwa")
     a = ap.parse_args()
+
+    # 卡 id → 名字（dump 用）
+    NAME = {}
+    try:
+        import csv as _csv
+        for r in _csv.DictReader(open(ROOT / "build/port_plain/EN_Card_Data.csv", encoding="utf-8-sig")):
+            NAME[int(r["Card ID"])] = (r.get("Card Name") or "").strip()
+    except Exception:
+        pass
+    dumped = []
+    wrong = collections.Counter()
 
     port = SearchAgent(model_path=str(ROOT / a.port), deck_path=str(ROOT / "build/port_plain/deck.csv"),
                        cfg=None, seed=0, device=a.device, data_dir=str(ROOT / "build/port_plain"))
@@ -186,6 +200,26 @@ def main():
                 if sem_p[0] == cat:
                     stat[cat][2] += 1
                     overall[2] += 1
+                if a.dump and cat == a.dump and sem_b[0] != cat:
+                    wrong[sem_b[0]] += 1
+                if a.dump and cat == a.dump and sem_b[0] != cat and len(dumped) < a.dump_n:
+                    def _hand_name(opt):
+                        try:
+                            if (opt.get("type") == E.OT_PLAY) and opt.get("index") is not None:
+                                c = cur["players"][seat]["hand"][opt["index"]]
+                                return NAME.get(int(c["id"]), f"#{c['id']}")
+                        except Exception:
+                            pass
+                        return ""
+
+                    def desc(sem, opt=None):
+                        _c, _sub, _card, _tc, _slot = sem
+                        nm = NAME.get(int(_card), f"#{_card}") if _card else ("" if opt is None else _hand_name(opt))
+                        tgt = "-" if _slot is None else f"area={_sub.split('@')[-1]} idx={_slot}"
+                        return f"{_c}{('[' + nm + ']') if nm else ''}({tgt})"
+                    dumped.append(f"  {f.split('/')[-1][:26]} turn={t}  "
+                                  f"真人={desc(sem_h, opts[h_idx])}   BC={desc(sem_b, opts[b_idx])}   "
+                                  f"端口={desc(sem_p, opts[p_idx])}")
                 # 条件分析：真人在"这一类"，模型是否切到"结束回合"
                 if cat != "结束回合" and sem_b[0] == "结束回合":
                     cond[f"BC 在真人{cat}时选了结束回合"] += 1
@@ -196,6 +230,15 @@ def main():
         if used_here and (gi + 1) % 10 == 0:
             print(f"  已处理 {gi+1} 局，帧 {overall[0]}", flush=True)
 
+    if a.dump and wrong:
+        tot = sum(wrong.values())
+        print(f"\n===== 类别「{a.dump}」不一致时模型改做了什么（共 {tot} 帧）=====")
+        for k, v in wrong.most_common():
+            print(f"  {k:6} {v:5} 帧  {v/tot*100:5.1f}%")
+    if dumped:
+        print(f"\n===== 不一致样例（类别={a.dump}，最多 {a.dump_n} 条）=====")
+        for line in dumped:
+            print(line)
     n, ab, ap_ = overall
     print(f"\n===== 总览（{n} 帧 / {len(games_used)} 局 / {len(players)} 个玩家）=====")
     if n:
