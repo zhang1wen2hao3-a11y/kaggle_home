@@ -85,6 +85,8 @@ def main():
     ap.add_argument("--port", default="build/port_plain/model.pt")
     ap.add_argument("--games", type=int, default=40, help="最多多少个整局")
     ap.add_argument("--device", default="cpu")
+    ap.add_argument("--index", default="data/distill_index.jsonl",
+                    help="决策索引；slowking 用 data/distill_index.jsonl，其它可用 all2/miwa")
     a = ap.parse_args()
 
     port = SearchAgent(model_path=str(ROOT / a.port), deck_path=str(ROOT / "build/port_plain/deck.csv"),
@@ -95,7 +97,7 @@ def main():
     # 从索引里挑出"出手方是 target deck"的整局
     files, seen = [], set()
     import hashlib
-    for line in open(ROOT / "data/distill_index.jsonl", encoding="utf-8"):
+    for line in open(ROOT / a.index, encoding="utf-8"):
         try:
             r = json.loads(line)
         except Exception:
