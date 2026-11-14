@@ -25,17 +25,25 @@ import argparse, collections, csv, io, json, os, sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # 驾驶员 → 权重文件（GPU 机上的路径；本地演示可覆盖）
+# ★ 名字 → GPU 机上的纯权重 .bin：**唯一来源是 tools/driver_registry.py**
+#   （历史上这里手抄过一份，和 make_testset_A 的 DRIVER_AGENT 不同步 ⇒ 表里出现未知名字时
+#    静默回退 init，训练其实在打弱端口。以后只认注册表，未知名字直接报错退出。）
+sys.path.insert(0, os.path.join(ROOT, "tools"))
+import driver_registry as REG
+
+def _registry_pilot_map():
+    m = {}
+    for _n, _d in REG.DRIVERS.items():
+        if _d.get("remote"):
+            m[_n] = _d["remote"]
+    for _a, _b in REG.ALIASES.items():
+        if _b in m:
+            m.setdefault(_a, m[_b])
+    return m
+
 DEFAULT_PILOT_MAP = {
     "init": "/root/kl/port_w.bin",
-    "g6_db04": "/root/kl/g6_db04.bin",
-    "shuppet_specialist": "/root/kl/g8_bc_parent.bin",
-    "ph3_2617_v1": "/root/kl/ph3_2617_v1.bin",
-    "ph3_2617_v2": "/root/kl/ph3_2617_v2.bin",
-    "ph3_9d6e_v2": "/root/kl/ph3_9d6e_v2.bin",
-    "bc_grookey3": "/root/kl/bc_grookey3.bin",
-    "bc_26c6": "/root/kl/bc_26c6.bin",
-    "r1A": "/root/kl/r1A_slowking.bin",          # 上一轮 slowking 10M 专才（无前缀的那个 r1A）
-    "ab9d6e_r2A": "/root/kl/ab9d6e_r2A.bin",    # 本轮 9d6e 第 2 轮 A
+    **_registry_pilot_map(),
 }
 # ★ "每个牌各自最强驾驶员"（模拟天梯上真正会遇到的强驾驶员）。
 #   依据 docs/opponent_library.md §D.3③ 的端口能力筛查：
@@ -178,7 +186,8 @@ def main():
         pilot = pilots[d]
         if pilot not in pmap:
             unknown_pilot.append((d, pilot))
-            pilot = "init"
+            sys.exit(f"✗ 对手卡组 {d} 的驾驶员 {pilot!r} 在 tools/driver_registry.py 里没有可用 .bin；\n"
+                     f"  先在注册表里登记（或把该格改回 init），不要静默回退 —— 那会让训练打的是弱端口。")
         full = h2n.get(d)
         if not full:
             missing_deck.append(d)

@@ -54,9 +54,12 @@ FAMILY = {
 }
 
 
+WEIGHTS_FILE = "decks/weights_field_b05.txt"
+
+
 def field_weights():
     w = {}
-    for line in open(os.path.join(ROOT, "decks", "weights_field_b05.txt")):
+    for line in open(os.path.join(ROOT, WEIGHTS_FILE)):
         p = line.split()
         if len(p) == 2 and "__" in p[0]:
             w[p[0].split("__")[-1][:4]] = float(p[1])
@@ -87,7 +90,14 @@ def pooled_wr(tags, W):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry", action="store_true")
+    ap.add_argument("--weights", default="decks/weights_field_b05.txt",
+                    help="场地权重文件；顶分段用 decks/weights_top.txt")
+    ap.add_argument("--suffix", default="", help="输出文件名后缀，如 _top")
     a = ap.parse_args()
+    global WEIGHTS_FILE, OUT
+    WEIGHTS_FILE = a.weights
+    if a.suffix:
+        OUT = OUT[:-4] + a.suffix + ".csv"
     W = field_weights()
     rows = []
     for deck in sorted(FAMILY):
@@ -117,6 +127,17 @@ def main():
                      f"{gain:+.1f}pp" if gain else "0.0pp",
                      f"面板场地加权排序：{detail}"])
         print(f"{deck:<8}{pick[0]:<14}{pick[1]:.4f}  {detail}")
+    # ★ 写盘前校验：表里出现的驾驶员必须能在注册表里解析（否则训练时生成对手会认错人）
+    sys.path.insert(0, os.path.join(ROOT, "tools"))
+    import driver_registry as REG
+    for r in rows:
+        if r[1] in ("init", "待测"):
+            continue
+        try:
+            REG.info(r[1])
+        except REG.UnknownDriver as e:
+            sys.exit(f"✗ {r[0]} 的最佳驾驶员 {r[1]!r} 没在 tools/driver_registry.py 登记：{e}")
+
     n_other = sum(1 for r in rows if r[1] not in ("init", "待测"))
     print(f"\n{len(rows)} 副牌：{n_other} 副由非 init 驾驶员驾驶")
     if a.dry:

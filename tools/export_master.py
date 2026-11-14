@@ -135,6 +135,14 @@ def from_strong_opp():
     return out
 
 
+def _reg_ok(REG, name):
+    try:
+        REG.info(name)
+        return True
+    except REG.UnknownDriver:
+        return False
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry", action="store_true")
@@ -163,6 +171,13 @@ def main():
             #   用强驾驶员当对手重测时，同一格会多出一条 对手驾驶员=<model> 的记录，
             #   用于区分"评测基线版本"，并判断谁的结果已经过期（见 tools/check_stale.py）。
             w.writerow([o, p, d, od, f"{wr:.4f}", n, src])
+    # ★ 母表里的驾驶员名字必须都能解析（表要给 choice_to_banks / make_testset_A 用）
+    sys.path.insert(0, os.path.join(ROOT, "tools"))
+    import driver_registry as REG
+    bad = sorted({r[2] for r in rows if r[2] != "init"
+                  and not _reg_ok(REG, r[2])})
+    if bad:
+        print(f"⚠️ 母表里有未登记的驾驶员：{bad}（训练生成对手时会报错，请登记 tools/driver_registry.py）")
     print(f"→ {OUT}")
     return 0
 

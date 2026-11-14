@@ -21,22 +21,14 @@ BASE = os.path.join(ROOT, "decks", "testset_meta.tsv")
 SELF = os.path.join(ROOT, "docs", "the-pockmon-battle-choice-self.csv")
 OUT = os.path.join(ROOT, "decks", "testset_meta_A.tsv")
 
-# 驾驶员 → 评估机上的 agent 目录名（未列出的回退该牌自己的 port agent）
-DRIVER_AGENT = {
-    "init": None,                       # None = 用 base 测试集里该格原有的 port agent
-    "shuppet_specialist": "g8_bc_parent",
-    "g8_bc_parent": "g8_bc_parent",
-    "g8_shuppet": "g8_shuppet",
-    "r1A": "r1A_26c6",
-    "bc_26c6": "bc_26c6",
-    "cand7e39S": "cand7e39S",
-    "candE1D7S": "candE1D7S",
-    "g6_db04": "g6_db04",
-    "ph3_2617_v1": "ph3_2617_v1", "ph3_2617_v2": "ph3_2617_v2",
-    "ph3_9d6e_v2": "ph3_9d6e_v2",
-    "ab9d6e_r1A": "ab9d6e_r1A", "ab9d6e_r2A": "ab9d6e_r2A",
-    "ab9d6e_r1B": "ab9d6e_r1B", "ab9d6e_r2B": "ab9d6e_r2B",
-}
+# ★ 名字 → agent 目录的唯一来源是 tools/driver_registry.py（别在这里再抄一份！
+#   抄一份的下场：表里出现脚本不认识的名字时静默回退 port，评测记成"强驾驶员"实际是弱端口。）
+sys.path.insert(0, os.path.join(ROOT, "tools"))
+import driver_registry as REG
+
+# 名字 → 评估机上的 agent 目录名；None = 用 base 测试集里该格原有的 port agent
+DRIVER_AGENT = {n: (d.get("agent") or None) for n, d in REG.DRIVERS.items()}
+DRIVER_AGENT["init"] = None
 
 
 def main():
@@ -55,8 +47,11 @@ def main():
         cell, dir_, deck, grp, wt = [x.strip() for x in line.rstrip("\n").split("\t")]
         short = deck.split("__")[-1][:4]
         drv = best.get(short, "init")
-        agent = DRIVER_AGENT.get(drv, None)
-        new_dir = f"build/agents/{agent}" if agent else dir_
+        try:
+            agent = REG.agent_dir(drv)
+        except REG.UnknownDriver as e:
+            sys.exit(f"✗ {cell} 的驾驶员 {drv!r} 没在 tools/driver_registry.py 登记：{e}")
+        new_dir = agent if agent else dir_
         rows.append((cell, new_dir, deck, grp, wt, drv))
         print(f"  {cell:<16}{(drv or 'init'):<20}{new_dir}")
     n_strong = sum(1 for r in rows if r[5] != "init")
