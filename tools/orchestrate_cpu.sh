@@ -110,7 +110,11 @@ for round in $(seq 1 720); do          # 60 小时
   done
 
   # ③④ 分配并确保 runner 在跑
-  if [ ${#alive[@]} -eq 1 ]; then modes=("all"); else modes=(0 1); fi
+  # 存活 1 台 → all（全跑）；存活 N 台 → 按主机顺序分 shard 0..N-1（队列 shard 列 = 行号 % N）
+  modes=()
+  for i in "${!alive[@]}"; do
+    if [ ${#alive[@]} -eq 1 ]; then modes+=("all"); else modes+=("$i"); fi
+  done
   for i in "${!alive[@]}"; do
     h="${alive[$i]}"; want="${modes[$i]:-all}"
     ensure_setup "$h"
