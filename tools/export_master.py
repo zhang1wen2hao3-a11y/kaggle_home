@@ -135,9 +135,12 @@ def main():
         return 0
     with open(OUT, "w", newline="", encoding="gb18030") as f:
         w = csv.writer(f, lineterminator="\r\n")
-        w.writerow(["挑战者", "被挑战者", "驾驶员", "胜率", "样本场次", "来源"])
+        w.writerow(["挑战者", "被挑战者", "驾驶员", "对手驾驶员", "胜率", "样本场次", "来源"])
         for o, p, d, wr, n, src in rows:
-            w.writerow([o, p, d, f"{wr:.4f}", n, src])
+            # ★ 面板协议里"对手"一律是端口权重（build/agents/port_*）⇒ 对手驾驶员记 init。
+            #   以后如果用强驾驶员当对手重测，同一格会多出一条 对手驾驶员=<model> 的记录，
+            #   用于区分"评测基线版本"，并判断谁的结果已经过期（见 tools/check_stale.py）。
+            w.writerow([o, p, d, "init", f"{wr:.4f}", n, src])
     print(f"→ {OUT}")
     return 0
 

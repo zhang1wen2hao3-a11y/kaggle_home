@@ -57,6 +57,10 @@ def load_master():
             wr, n = float(r["胜率"]), int(float(r["样本场次"]))
         except (TypeError, ValueError):
             continue
+        opp_drv = r.get("对手驾驶员") or "init"
+        # 只把"对手=预期基线(init)"的记录用于选表；强对手版本另算（见 check_stale.py）
+        if opp_drv != "init":
+            continue
         rec[(r["挑战者"], r["被挑战者"])][r["驾驶员"]] = (wr, n, r["来源"])
     return rec
 
