@@ -89,8 +89,23 @@ def main():
         for b_ in DECKS:
             cell = rec.get((a_, b_), {})
             if a_ == b_:
-                choice[(a_, b_)] = "init"      # 镜像由各自结构决定，不进表
-                detail.append([a_, b_, "init", "", "", "对角", "自己打自己，不记录"])
+                # ★ 对角 = 内战格：写"当前内战最强的驾驶员"（我方驾驶员 vs 对手端口），
+                #   胜率在矩阵里统一记 0.5（镜像期望值），这里只决定**派谁**。
+                #   仍然要求 n ≥ VERIFIED_N：单种子 n=200 的 53% 只是噪声（±6.9pp）。
+                mirror = {d: v for d, v in cell.items() if v[1] >= VERIFIED_N}
+                if mirror:
+                    mb = max(mirror.items(), key=lambda t: (t[1][0], t[1][1]))
+                else:
+                    mb = None
+                if mb is not None:
+                    choice[(a_, b_)] = mb[0]
+                    detail.append([a_, b_, mb[0], "0.5000", mb[1][1], "内战",
+                                   f"内战最强：{mb[0]} {mb[1][0]:.4f}（n={mb[1][1]}，vs 对手端口）；"
+                                   f"矩阵记 0.5；候选 {sorted(mirror)}"])
+                else:
+                    choice[(a_, b_)] = "init"
+                    detail.append([a_, b_, "init", "0.5000", 0, "内战",
+                                   f"无 n≥{VERIFIED_N} 的内战数据（该格候选全部样本不足）"])
                 continue
             ini = cell.get("init")
             cands = {d: v for d, v in cell.items()
@@ -136,7 +151,7 @@ def main():
                            "面板场地加权选行级驾驶员"])
         for b_ in DECKS:
             if a_ == b_:
-                row_wr[(a_, b_)] = "/"
+                row_wr[(a_, b_)] = "0.5000"     # 镜像格：期望胜率 0.5（派谁由 choice 表给）
                 continue
             v = rec.get((a_, b_), {}).get(pick) or rec.get((a_, b_), {}).get("init")
             row_wr[(a_, b_)] = f"{v[0]:.4f}" if v else ""

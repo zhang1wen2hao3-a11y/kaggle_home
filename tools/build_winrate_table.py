@@ -6,7 +6,7 @@
          26c6→r1A、0d86→shuppet_specialist，其余端口权重）
     列 = 对手用**端口权重 + 该卡组**（choice 表"只差卡组"的口径）
     格 = 我方 a 打对手 b 的胜率（0~1，4 位小数）
-    对角 a→a（自己打自己）按约定填 "/"
+    对角 a→a（自己打自己）填 0.5（镜像期望值）
 
 数据来源（优先级从高到低）：
     1) logs/winrate/<a>_<b>.json      —— tools/fill_winrate.sh 现跑的（n=200, seed 970000）
@@ -104,7 +104,7 @@ def main():
     for x in DECKS:
         for y in DECKS:
             if x == y:
-                val[(x, y)] = "/"                       # 自己打自己：不填
+                val[(x, y)] = "0.5000"                  # 镜像：期望胜率 0.5
                 src[(x, y)] = "对角"
                 continue
             if x in pilot_cells and y in pilot_cells[x]:
@@ -122,7 +122,7 @@ def main():
                 src[(x, y)] = "缺"
                 miss.append(f"{x}→{y}")
 
-    n_fill = sum(1 for k, v in val.items() if v not in ("", "/"))
+    n_fill = sum(1 for k, v in val.items() if v not in ("", "/") and k[0] != k[1])
     print(f"覆盖 {n_fill}/{len(DECKS) * (len(DECKS) - 1)} 个非对角格"
           f"（新跑 {len(new)}，老 eval {len(old)}，对角 {len(DECKS)} 填 /）")
     for k, (pname, tags) in pilots.items():
