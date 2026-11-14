@@ -1,0 +1,13 @@
+version 3
+default 0.0001
+slowpoke_slowking__26c6 0.545554
+shuppet_dhelmise__0d86 0.434806
+teal_mask_ogerpon_ex_applin__7e39 0.004364
+dreepy_drakloak__a413 0.003819
+dreepy_drakloak__3eaa 0.002728
+dunsparce_abra__0bf5 0.002182
+abra_kadabra__f5f8 0.002182
+cinderace_mega_kangaskhan_ex__1eb0 0.002182
+dreepy_drakloak__9aec 0.001091
+dreepy_drakloak__94ec 0.000546
+dreepy_drakloak__2228 0.000546
