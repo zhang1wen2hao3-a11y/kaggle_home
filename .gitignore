@@ -46,9 +46,10 @@ access_token
 epsoide/
 episode/
 
-# 大批量回放（13 GB，2026-10-23 抓的前两名队伍 1364 局）
-epsoide_teams2/
-epsoide_field2/
+# 大批量回放：一律不进 git（2026-11-15 起回放已挪到 /mnt/d/ptcg_replays，仓库里只留符号链接）
+# 用通配一次覆盖所有 epsoide_*（含未来新抓的），不再逐个列目录
+epsoide*/
+epsoide*
 port_repo/
 
 # ==== 二进制 agent 泳池（每份 20 MB，本地重建即可，不进 git）====
