@@ -1,14 +1,15 @@
 # 方案 A 测试集：每副对手牌由「当前最佳驾驶员」开（tools/make_testset_A.py 生成）
-# 列：cell	agent_dir	deck	group	field_weight
-ogerpon_7e39	build/agents/port_7e39	teal_mask_ogerpon_ex_applin__7e39	local	0.347
-grookey_2617	build/agents/c_grookey	grookey_thwackey__2617	local	0.117
-abra_e8ee	build/agents/port_e8ee	abra_kadabra__e8ee	local	0.062
-abra_f5f8	build/agents/c_abra	abra_kadabra__f5f8	local	0.057
-dunsparce_9d6e	build/agents/port_on_9d6e	dunsparce_abra__9d6e	local	0.048
-dunsparce_0bf5	build/agents/opp_dunsparce_0bf5	dunsparce_abra__0bf5	local	0.038
-dreepy_3eaa	build/agents/opp_3eaa	dreepy_drakloak__3eaa	local	0.036
-dunsparce_db04	build/agents/port_db04	dunsparce_abra__db04	local	0.019
-champ_0904	build/agents/port_0904	z_dragapult_dreepy_petit__0904	champ	0.000
-champ_26c6	build/agents/r1A_26c6	slowpoke_slowking__26c6	champ	0.000
-champ_e1d7	build/agents/port_e1d7	z_ogerpon_toolbox_miwa__e1d7	champ	0.000
-champ_0d86	build/agents/port_0d86	shuppet_dhelmise__0d86	champ	0.055
+# 列：cell	agent_dir	deck	group	field_weight	driver
+# driver = 该格对手的驾驶员名字（来自 driver_registry + choice-self），供 meta_eval 打印审计
+ogerpon_7e39	build/agents/port_7e39	teal_mask_ogerpon_ex_applin__7e39	local	0.347	init
+grookey_2617	build/agents/c_grookey	grookey_thwackey__2617	local	0.117	init
+abra_e8ee	build/agents/port_e8ee	abra_kadabra__e8ee	local	0.062	init
+abra_f5f8	build/agents/c_abra	abra_kadabra__f5f8	local	0.057	init
+dunsparce_9d6e	build/agents/port_on_9d6e	dunsparce_abra__9d6e	local	0.048	init
+dunsparce_0bf5	build/agents/opp_dunsparce_0bf5	dunsparce_abra__0bf5	local	0.038	init
+dreepy_3eaa	build/agents/opp_3eaa	dreepy_drakloak__3eaa	local	0.036	init
+dunsparce_db04	build/agents/port_db04	dunsparce_abra__db04	local	0.019	init
+champ_0904	build/agents/port_0904	z_dragapult_dreepy_petit__0904	champ	0.000	init
+champ_26c6	build/agents/r1A_26c6	slowpoke_slowking__26c6	champ	0.000	r1A
+champ_e1d7	build/agents/candE1D7S	z_ogerpon_toolbox_miwa__e1d7	champ	0.000	candE1D7S
+champ_0d86	build/agents/g8_bc_parent	shuppet_dhelmise__0d86	champ	0.055	g8_bc_parent

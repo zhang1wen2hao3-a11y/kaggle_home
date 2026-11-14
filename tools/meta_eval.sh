@@ -28,12 +28,12 @@ N="${N:-200}"; SEED="${SEED:-950000}"
 OUT="logs/meta/$TAG"
 mkdir -p "$OUT"
 echo "候选 $CAND → $OUT（12 格 × $N 场，种子 $SEED）"
-while IFS=$'\t' read -r cell dir _deck _grp _wt; do
+while IFS=$'\t' read -r cell dir _deck _grp _wt _drv; do
   case "$cell" in \#*|"") continue;; esac
   [ -n "${dir:-}" ] || continue
   f="$OUT/vs_$cell.json"
   [ -f "$f" ] && { echo "[skip] $cell"; continue; }
-  echo "########## $TAG vs $cell ##########"
+  echo "########## $TAG vs $cell（对手驾驶员=${_drv:-init}）##########"
   ./tools/py ptcg_league/eval_pair.py --cand "$CAND" --opp "$cell=$dir" \
       --matches "$N" --workers 0 --seed-base "$SEED" --out "$f" --logdir "$OUT/$cell" 2>&1 | tail -2
 done < "$TS"

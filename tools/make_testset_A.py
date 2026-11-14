@@ -60,9 +60,10 @@ def main():
         return 0
     with open(OUT, "w") as f:
         f.write("# 方案 A 测试集：每副对手牌由「当前最佳驾驶员」开（tools/make_testset_A.py 生成）\n")
-        f.write("# 列：cell\tagent_dir\tdeck\tgroup\tfield_weight\n")
-        for cell, dir_, deck, grp, wt, _drv in rows:
-            f.write(f"{cell}\t{dir_}\t{deck}\t{grp}\t{wt}\n")
+        f.write("# 列：cell\tagent_dir\tdeck\tgroup\tfield_weight\tdriver\n")
+        f.write("# driver = 该格对手的驾驶员名字（来自 driver_registry + choice-self），供 meta_eval 打印审计\n")
+        for cell, dir_, deck, grp, wt, drv in rows:
+            f.write(f"{cell}\t{dir_}\t{deck}\t{grp}\t{wt}\t{drv}\n")
     print(f"→ {OUT}")
     return 0
 
