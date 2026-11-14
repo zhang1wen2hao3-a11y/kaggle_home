@@ -23,18 +23,18 @@
 0bf5,e1d7,init,,,默认,无数据，默认 init
 0bf5,e8ee,init,,,默认,无数据，默认 init
 0bf5,f5f8,init,0.4733,300,实测,init（无已验证训练件领先 ≥5pp）
-0d86,0904,init,,,默认,无数据，默认 init
-0d86,0bf5,init,0.9333,300,实测,init（无已验证训练件领先 ≥5pp）
+0d86,0904,g8_bc_parent,0.4667,600,实测,训练件 0.4667 vs init 0.0217（+44.5pp ≥5pp；n=600；meta:g8_bc_parent）
+0d86,0bf5,g8_bc_parent,0.9400,600,实测,训练件 0.9400 vs init 0.0050（+93.5pp ≥5pp；n=600；meta:g8_bc_parent）
 0d86,0d86,init,,,对角,自己打自己，不记录
-0d86,2617,init,0.2900,300,实测,init（无已验证训练件领先 ≥5pp）
-0d86,26c6,init,,,默认,无数据，默认 init
-0d86,3eaa,init,0.4400,300,实测,init（无已验证训练件领先 ≥5pp）
-0d86,7e39,init,0.2367,300,实测,init（无已验证训练件领先 ≥5pp）
-0d86,9d6e,init,0.9633,300,实测,init（无已验证训练件领先 ≥5pp）
-0d86,db04,init,,,默认,无数据，默认 init
-0d86,e1d7,init,,,默认,无数据，默认 init
-0d86,e8ee,init,,,默认,无数据，默认 init
-0d86,f5f8,init,0.9333,300,实测,init（无已验证训练件领先 ≥5pp）
+0d86,2617,g8_bc_parent,0.2950,600,实测,训练件 0.2950 vs init 0.0167（+27.8pp ≥5pp；n=600；meta:g8_bc_parent）
+0d86,26c6,g8_bc_parent,0.5925,600,实测,训练件 0.5925 vs init 0.1408（+45.2pp ≥5pp；n=600；meta:g8_bc_parent）
+0d86,3eaa,g8_bc_parent,0.4550,600,实测,训练件 0.4550 vs init 0.0333（+42.2pp ≥5pp；n=600；meta:g8_bc_parent）
+0d86,7e39,g8_bc_parent,0.2200,600,实测,训练件 0.2200 vs init 0.0000（+22.0pp ≥5pp；n=600；meta:g8_bc_parent）
+0d86,9d6e,g8_bc_parent,0.9483,600,实测,训练件 0.9483 vs init 0.0033（+94.5pp ≥5pp；n=600；meta:g8_bc_parent）
+0d86,db04,g8_bc_parent,0.9700,600,实测,训练件 0.9700 vs init 0.0100（+96.0pp ≥5pp；n=600；meta:g8_bc_parent）
+0d86,e1d7,g8_bc_parent,0.2033,600,实测,训练件 0.2033 vs init 0.0267（+17.7pp ≥5pp；n=600；meta:g8_bc_parent）
+0d86,e8ee,g8_bc_parent,0.9417,600,实测,训练件 0.9417 vs init 0.0117（+93.0pp ≥5pp；n=600；meta:g8_bc_parent）
+0d86,f5f8,g8_bc_parent,0.9267,600,实测,训练件 0.9267 vs init 0.0083（+91.8pp ≥5pp；n=600；meta:g8_bc_parent）
 2617,0904,init,0.3400,200,实测,init（无已验证训练件领先 ≥5pp）
 2617,0bf5,init,0.6500,200,实测,init（无已验证训练件领先 ≥5pp）
 2617,0d86,init,1.0000,200,实测,init（无已验证训练件领先 ≥5pp）
@@ -71,18 +71,18 @@
 3eaa,e1d7,init,,,默认,无数据，默认 init
 3eaa,e8ee,init,,,默认,无数据，默认 init
 3eaa,f5f8,init,0.5393,178,实测,init（无已验证训练件领先 ≥5pp）
-7e39,0904,init,,,默认,无数据，默认 init
-7e39,0bf5,init,0.1533,300,实测,init（无已验证训练件领先 ≥5pp）
-7e39,0d86,cand7e39S,1.0000,600,实测,训练件 1.0000 vs init 0.7600（+24.0pp ≥5pp；n=600；meta:cand7e39S）
-7e39,2617,cand7e39S,0.2767,600,实测,训练件 0.2767 vs init 0.2000（+7.7pp ≥5pp；n=600；meta:cand7e39S）
-7e39,26c6,init,,,默认,无数据，默认 init
-7e39,3eaa,init,0.6067,300,实测,init（无已验证训练件领先 ≥5pp）
+7e39,0904,init,0.6025,600,实测,init（无已验证训练件领先 ≥5pp）
+7e39,0bf5,init,0.1400,600,实测,init（无已验证训练件领先 ≥5pp）
+7e39,0d86,init,1.0000,600,实测,init（无已验证训练件领先 ≥5pp）
+7e39,2617,init,0.2583,600,实测,init（无已验证训练件领先 ≥5pp）
+7e39,26c6,init,0.8900,600,实测,init（无已验证训练件领先 ≥5pp）
+7e39,3eaa,init,0.5883,600,实测,init（无已验证训练件领先 ≥5pp）
 7e39,7e39,init,,,对角,自己打自己，不记录
-7e39,9d6e,init,0.1100,300,实测,init（无已验证训练件领先 ≥5pp）
-7e39,db04,init,,,默认,无数据，默认 init
-7e39,e1d7,init,,,默认,无数据，默认 init
-7e39,e8ee,init,,,默认,无数据，默认 init
-7e39,f5f8,init,0.4000,300,实测,init（无已验证训练件领先 ≥5pp）
+7e39,9d6e,init,0.1033,600,实测,init（无已验证训练件领先 ≥5pp）
+7e39,db04,init,0.1850,600,实测,init（无已验证训练件领先 ≥5pp）
+7e39,e1d7,init,0.6517,600,实测,init（无已验证训练件领先 ≥5pp）
+7e39,e8ee,init,0.3858,600,实测,init（无已验证训练件领先 ≥5pp）
+7e39,f5f8,init,0.3967,600,实测,init（无已验证训练件领先 ≥5pp）
 9d6e,0904,init,0.4717,600,实测,init（无已验证训练件领先 ≥5pp）
 9d6e,0bf5,init,0.5350,600,实测,init（无已验证训练件领先 ≥5pp）
 9d6e,0d86,init,0.9850,600,实测,init（无已验证训练件领先 ≥5pp）
@@ -95,30 +95,30 @@
 9d6e,e1d7,init,0.9333,600,实测,init（无已验证训练件领先 ≥5pp）
 9d6e,e8ee,ab9d6e_r2A,0.6700,600,实测,训练件 0.6700 vs init 0.5133（+15.7pp ≥5pp；n=600；meta:ab9d6e_r2A）
 9d6e,f5f8,ab9d6e_r2A,0.6533,600,实测,训练件 0.6533 vs init 0.5133（+14.0pp ≥5pp；n=600；meta:ab9d6e_r2A）
-db04,0904,init,,,默认,无数据，默认 init
-db04,0bf5,init,,,默认,无数据，默认 init
-db04,0d86,init,,,默认,无数据，默认 init
-db04,2617,init,,,默认,无数据，默认 init
-db04,26c6,init,,,默认,无数据，默认 init
-db04,3eaa,init,,,默认,无数据，默认 init
-db04,7e39,init,,,默认,无数据，默认 init
-db04,9d6e,init,,,默认,无数据，默认 init
+db04,0904,init,0.2100,200,实测,init（无已验证训练件领先 ≥5pp）
+db04,0bf5,init,0.8050,200,实测,init（无已验证训练件领先 ≥5pp）
+db04,0d86,init,0.9950,200,实测,init（无已验证训练件领先 ≥5pp）
+db04,2617,init,0.5375,400,实测,init（无已验证训练件领先 ≥5pp）
+db04,26c6,init,0.6925,200,实测,init（无已验证训练件领先 ≥5pp）
+db04,3eaa,init,0.3750,200,实测,init（无已验证训练件领先 ≥5pp）
+db04,7e39,init,0.8050,400,实测,init（无已验证训练件领先 ≥5pp）
+db04,9d6e,init,0.6900,200,实测,init（无已验证训练件领先 ≥5pp）
 db04,db04,init,,,对角,自己打自己，不记录
-db04,e1d7,init,,,默认,无数据，默认 init
-db04,e8ee,init,,,默认,无数据，默认 init
-db04,f5f8,init,,,默认,无数据，默认 init
-e1d7,0904,init,,,默认,无数据，默认 init
-e1d7,0bf5,init,,,默认,无数据，默认 init
-e1d7,0d86,init,,,默认,无数据，默认 init
-e1d7,2617,init,,,默认,无数据，默认 init
-e1d7,26c6,init,,,默认,无数据，默认 init
-e1d7,3eaa,init,,,默认,无数据，默认 init
-e1d7,7e39,init,,,默认,无数据，默认 init
-e1d7,9d6e,init,,,默认,无数据，默认 init
-e1d7,db04,init,,,默认,无数据，默认 init
+db04,e1d7,init,0.8450,200,实测,init（无已验证训练件领先 ≥5pp）
+db04,e8ee,init,0.7050,200,实测,init（无已验证训练件领先 ≥5pp）
+db04,f5f8,init,0.6850,200,实测,init（无已验证训练件领先 ≥5pp）
+e1d7,0904,init,0.4875,400,实测,init（无已验证训练件领先 ≥5pp）
+e1d7,0bf5,init,0.0600,400,实测,init（无已验证训练件领先 ≥5pp）
+e1d7,0d86,init,0.9825,400,实测,init（无已验证训练件领先 ≥5pp）
+e1d7,2617,init,0.4083,600,实测,init（无已验证训练件领先 ≥5pp）
+e1d7,26c6,init,0.8725,400,实测,init（无已验证训练件领先 ≥5pp）
+e1d7,3eaa,init,0.4575,400,实测,init（无已验证训练件领先 ≥5pp）
+e1d7,7e39,init,0.3500,600,实测,init（无已验证训练件领先 ≥5pp）
+e1d7,9d6e,init,0.0533,600,实测,init（无已验证训练件领先 ≥5pp）
+e1d7,db04,init,0.1375,400,实测,init（无已验证训练件领先 ≥5pp）
 e1d7,e1d7,init,,,对角,自己打自己，不记录
-e1d7,e8ee,init,,,默认,无数据，默认 init
-e1d7,f5f8,init,,,默认,无数据，默认 init
+e1d7,e8ee,init,0.1783,600,实测,init（无已验证训练件领先 ≥5pp）
+e1d7,f5f8,init,0.2033,600,实测,init（无已验证训练件领先 ≥5pp）
 e8ee,0904,init,,,默认,无数据，默认 init
 e8ee,0bf5,init,,,默认,无数据，默认 init
 e8ee,0d86,init,,,默认,无数据，默认 init
