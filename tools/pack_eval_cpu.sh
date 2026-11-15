@@ -140,8 +140,10 @@ declare -A CE=( [g8_shuppet]=shuppet_dhelmise__0d86 [bc_26c6]=slowpoke_slowking_
                 [g12_db04_dreepy_shuppet]=shuppet_dhelmise__0d86
                 [cand7e39S]=teal_mask_ogerpon_ex_applin__7e39 [candE1D7S]=z_ogerpon_toolbox_miwa__e1d7 )
 for k in "${!CE[@]}"; do
-  [ -f "models_ceiling/$k.pt" ] || continue
-  bash tools/make_agent_dir.sh "build/agents/$k" "models_ceiling/$k.pt" "decks/pool_field/${CE[$k]}.csv" >/dev/null 2>&1 \
+  # 权重可能在 models_ceiling，也可能在 models_ppo（cand* 属于后者，历史上漏铺过 ⇒ 面板跑出"无法识别的 agent 路径"）
+  w="models_ceiling/$k.pt"; [ -f "$w" ] || w="models_ppo/$k.pt"
+  [ -f "$w" ] || { echo "  ⚠️ 缺权重 $k.pt（面板会跑空）"; continue; }
+  bash tools/make_agent_dir.sh "build/agents/$k" "$w" "decks/pool_field/${CE[$k]}.csv" >/dev/null 2>&1 \
     || echo "  ✗ 铺 $k 失败"
 done
 echo "  ✓ agent 总数 $(ls build/agents | wc -l)"
