@@ -51,3 +51,30 @@ LR=1e-4  T=4,030,464 步  891 SPS  76 分钟  18 个快照
 - **协议 A 口径**（对手=各牌最强驾驶员）的 3 种子面板 ← 正在跑，用来跟 `cand7e39S`（顶分段 89.3%）
   做同口径比较
 - 若通过，下一步：用它做 f5f8 的驾驶员进 choice 表；并把同样的配方套到 slowking（54.6% 的顶分段对手）
+
+---
+
+# slowking 的现状（同一套方法，2026-11-15 开跑）
+
+## 关键基线（先量再做，CPU 200 场 Bo3）
+
+| 对手 | `bc_26c6`（ミワハルキ slowking 的 BC 克隆，91.6% 一致） |
+|---|---|
+| `g8_bc_parent`@shuppet | **18.5%** [13.7, 24.5] |
+| `deck_f5f8_`@f5f8 | **12.8%** [9.0, 18.4] |
+
+对照：**真人的 slowking 在天梯上打 shuppet 是 61.4%**（n=101）。
+⇒ BC 克隆的"逐帧一致"完全没转化成实战能力（和 slowking 那次同帧审计的结论一致：
+  差距在**回合内的动作顺序**，尤其是「先贴能量到后场」这一步）。
+
+⇒ 所以 slowking 特攻的判据不能只写 +5pp（18.5% → 23.5% 太松），**真正目标是往 40~60% 走**。
+
+## 训练配置（由 tools/pick_banks.py 生成，可复现）
+
+```
+ANCHOR  = slowpoke_slowking__26c6
+INIT    = bc_pool/deck_26c6_（BC 克隆）
+BANKS   = deck_f5f8_@f5f8 / g8_bc_parent@shuppet / g8_shuppet@shuppet / deck_0d86_@shuppet
+LEAGUE_PCT = 0.125 × 4 bank ⇒ 冻结对手 50%（shuppet 37.5% / f5f8 12.5%），自对弈 50%
+LR=1e-4  T=4M  CG=1  快照每 16 epoch
+```
