@@ -86,6 +86,17 @@ DRIVERS = {
     "cand7e39S": dict(agent="cand7e39S", weights="models/ppo/cand7e39S.pt",
                       remote="/root/kl/cand7e39S.bin", deck="7e39", fidelity=None,
                       note="7e39 舰牌候选；行级负收益"),
+    # ── 特攻训练出来的专家（命名规则：cand<卡组4位>S，S=specialist）───────
+    #    注意：名字里带卡组号但**不等于**卡组号，避免和 26c6 / f5f8 这些卡组名混淆
+    "cand26c6S": dict(agent="cand26c6S", weights="models/ppo/cand26c6S.pt",
+                      remote="/root/kl/cand26c6S.bin", deck="26c6", fidelity=None,
+                      note="slowking 特攻（2026-11-15，BC 起点+4 强陪练+4M 步，LR 1e-4）；"
+                           "训练内原名 deck_26c6__db04 / 输出 slowking_shup4m"),
+    "candf5f8S": dict(agent="candf5f8S", weights="models/ppo/candf5f8S.pt",
+                      remote="/root/kl/candf5f8S.bin", deck="f5f8", fidelity=None,
+                      note="f5f8 特攻（2026-11-15，4,030,464 步）；训练内原名 deck_f5f8__db04，"
+                           "快照曾用临时名 f5f8s_<步数>，正式名只用 candf5f8S"),
+
     # ── BC 克隆（人类替身，同时用作陪练/考官）───────────────────
     "deck_0d86_": dict(agent="deck_0d86_", weights="bc_pool/deck_0d86_.pt",
                        remote="/root/kl/deck_0d86_.bin", deck="0d86", fidelity=0.731,
@@ -161,6 +172,23 @@ def deck_of(name: str):
     return info(name).get("deck")
 
 
+DECK_IDS = {"0904", "0bf5", "0d86", "2617", "26c6", "3eaa", "7e39", "9d6e", "db04", "e1d7", "e8ee", "f5f8"}
+
+
+def check_names() -> int:
+    """护栏：① 驾驶员名不许等于卡组号（否则表里"驾驶员"和"被挑战者"会撞）
+             ② 名字唯一（不设别名，一个实体一个名字）"""
+    bad = 0
+    for n in DRIVERS:
+        if n.lower() in DECK_IDS:
+            print(f"  ✗ 驾驶员名 {n!r} 与卡组号相同，容易混淆"); bad += 1
+    dup = [k for k, v in ALIASES.items() if v in ALIASES]
+    if dup:
+        print(f"  ✗ 别名链 {dup}（不允许）"); bad += len(dup)
+    print(f"驾驶员名检查：{len(DRIVERS)} 个，错误 {bad} 条")
+    return bad
+
+
 def check_tables(paths=None) -> int:
     """扫交付表里出现的驾驶员名字，校验是否都能解析。返回错误数。"""
     import csv, glob, io
@@ -219,7 +247,9 @@ def main():
         print(d)
         return 0
     if cmd == "check":
-        return 1 if check_tables() else 0
+        bad = check_names()
+        bad += check_tables()
+        return 1 if bad else 0
     print(__doc__)
     return 2
 
