@@ -45,7 +45,8 @@ TAG2CELL = {
     "ab9d6e_r1A": ("9d6e", "ab9d6e_r1A"), "ab9d6e_r1B": ("9d6e", "ab9d6e_r1B"),
     "ab9d6e_r2A": ("9d6e", "ab9d6e_r2A"), "ab9d6e_r2B": ("9d6e", "ab9d6e_r2B"),
     "cand7e39S": ("7e39", "cand7e39S"), "candE1D7S": ("e1d7", "candE1D7S"),
-    "candf5f8S": ("f5f8", "candf5f8S"), "cand26c6S": ("26c6", "cand26c6S"),
+    "candf5f8S": ("f5f8", "candf5f8S"), "candf5f8G": ("f5f8", "candf5f8G"),
+    "cand26c6S": ("26c6", "cand26c6S"),
     "cand26c6M": ("26c6", "cand26c6M"),
     "r1A": ("26c6", "r1A"), "r1A_26c6": ("26c6", "r1A"), "r1A_9d6e": ("9d6e", "r1A"),
     "f5f8s_final": ("f5f8", "candf5f8S"),   # 同一权重的旧临时名（3.xM 步快照）

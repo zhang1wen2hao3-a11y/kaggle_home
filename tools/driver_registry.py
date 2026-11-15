@@ -97,6 +97,13 @@ DRIVERS = {
                       note="slowking 特攻 · 镜像强化版（2026-11-15，INIT=cand26c6S，陪练换成 2 个 slowking "
                            "镜像 + shuppet + f5f8，4M 步/43 min 于 3090）。"
                            "镜像 vs r1A 39.9%→55.8%、H2H vs cand26c6S 59.5%，但整体弱（全梯场 49.7%）"),
+    "candf5f8G": dict(agent="candf5f8G", weights="models/ppo/candf5f8G.pt",
+                      remote=None, deck="f5f8", fidelity=None,
+                      note="f5f8 补短板版（2026-11-16，INIT=candf5f8S，8 bank 里 3 个绑 2617 / 2 个绑 3eaa，"
+                           "4M 步/43 min 于 3090）。实测（n=600/格，3 种子）：2617 格 46.0%→54.2%（+8.2pp ✓）"
+                           "、强 2617 驾驶员 42.5%→47.7%（+5.2pp ✓）、3eaa 格 33.5%→35.5%（+2.0pp ✗ 未达标）；"
+                           "方案A 面板 61.3%→62.7%（+1.4pp，n=450）；直接对打 vs candf5f8S 52.7%（n=600，未显著）；"
+                           "vs shuppet 90.0% 持平。⇒ 2617 修好、3eaa 没修好，整体略优于 candf5f8S"),
     "candf5f8S": dict(agent="candf5f8S", weights="models/ppo/candf5f8S.pt",
                       remote="/root/kl/candf5f8S.bin", deck="f5f8", fidelity=None,
                       note="f5f8 特攻（2026-11-15，4,030,464 步）；训练内原名 deck_f5f8__db04，"

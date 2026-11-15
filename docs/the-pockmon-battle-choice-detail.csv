@@ -135,11 +135,11 @@ f5f8,0904,init,0.1867,150,实测,init（无已验证训练件领先 ≥5pp）
 f5f8,0bf5,candf5f8S,0.5978,450,实测,训练件 0.5978 vs init 0.4800（+11.8pp ≥5pp；n=450；meta:candf5f8S）
 f5f8,0d86,candf5f8S,0.9000,450,实测,训练件 0.9000 vs init 0.0400（+86.0pp ≥5pp；n=450；meta:candf5f8S）
 f5f8,2617,init,0.5867,150,实测,init（无已验证训练件领先 ≥5pp）
-f5f8,26c6,candf5f8S,0.7378,450,实测,训练件 0.7378 vs init 0.6333（+10.5pp ≥5pp；n=450；meta:candf5f8S）
+f5f8,26c6,candf5f8G,0.7400,450,实测,训练件 0.7400 vs init 0.6333（+10.7pp ≥5pp；n=450；meta:candf5f8G）
 f5f8,3eaa,init,0.5133,150,实测,init（无已验证训练件领先 ≥5pp）
-f5f8,7e39,init,0.5867,150,实测,init（无已验证训练件领先 ≥5pp）
-f5f8,9d6e,candf5f8S,0.5422,450,实测,训练件 0.5422 vs init 0.4200（+12.2pp ≥5pp；n=450；meta:candf5f8S）
-f5f8,db04,init,0.3400,150,实测,init（无已验证训练件领先 ≥5pp）
+f5f8,7e39,candf5f8G,0.6489,450,实测,训练件 0.6489 vs init 0.5867（+6.2pp ≥5pp；n=450；meta:candf5f8G）
+f5f8,9d6e,candf5f8G,0.5533,450,实测,训练件 0.5533 vs init 0.4200（+13.3pp ≥5pp；n=450；meta:candf5f8G）
+f5f8,db04,candf5f8G,0.4267,450,实测,训练件 0.4267 vs init 0.3400（+8.7pp ≥5pp；n=450；meta:candf5f8G）
 f5f8,e1d7,init,0.8400,150,实测,init（无已验证训练件领先 ≥5pp）
 f5f8,e8ee,candf5f8S,0.7489,450,实测,训练件 0.7489 vs init 0.4133（+33.6pp ≥5pp；n=450；meta:candf5f8S）
-f5f8,f5f8,candf5f8S,0.5000,450,内战,内战最强：candf5f8S 0.7022（n=450，vs 对手端口）；矩阵记 0.5；候选 ['candf5f8S']
+f5f8,f5f8,candf5f8G,0.5000,450,内战,"内战最强：candf5f8G 0.7178（n=450，vs 对手端口）；矩阵记 0.5；候选 ['candf5f8G', 'candf5f8S']"
