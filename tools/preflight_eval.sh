@@ -37,11 +37,15 @@ if [ "$st" != "DEPS" ]; then
 fi
 
 say "③ 评估包"
-if ! $SSH "test -f $R/build/agents/port_7e39/model.pt && test -f $R/tools/meta_eval.sh" 2>/dev/null; then
+# ★ 用 sha 比对而不是"目录在不在"：包更新（新增驾驶员/权重）时必须重推，否则新 agent 永远补不上
+LOCAL_SHA=$(sha256sum "$TAR" 2>/dev/null | cut -c1-16)
+REMOTE_SHA=$($SSH "test -f $R/.kit_sha && cat $R/.kit_sha || echo none" 2>/dev/null)
+if [ "$LOCAL_SHA" != "$REMOTE_SHA" ]; then
   [ -f "$TAR" ] || die "缺 $TAR（先 bash tools/pack_eval_cpu.sh）"
   say "推包 $(du -h "$TAR" | cut -f1) 并解包"
   rsync -az -e "ssh -o StrictHostKeyChecking=no -p $PORT" "$TAR" "$HOST:/root/" || die "推包失败"
-  $SSH "cd /root && tar xzf $(basename $TAR) && cd eval_cpu_kit && bash setup.sh > /root/setup.log 2>&1" || die "setup 失败（看 /root/setup.log）"
+  $SSH "cd /root && tar xzf $(basename $TAR) && cd eval_cpu_kit && bash setup.sh > /root/setup.log 2>&1 && echo $LOCAL_SHA > .kit_sha" \
+    || die "setup 失败（看 /root/setup.log）"
 fi
 
 say "④ 驾驶员 agent（按 agents.tsv 补）"
