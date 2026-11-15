@@ -26,6 +26,8 @@ TAG="${TAG:-$(basename "$CAND")}"
 TS="${TS:-decks/testset_meta.tsv}"      # 测试集；方案A = decks/testset_meta_A.tsv（对手用各自最佳驾驶员）
 N="${N:-200}"; SEED="${SEED:-950000}"
 OUT="logs/meta/$TAG"
+# ★ 起跑前先验候选 agent（缺 model.pt 会静默跑空，2026-11-15 踩过两次）——必须在 mkdir 之前
+[ -f "$CAND/model.pt" ] || { echo "✗ 候选缺 model.pt: $CAND —— 先铺 agent，绝不跑空面板" >&2; exit 2; }
 mkdir -p "$OUT"
 echo "候选 $CAND → $OUT（12 格 × $N 场，种子 $SEED）"
 while IFS=$'\t' read -r cell dir _deck _grp _wt _drv; do
