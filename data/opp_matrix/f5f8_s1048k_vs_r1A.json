@@ -1,0 +1,22 @@
+{
+ "cand": "build/agents/f5f8_s1048k",
+ "elapsed_s": 2.5,
+ "overall": {
+  "ci_high": 1.0,
+  "ci_low": 0.0,
+  "errors": 0,
+  "n": 0,
+  "score": 0.0
+ },
+ "per_opp": {},
+ "protocol": {
+  "matches": 200,
+  "per_opp": {
+   "slow": 200
+  },
+  "seed_base": 950000,
+  "unit": "bo3_match",
+  "workers": 6
+ },
+ "warning": "回收 0 场，期望 200 场（有面板挂了）"
+}

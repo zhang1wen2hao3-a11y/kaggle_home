@@ -92,6 +92,11 @@ DRIVERS = {
                       remote="/root/kl/cand26c6S.bin", deck="26c6", fidelity=None,
                       note="slowking 特攻（2026-11-15，BC 起点+4 强陪练+4M 步，LR 1e-4）；"
                            "训练内原名 deck_26c6__db04 / 输出 slowking_shup4m"),
+    "cand26c6M": dict(agent="cand26c6M", weights="models/ppo/cand26c6M.pt",
+                      remote="/root/kl/cand26c6M.bin", deck="26c6", fidelity=None,
+                      note="slowking 特攻 · 镜像强化版（2026-11-15，INIT=cand26c6S，陪练换成 2 个 slowking "
+                           "镜像 + shuppet + f5f8，4M 步/43 min 于 3090）。"
+                           "镜像 vs r1A 39.9%→55.8%、H2H vs cand26c6S 59.5%，但整体弱（全梯场 49.7%）"),
     "candf5f8S": dict(agent="candf5f8S", weights="models/ppo/candf5f8S.pt",
                       remote="/root/kl/candf5f8S.bin", deck="f5f8", fidelity=None,
                       note="f5f8 特攻（2026-11-15，4,030,464 步）；训练内原名 deck_f5f8__db04，"

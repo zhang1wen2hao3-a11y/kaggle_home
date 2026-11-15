@@ -1,0 +1,22 @@
+{
+ "cand": "build/agents/f5f8s_final",
+ "elapsed_s": 2.1,
+ "overall": {
+  "ci_high": 1.0,
+  "ci_low": 0.0,
+  "errors": 0,
+  "n": 0,
+  "score": 0.0
+ },
+ "per_opp": {},
+ "protocol": {
+  "matches": 150,
+  "per_opp": {
+   "champ_0d86": 150
+  },
+  "seed_base": 950001,
+  "unit": "bo3_match",
+  "workers": 16
+ },
+ "warning": "回收 0 场，期望 150 场（有面板挂了）"
+}

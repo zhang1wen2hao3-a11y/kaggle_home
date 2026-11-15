@@ -1,0 +1,30 @@
+{
+ "tag": "meta_r1A_s950002",
+ "n": 200,
+ "seed": 950002,
+ "meta_w": 0.2916,
+ "meta_ci": [
+  0.2259,
+  0.3673
+ ],
+ "champ": 0.4781,
+ "local": 0.2878,
+ "worst": [
+  "abra_e8ee",
+  0.06
+ ],
+ "cells": {
+  "ogerpon_7e39": 0.07,
+  "grookey_2617": 0.78,
+  "abra_e8ee": 0.06,
+  "abra_f5f8": 0.3975,
+  "dunsparce_9d6e": 0.29,
+  "dunsparce_0bf5": 0.205,
+  "dreepy_3eaa": 0.175,
+  "dunsparce_db04": 0.325,
+  "champ_0904": 0.26,
+  "champ_26c6": 0.6,
+  "champ_e1d7": 0.125,
+  "champ_0d86": 0.9275
+ }
+}

@@ -1,0 +1,30 @@
+{
+ "tag": "deck_f5f8__s950001",
+ "n": 200,
+ "seed": 950001,
+ "meta_w": 0.4582,
+ "meta_ci": [
+  0.3819,
+  0.5365
+ ],
+ "champ": 0.6394,
+ "local": 0.38,
+ "worst": [
+  "champ_0904",
+  0.14
+ ],
+ "cells": {
+  "ogerpon_7e39": 0.445,
+  "grookey_2617": 0.3,
+  "abra_e8ee": 0.65,
+  "abra_f5f8": 0.58,
+  "dunsparce_9d6e": 0.285,
+  "dunsparce_0bf5": 0.29,
+  "dreepy_3eaa": 0.295,
+  "dunsparce_db04": 0.195,
+  "champ_0904": 0.14,
+  "champ_26c6": 0.6775,
+  "champ_e1d7": 0.74,
+  "champ_0d86": 1.0
+ }
+}

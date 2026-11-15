@@ -45,6 +45,10 @@ TAG2CELL = {
     "ab9d6e_r1A": ("9d6e", "ab9d6e_r1A"), "ab9d6e_r1B": ("9d6e", "ab9d6e_r1B"),
     "ab9d6e_r2A": ("9d6e", "ab9d6e_r2A"), "ab9d6e_r2B": ("9d6e", "ab9d6e_r2B"),
     "cand7e39S": ("7e39", "cand7e39S"), "candE1D7S": ("e1d7", "candE1D7S"),
+    "candf5f8S": ("f5f8", "candf5f8S"), "cand26c6S": ("26c6", "cand26c6S"),
+    "cand26c6M": ("26c6", "cand26c6M"),
+    "r1A": ("26c6", "r1A"), "r1A_26c6": ("26c6", "r1A"), "r1A_9d6e": ("9d6e", "r1A"),
+    "f5f8s_final": ("f5f8", "candf5f8S"),   # 同一权重的旧临时名（3.xM 步快照）
     "g8_bc_parent": ("0d86", "g8_bc_parent"), "g8_shuppet": ("0d86", "g8_shuppet"),
     "bc_26c6": ("26c6", "bc_26c6"),
     # init 基线（新补）
@@ -65,9 +69,32 @@ OPP2CELL = {
     "cand26c6S_vs_f5f8": ("26c6", "cand26c6S", "f5f8", "deck_f5f8_"),
     "r1A_vs_shbc": ("26c6", "r1A", "0d86", "g8_bc_parent"),
     "r1A_vs_f5f8": ("26c6", "r1A", "f5f8", "deck_f5f8_"),
-    # f5f8 特攻 vs 强克隆
-    "f5f8s_final_vs_shbc": ("f5f8", "candf5f8S", "0d86", "g8_bc_parent"),
-    "f5f8s_final_vs_f5f8s": ("f5f8", "candf5f8S", "f5f8", "deck_f5f8_"),
+    # f5f8 特攻 vs 强克隆（收尾期统一改成 `f5f8S_*` 前缀；旧文件靠 OPP_GLOBS 一起池化）
+    "f5f8S_vs_shbc": ("f5f8", "candf5f8S", "0d86", "g8_bc_parent"),
+    "f5f8S_vs_d0d86": ("f5f8", "candf5f8S", "0d86", "deck_0d86_"),
+    "f5f8S_mirror": ("f5f8", "candf5f8S", "f5f8", "deck_f5f8_"),
+    # 7e39 特攻 vs 强驾驶员
+    "cand7e39S_vs_shbc": ("7e39", "cand7e39S", "0d86", "g8_bc_parent"),
+    "cand7e39S_vs_f5f8": ("7e39", "cand7e39S", "f5f8", "deck_f5f8_"),
+    "cand7e39S_vs_slowking": ("7e39", "cand7e39S", "26c6", "r1A"),
+    # f5f8 特攻 vs 最强 slowking 驾驶员（r1A 与 cand26c6M 是不同对手驾驶员 ⇒ 不同记录）
+    "f5f8S_vs_slowking": ("f5f8", "candf5f8S", "26c6", "r1A"),
+    "f5f8S_vs_cand26c6M": ("f5f8", "candf5f8S", "26c6", "cand26c6M"),
+    # 镜像强化版 slowking（cand26c6M）：镜像 & 对旧专才
+    "cand26c6M_mirror": ("26c6", "cand26c6M", "26c6", "r1A"),
+    "cand26c6M_vs_shbc": ("26c6", "cand26c6M", "0d86", "g8_bc_parent"),
+    "cand26c6M_vs_f5f8": ("26c6", "cand26c6M", "f5f8", "deck_f5f8_"),
+}
+
+# 同一格的历史文件名：协议相同（200 场/seed-base 95000x）、只是命名不同 ⇒ 池化时一起算，别丢数据
+#   典型：早期随手写的 `f5f8S_vs_r1A`（对手就是 r1A_26c6）和后来的 `candf5f8S_vs_slowking` 是**同一格**。
+OPP_GLOBS = {
+    "f5f8S_vs_shbc": ["f5f8S_vs_shbc*.json", "rm_f5f8_candf5f8S_vs_shuppet*.json"],
+    "f5f8S_mirror": ["f5f8S_mirror*.json", "f5f8s_final_mirror*.json"],
+    "f5f8S_vs_slowking": ["f5f8S_vs_slowking*.json", "candf5f8S_vs_slowking*.json",
+                          "f5f8S_vs_r1A*.json"],
+    "f5f8S_vs_cand26c6M": ["f5f8S_vs_cand26c6M*.json", "candf5f8S_vs_cand26c6M*.json"],
+    "cand26c6M_mirror": ["cand26c6M_mirror*.json"],
 }
 
 # 7 格历史面板：data/opp_matrix/panel_<x>.json → (我方卡组, 驾驶员)
@@ -91,6 +118,11 @@ def from_meta():
     for tag_dir in glob.glob(os.path.join(ROOT, "logs", "meta", "*")):
         tag = os.path.basename(tag_dir)
         base = tag.split("_s95000")[0] if "_s95000" in tag else tag
+        # ★ 方案 A 面板的 tag 是 `<驾驶员>_A_s95000x`：先按基名找，找不到再脱掉 `_A`。
+        #   漏了这一步会让**全部方案 A 证据**进不了母表（2026-11-15 发现：收尾期所有面板都跑在
+        #   方案 A 上，母表里却一条都没有，行级最佳驾驶员一直停在 init）。
+        if base not in TAG2CELL and base.endswith("_A"):
+            base = base[:-2]
         if base not in TAG2CELL:
             continue
         for f in glob.glob(os.path.join(tag_dir, "vs_*.json")):
@@ -135,7 +167,9 @@ def from_strong_opp():
     out = []
     for key, (our, drv, opp_deck, opp_drv) in OPP2CELL.items():
         wins = n = 0.0
-        for p in glob.glob(os.path.join(ROOT, "data", "opp_matrix", f"{key}*.json")):
+        pats = OPP_GLOBS.get(key) or [f"{key}*.json"]
+        for p in [q for pat in pats
+                  for q in glob.glob(os.path.join(ROOT, "data", "opp_matrix", pat))]:
             o = (json.load(open(p)) or {}).get("overall") or {}
             if "score" in o and o.get("n"):
                 wins += o["score"] * o["n"]

@@ -1,0 +1,30 @@
+{
+ "tag": "f5f8s_final_s950002",
+ "n": 150,
+ "seed": 950002,
+ "meta_w": 0.0,
+ "meta_ci": [
+  0,
+  1
+ ],
+ "champ": 0.0,
+ "local": 0.0,
+ "worst": [
+  "ogerpon_7e39",
+  0.0
+ ],
+ "cells": {
+  "ogerpon_7e39": 0.0,
+  "grookey_2617": 0.0,
+  "abra_e8ee": 0.0,
+  "abra_f5f8": 0.0,
+  "dunsparce_9d6e": 0.0,
+  "dunsparce_0bf5": 0.0,
+  "dreepy_3eaa": 0.0,
+  "dunsparce_db04": 0.0,
+  "champ_0904": 0.0,
+  "champ_26c6": 0.0,
+  "champ_e1d7": 0.0,
+  "champ_0d86": 0.0
+ }
+}

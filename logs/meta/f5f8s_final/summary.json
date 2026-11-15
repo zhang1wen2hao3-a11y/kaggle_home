@@ -1,0 +1,30 @@
+{
+ "tag": "f5f8s_final",
+ "n": 150,
+ "seed": 950000,
+ "meta_w": 0.623,
+ "meta_ci": [
+  0.5325,
+  0.7056
+ ],
+ "champ": 0.6833,
+ "local": 0.5475,
+ "worst": [
+  "champ_0904",
+  0.1533
+ ],
+ "cells": {
+  "ogerpon_7e39": 0.64,
+  "grookey_2617": 0.4733,
+  "abra_e8ee": 0.7133,
+  "abra_f5f8": 0.7667,
+  "dunsparce_9d6e": 0.5,
+  "dunsparce_0bf5": 0.54,
+  "dreepy_3eaa": 0.3867,
+  "dunsparce_db04": 0.36,
+  "champ_0904": 0.1533,
+  "champ_26c6": 0.74,
+  "champ_e1d7": 0.8467,
+  "champ_0d86": 0.9933
+ }
+}
