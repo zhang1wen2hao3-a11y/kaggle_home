@@ -81,6 +81,36 @@ n=$(ls logs/winrate/*.json 2>/dev/null | wc -l)
 [ "$n" -gt 0 ] && cp -f logs/winrate/*.json "$STAGE/logs/winrate/" 2>/dev/null
 echo "   带上已完成的 $n 格"
 
+echo "⑥a 驾驶员清单（由 tools/driver_registry.py 生成，避免手写 map 漏人）"
+mkdir -p "$STAGE/models_drivers"
+$PY - "$STAGE" <<'PYGEN'
+import os, shutil, sys
+sys.path.insert(0, "tools")
+import driver_registry as R
+stage = sys.argv[1]
+rows = []
+for name, d in R.DRIVERS.items():
+    if name == "init" or not d.get("agent"):
+        continue
+    w = d.get("weights")
+    dst = os.path.join(stage, "models_drivers", d["agent"] + ".pt")
+    src = w if (w and os.path.exists(w)) else None
+    if src is None:
+        for cand in (f"models_ppo/{d['agent']}.pt", f"models_ceiling/{d['agent']}.pt"):
+            if os.path.exists(cand):
+                src = cand
+                break
+    if src:
+        shutil.copyfile(src, dst)
+        rows.append((d["agent"], d["agent"], d.get("deck") or ""))
+    else:
+        print(f"  ⚠️ {name}: 找不到权重，跳过（该驾驶员的面板会缺 agent）")
+with open(os.path.join(stage, "agents.tsv"), "w") as f:
+    for a, b, c in rows:
+        f.write(f"{a}\t{b}\t{c}\n")
+print(f"  驾驶员清单 {len(rows)} 个 → agents.tsv")
+PYGEN
+
 echo "⑥ setup.sh：铺 12 个 agent 目录 + 自检"
 cat > "$STAGE/setup.sh" <<'EOS'
 #!/usr/bin/env bash
@@ -133,19 +163,18 @@ done
   models_ceiling/ph3_9d6e_v2.pt decks/pool_field/dunsparce_abra__9d6e.csv >/dev/null
 echo
 echo "=== 铺陪练/考官（BC 克隆 + shuppet PPO；bank_ladder.sh 直接用）==="
-declare -A CE=( [g8_shuppet]=shuppet_dhelmise__0d86 [bc_26c6]=slowpoke_slowking__26c6
-                [deck_0d86_]=shuppet_dhelmise__0d86 [deck_f5f8_]=abra_kadabra__f5f8
-                [agent_sue124_]=shuppet_dhelmise__0d86
-                [g7b_shuppet]=shuppet_dhelmise__0d86 [g7a_db04_shuppet]=shuppet_dhelmise__0d86
-                [g12_db04_dreepy_shuppet]=shuppet_dhelmise__0d86
-                [cand7e39S]=teal_mask_ogerpon_ex_applin__7e39 [candE1D7S]=z_ogerpon_toolbox_miwa__e1d7 )
-for k in "${!CE[@]}"; do
-  # 权重可能在 models_ceiling，也可能在 models_ppo（cand* 属于后者，历史上漏铺过 ⇒ 面板跑出"无法识别的 agent 路径"）
-  w="models_ceiling/$k.pt"; [ -f "$w" ] || w="models_ppo/$k.pt"
-  [ -f "$w" ] || { echo "  ⚠️ 缺权重 $k.pt（面板会跑空）"; continue; }
-  bash tools/make_agent_dir.sh "build/agents/$k" "$w" "decks/pool_field/${CE[$k]}.csv" >/dev/null 2>&1 \
-    || echo "  ✗ 铺 $k 失败"
-done
+if [ -f agents.tsv ]; then
+  while IFS=$'\t' read -r ag nm deck; do
+    [ -n "$ag" ] || continue
+    [ -f "models_drivers/$ag.pt" ] || { echo "  ⚠️ 缺 models_drivers/$ag.pt"; continue; }
+    dcsv=$(ls decks/pool_field/*__"$deck".csv 2>/dev/null | head -1)
+    [ -n "$dcsv" ] || { echo "  ⚠️ 找不到卡组 $deck"; continue; }
+    bash tools/make_agent_dir.sh "build/agents/$ag" "models_drivers/$ag.pt" "$dcsv" >/dev/null 2>&1 \
+      || echo "  ✗ 铺 $ag 失败"
+  done < agents.tsv
+else
+  echo "  ⚠️ 没有 agents.tsv（老包），跳过驾驶员铺装"
+fi
 echo "  ✓ agent 总数 $(ls build/agents | wc -l)"
 echo "=== 跑剩余评估： bash tools/queue_remaining.sh ==="
 echo "=== 补 a→b 胜率矩阵缺格： bash tools/fill_winrate.sh ==="
