@@ -275,3 +275,22 @@ determinization / margin / 子决策 / 续弈策略 / depth-2 / 卡组池），*
 
 ⚠️ 读数时刻：2026-10-27 12:20。alakazam 从 1051.1 掉到 1046.3（−4.8），
 再次说明**停在窗口里也会漂**，不同时刻的读数不可直接相减。
+
+---
+
+## 2026-11-15 21:0x 两臂提交（f5f8 特攻 / 7e39 候选）
+
+| ref | 文件 | 卡组 | 权重来源 | 状态 | publicScore |
+|---|---|---|---|---|---|
+| 待填 | `ptcg_sub_candf5f8S.tar.gz`（54.8→20.6 MB 单模型版，sha16 `cdc88c47e5d5974e`） | `abra_kadabra__f5f8` | `candf5f8S` = BC 起点(deck_f5f8_) + 4 强陪练 + 4M 步 | 已提交 | 待读 |
+| 待填 | `ptcg_sub_cand7e39S.tar.gz`（20.5 MB，sha16 `e363e6601723d0d9`） | `teal_mask_ogerpon_ex_applin__7e39` | `cand7e39S`（早期舰牌候选） | 已提交 | 待读 |
+
+**本地预期（全梯场权重口径，见 `docs/slowking_round2_and_submission.md`）**：
+
+| 候选 | 全梯场权重分 | 直接对打 |
+|---|---|---|
+| `candf5f8S` | **78.4%** | 对 `cand7e39S` **68%** |
+| `cand7e39S` | 72.9% | 32% |
+
+⇒ 本地判断 **f5f8 更强**（打 shuppet 92%、打 slowking 77%，且 f5f8 在天梯的出现率是 7e39 的 12 倍）。
+读 LB 时注意：**两份同时在窗口里会互相抢配对**，读数与历史不可直接相减（见本文件开头的纪律）。
