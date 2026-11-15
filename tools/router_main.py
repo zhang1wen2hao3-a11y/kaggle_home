@@ -104,6 +104,13 @@ MODELS = []
 GENERAL = int(ROUTE_CFG.get("general", 0))
 ROUTES = {str(k): int(v) for k, v in (ROUTE_CFG.get("routes") or {}).items()}
 MAX_SWITCHES = int(ROUTE_CFG.get("max_switches", 2))
+# 切换策略：
+#   "per_turn"        - 每个回合边界都可能切，最多 max_switches 次（**默认、当前线上方案**）
+#   "once_confident"  - **首次高置信命中才切一次，之后不回头**（误判打不进来；
+#                       实测首次命中精确率 96~100%，代价是只有约一半的局会触发）
+POLICY = str(ROUTE_CFG.get("policy", "per_turn"))
+SW_MIN_COV = float(ROUTE_CFG.get("switch_min_coverage", 0.70))
+SW_MIN_MARGIN = float(ROUTE_CFG.get("switch_min_margin", 0.10))
 for rel in ROUTE_CFG["models"]:
     p = os.path.join(AGENT_DIR, rel)
     MODELS.append(SearchAgent(p, DECK_PATH, cfg=None, seed=0, device="cpu",
@@ -114,7 +121,8 @@ for a in MODELS:
     a.tracker = _TRACKER
 DECK = list(MODELS[GENERAL].deck)
 
-RT = {"cur": GENERAL, "switches": 0, "last_turn": None, "clf": None, "round": None}
+RT = {"cur": GENERAL, "switches": 0, "last_turn": None, "clf": None, "round": None,
+      "resolved": False}   # once_confident 用：首次高置信命中后就锁定
 ROT = {"est": 600.0, "boot": False}
 REJ = {"sig": None, "tried": []}
 LAST = {"sig": None, "logs": None}
@@ -168,6 +176,23 @@ def _pick_model(obs):
         if os.environ.get("PTCG_ROUTER_DEBUG"):
             print(f"[router] turn={turn} 可见{n}张 → {fam or '未判定'} "
                   f"(cov={cov:.2f} m={margin:.2f})", file=sys.stderr)
+
+        if POLICY == "once_confident":
+            # 首次"高置信"命中就锁定：够保守的阈值才认；认了就只切这一次、不回头
+            if RT["resolved"]:
+                return MODELS[RT["cur"]]
+            if fam and cov >= SW_MIN_COV and margin >= SW_MIN_MARGIN:
+                RT["resolved"] = True
+                tgt = ROUTES.get(fam, GENERAL)
+                if tgt != RT["cur"]:
+                    RT["cur"] = tgt
+                    RT["switches"] += 1
+                    if os.environ.get("PTCG_ROUTER_DEBUG"):
+                        print(f"[router] 首次命中 {fam} → 切到 model_{tgt}（此后不再切）",
+                              file=sys.stderr)
+            return MODELS[RT["cur"]]
+
+        # 默认策略：每个回合边界都可能切（上限 max_switches）
         tgt = ROUTES.get(fam, GENERAL) if fam else GENERAL
         if tgt != RT["cur"]:
             RT["cur"] = tgt
@@ -184,6 +209,7 @@ def agent(obs_dict: dict) -> list[int]:
         LAST["sig"], LAST["logs"] = None, None
         ROT["est"] = 600.0
         RT["cur"], RT["switches"], RT["last_turn"] = GENERAL, 0, None
+        RT["resolved"] = False
         if RT["clf"] is not None:
             RT["clf"].visible.clear()
         if not ROT["boot"]:

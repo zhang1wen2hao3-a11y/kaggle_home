@@ -1,8 +1,15 @@
 #!/usr/bin/env bash
 # **路由版提交包**：一个包里放 N 个模型 + 原型族路由表。
 #
-#   bash tools/make_sub_router.sh <包名> <泛用agent目录> [<原型族>=<专家agent目录> ...]
-#   例：bash tools/make_sub_router.sh cand7e39Mix cand7e39S slowking=cand26c6S shuppet=candf5f8S
+#   bash tools/make_sub_router.sh <包名> <泛用agent目录> [<原型族>=<专家agent目录> ...] [--policy=once_confident]
+#
+#   --policy=per_turn        每个回合边界都可能切，最多 2 次（**默认，当前线上方案**）
+#   --policy=once_confident  首次高置信命中才切一次、之后不回头（推荐 cov≥0.70 / margin≥0.10，
+#                            实测首次命中精确率 96%，一局最多切 1 次、重建成本 0~5 ms）
+#   --cov=0.70 --margin=0.10 覆盖 once_confident 的判定阈值
+#
+#   例：bash tools/make_sub_router.sh mix7e39 cand7e39S slowking=cand26c6S
+#       bash tools/make_sub_router.sh mix7e39b cand7e39S slowking=cand26c6S --policy=once_confident
 #
 # 规则（用户定的并入阈值，脚本只负责打包，不替你决定要不要加人）：
 #   单格增益 ≥5pp 且 Σ覆盖率×胜率增益 超阈值 才值得加专家 —— 见 docs/驾驶员与覆盖规则.md §8
@@ -12,7 +19,16 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 NAME="${1:?用法: make_sub_router.sh <包名> <泛用agent> [族=专家agent ...]}"; shift
 GEN="${1:?缺泛用 agent}"; shift
-SPECS=("$@")
+POLICY="per_turn"; SW_COV="0.70"; SW_MARGIN="0.10"
+SPECS=()
+for x in "$@"; do
+  case "$x" in
+    --policy=*) POLICY="${x#*=}";;
+    --cov=*)    SW_COV="${x#*=}";;
+    --margin=*) SW_MARGIN="${x#*=}";;
+    *) SPECS+=("$x");;
+  esac
+done
 DATE=$(date +%H%M)
 TMP=$(mktemp -d); trap 'rm -rf "$TMP"' EXIT
 
@@ -42,6 +58,7 @@ done
 MODELS="$MODELS]"
 cat > "$TMP/route.json" <<JSON
 {"general": 0, "models": $MODELS, "routes": $ROUTES, "max_switches": 2,
+ "policy": "$POLICY", "switch_min_coverage": $SW_COV, "switch_min_margin": $SW_MARGIN,
  "built": "$DATE", "general_agent": "$GEN", "specs": $(printf '%s\n' "${SPECS[@]}" | ./tools/py -c "import sys,json;print(json.dumps([l.strip() for l in sys.stdin if l.strip()]))")}
 JSON
 # ② 原型族表（离线算好，运行时不再 glob decks/）
