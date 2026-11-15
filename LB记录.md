@@ -294,3 +294,20 @@ determinization / margin / 子决策 / 续弈策略 / depth-2 / 卡组池），*
 
 ⇒ 本地判断 **f5f8 更强**（打 shuppet 92%、打 slowking 77%，且 f5f8 在天梯的出现率是 7e39 的 12 倍）。
 读 LB 时注意：**两份同时在窗口里会互相抢配对**，读数与历史不可直接相减（见本文件开头的纪律）。
+
+---
+
+## 2026-11-16 01:4x 方案 B 两臂（f5f8 双版本）
+
+按用户选择走**方案 B**：同一个 f5f8 卡组两个驾驶员，替掉被支配的 7e39 臂。
+
+| 文件 | 权重 | sha16 | 内部 model.md5 | 本地口径 |
+|---|---|---|---|---|
+| `ptcg_sub_candf5f8S.tar.gz`（20.6 MB） | `candf5f8S`（BC 起点 + 4 强陪练 + 4M 步） | `cdc88c47e5d5974e` | `7bd1d0ebab2c` | 面板 61.3%（n=450，b05 口径） |
+| `ptcg_sub_candf5f8G.tar.gz`（20.6 MB） | `candf5f8G`（INIT=candf5f8S + 2617/3eaa 专项陪练 4M 步） | `a3da9742ca373ad5` | `e6a224b92c3f` | 面板 **62.7%**（n=450） |
+
+两份 `deck.csv` 完全一致（md5 `ce516701a487`，`abra_kadabra__f5f8` 60 张），
+包内 `model.pt` 与 `models/ppo/*.pt` 逐一 md5 对齐 ⇒ **LB 读数可回指本地证据链**。
+
+本地判断：`candf5f8G` 优于 `candf5f8S`（面板 +1.4pp；2617 格 46.0%→54.2%；
+直接对打 52.7%，n=600）。差异在噪声内，但方向一致且无退化项（对 shuppet 90% 持平）。
