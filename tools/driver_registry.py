@@ -86,6 +86,16 @@ DRIVERS = {
     "cand7e39S": dict(agent="cand7e39S", weights="models/ppo/cand7e39S.pt",
                       remote="/root/kl/cand7e39S.bin", deck="7e39", fidelity=None,
                       note="7e39 舰牌候选；行级负收益"),
+    # ── BC 克隆（人类替身，同时用作陪练/考官）───────────────────
+    "deck_0d86_": dict(agent="deck_0d86_", weights="bc_pool/deck_0d86_.pt",
+                       remote="/root/kl/deck_0d86_.bin", deck="0d86", fidelity=0.731,
+                       note="全玩家 shuppet BC（171k 帧）；陪练强度 85%，有梯度"),
+    "deck_f5f8_": dict(agent="deck_f5f8_", weights="bc_pool/deck_f5f8_.pt",
+                       remote="/root/kl/deck_f5f8_.bin", deck="f5f8", fidelity=0.696,
+                       note="f5f8 的 BC 克隆（76.8k 帧）；天梯上它是 slowking 的克星，必进 slowking 陪练池"),
+    "agent_sue124_": dict(agent="agent_sue124_", weights="bc_pool/agent_sue124_.pt",
+                          remote="/root/kl/agent_sue124_.bin", deck="0d86", fidelity=0.668,
+                          note="sue124 的 shuppet BC；实测被 f5f8 BC 打 100% ⇒ **无梯度，别当陪练**"),
     "candE1D7S": dict(agent="candE1D7S", weights="models/ppo/candE1D7S.pt",
                       remote="/root/kl/candE1D7S.bin", deck="e1d7", fidelity=None, note="e1d7 舰牌候选"),
 }
