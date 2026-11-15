@@ -46,7 +46,11 @@ for i in $(seq 1 720); do            # 最多 12 小时
     # ② md5 逐个对远端校验
     for f in $(cd "$LOCAL" && find . -name '*.bin' -printf '%P\n' 2>/dev/null); do
       l=$(md5sum "$LOCAL/$f" | cut -d' ' -f1)
-      r=$($SSH "md5sum $OUT/$f 2>/dev/null | cut -d' ' -f1; md5sum $R/experiments/native-$RUN/$f 2>/dev/null | cut -d' ' -f1" 2>/dev/null | grep -c "$l")
+      # ★ 快照从 `native-$RUN/` 根目录拉（rsync 目标是 snapshots/ 子目录），所以校验路径
+      #   必须用 basename：早先写成 `$R/experiments/native-$RUN/$f`（$f 含 `snapshots/` 前缀）
+      #   会全部对不上 ⇒ 误判"校验失败"而不关机（2026-11-16 实际踩到）。
+      b=$(basename "$f")
+      r=$($SSH "md5sum $OUT/$f 2>/dev/null | cut -d' ' -f1; md5sum $R/experiments/native-$RUN/$b 2>/dev/null | cut -d' ' -f1" 2>/dev/null | grep -c "$l")
       if [ "$r" -ge 1 ]; then say "  ✓ $f md5 $l"; else say "  ✗ $f md5 不一致（local=$l）"; ok=no; fi
     done
     nb=$(find "$LOCAL" -name '*.bin' | wc -l)
