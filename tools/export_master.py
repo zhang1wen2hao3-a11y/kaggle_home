@@ -57,8 +57,17 @@ TAG2CELL = {
 # 与"对手=端口"的格是**不同记录**（对手驾驶员列不同），互不覆盖。
 OPP2CELL = {
     # key: (我方卡组, 我方驾驶员, 对手卡组, 对手驾驶员)
+    #   文件名 `data/opp_matrix/<key>.json` 或 `<key>_s95000x.json`（多 seed 会按基名池化）
     "shppo_vs_9d6e_r2A": ("9d6e", "ab9d6e_r2A", "0d86", "g8_shuppet"),
     "shppo_vs_f5f8port": ("f5f8", "init", "0d86", "g8_shuppet"),
+    # slowking 特攻 vs 旧专才（对手 = 强克隆 / 克星牌）
+    "cand26c6S_vs_shbc": ("26c6", "cand26c6S", "0d86", "g8_bc_parent"),
+    "cand26c6S_vs_f5f8": ("26c6", "cand26c6S", "f5f8", "deck_f5f8_"),
+    "r1A_vs_shbc": ("26c6", "r1A", "0d86", "g8_bc_parent"),
+    "r1A_vs_f5f8": ("26c6", "r1A", "f5f8", "deck_f5f8_"),
+    # f5f8 特攻 vs 强克隆
+    "f5f8s_final_vs_shbc": ("f5f8", "candf5f8S", "0d86", "g8_bc_parent"),
+    "f5f8s_final_vs_f5f8s": ("f5f8", "candf5f8S", "f5f8", "deck_f5f8_"),
 }
 
 # 7 格历史面板：data/opp_matrix/panel_<x>.json → (我方卡组, 驾驶员)
@@ -125,13 +134,14 @@ def from_strong_opp():
     """对手是**强驾驶员**的单格测量（对手驾驶员≠init），每个 json 只有一个格子。"""
     out = []
     for key, (our, drv, opp_deck, opp_drv) in OPP2CELL.items():
-        p = os.path.join(ROOT, "data", "opp_matrix", f"{key}.json")
-        if not os.path.exists(p):
-            continue
-        o = (json.load(open(p)) or {}).get("overall") or {}
-        if "score" not in o or not o.get("n"):
-            continue
-        out.append((our, opp_deck, drv, o["score"], o["n"], f"vsopp:{key}", opp_drv))
+        wins = n = 0.0
+        for p in glob.glob(os.path.join(ROOT, "data", "opp_matrix", f"{key}*.json")):
+            o = (json.load(open(p)) or {}).get("overall") or {}
+            if "score" in o and o.get("n"):
+                wins += o["score"] * o["n"]
+                n += o["n"]
+        if n:
+            out.append((our, opp_deck, drv, wins / n, int(n), f"vsopp:{key}", opp_drv))
     return out
 
 
