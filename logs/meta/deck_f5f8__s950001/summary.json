@@ -1,21 +1,21 @@
 {
  "tag": "deck_f5f8__s950001",
- "n": 150,
+ "n": 200,
  "seed": 950001,
- "meta_w": 0.4313,
+ "meta_w": 0.4582,
  "meta_ci": [
-  0.3614,
-  0.5282
+  0.3819,
+  0.5365
  ],
  "champ": 0.6394,
- "local": 0.3785,
+ "local": 0.38,
  "worst": [
   "champ_0904",
   0.14
  ],
  "cells": {
-  "ogerpon_7e39": 0.36,
-  "grookey_2617": 0.3733,
+  "ogerpon_7e39": 0.445,
+  "grookey_2617": 0.3,
   "abra_e8ee": 0.65,
   "abra_f5f8": 0.58,
   "dunsparce_9d6e": 0.285,
