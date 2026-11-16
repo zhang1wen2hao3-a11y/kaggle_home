@@ -282,8 +282,8 @@ determinization / margin / 子决策 / 续弈策略 / depth-2 / 卡组池），*
 
 | ref | 文件 | 卡组 | 权重来源 | 状态 | publicScore |
 |---|---|---|---|---|---|
-| 待填 | `ptcg_sub_candf5f8S.tar.gz`（54.8→20.6 MB 单模型版，sha16 `cdc88c47e5d5974e`） | `abra_kadabra__f5f8` | `candf5f8S` = BC 起点(deck_f5f8_) + 4 强陪练 + 4M 步 | 已提交 | 待读 |
-| 待填 | `ptcg_sub_cand7e39S.tar.gz`（20.5 MB，sha16 `e363e6601723d0d9`） | `teal_mask_ogerpon_ex_applin__7e39` | `cand7e39S`（早期舰牌候选） | 已提交 | 待读 |
+| **58381615** | `ptcg_sub_candf5f8S.tar.gz`（54.8→20.6 MB 单模型版，sha16 `cdc88c47e5d5974e`） | `abra_kadabra__f5f8` | `candf5f8S` = BC 起点(deck_f5f8_) + 4 强陪练 + 4M 步 | 已提交 | 待读 |
+| **58381601** | `ptcg_sub_cand7e39S.tar.gz`（20.5 MB，sha16 `e363e6601723d0d9`） | `teal_mask_ogerpon_ex_applin__7e39` | `cand7e39S`（早期舰牌候选） | 已提交 | 待读 |
 
 **本地预期（全梯场权重口径，见 `docs/slowking_round2_and_submission.md`）**：
 
@@ -311,3 +311,16 @@ determinization / margin / 子决策 / 续弈策略 / depth-2 / 卡组池），*
 
 本地判断：`candf5f8G` 优于 `candf5f8S`（面板 +1.4pp；2617 格 46.0%→54.2%；
 直接对打 52.7%，n=600）。差异在噪声内，但方向一致且无退化项（对 shuppet 90% 持平）。
+
+### 读数（2026-11-16 12:00 抓取）
+
+| ref | 文件 | publicScore |
+|---|---|---|
+| **58405230** | `ptcg_sub_candf5f8G.tar.gz` | **980.9** |
+| 58381615 | `ptcg_sub_candf5f8S.tar.gz` | 946.2 |
+| 58381601 | `ptcg_sub_cand7e39S.tar.gz` | 898.3 |
+
+队伍分 = max = **980.9**（f5f8G 那一臂）。比上一轮最好的 992.1（`g6_9d6e`，2026-11-07）低 11.2，
+但比同卡组的 f5f8S 高 **+34.7**。
+⚠️ 但回放里两臂胜率几乎相同（62.7% vs 61.7%，n=102/141）⇒ 这 +34.7 **不是强度差**，
+是配对/评分漂移（见 `docs/提交复盘-输在哪里.md`）。
