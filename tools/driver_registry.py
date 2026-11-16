@@ -83,6 +83,11 @@ DRIVERS = {
                        note="第 2 轮 A 臂（9d6e 行唯一过线：vs e8ee +15.7pp、vs f5f8 +14.0pp，n=600）"),
     "ab9d6e_r2B": dict(agent="ab9d6e_r2B", weights="models/ppo/ab9d6e_r2B.pt",
                        remote="/root/kl/ab9d6e_r2B.bin", deck="9d6e", fidelity=None, note="第 2 轮 B 臂"),
+    "bc_3eaa": dict(agent="bc_3eaa", weights="build/agents/bc_3eaa/model.pt",
+                    remote=None, deck="3eaa", fidelity=None,
+                    note="dreepy_drakloak__3eaa 的 BC 克隆（2026-11-08，Dipam Chakraborty 的 146,938 帧，"
+                         "data/bc_3eaa.npz）。长期只当对手/陪练存在，没登记也没量过强度；"
+                         "2026-11-16 复盘才确认它是 dreepy 家族唯一的『人怎么打』信号"),
     "cand7e39S": dict(agent="cand7e39S", weights="models/ppo/cand7e39S.pt",
                       remote="/root/kl/cand7e39S.bin", deck="7e39", fidelity=None,
                       note="7e39 舰牌候选；行级负收益"),
