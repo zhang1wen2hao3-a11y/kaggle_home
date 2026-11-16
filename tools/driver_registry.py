@@ -103,9 +103,12 @@ DRIVERS = {
                            "镜像 + shuppet + f5f8，4M 步/43 min 于 3090）。"
                            "镜像 vs r1A 39.9%→55.8%、H2H vs cand26c6S 59.5%，但整体弱（全梯场 49.7%）"),
     "candf5f8D": dict(agent="candf5f8D", weights="models/ppo/candf5f8D.pt",
-                   remote=None, deck="f5f8", fidelity=None,
-                   note="f5f8 真实口径补短板版（2026-11-16/17，INIT=candf5f8G，8 bank 里 5 个绑 dreepy/mega 族的端口权重，"
-                        "4M 步于 4080S）。真实口径面板基线 57.5%，五格基线 ea39 25.3/07be 39.3/3eaa 39.3/0382 24.7/77a5 50.0"),
+                      remote=None, deck="f5f8", fidelity=None,
+                      note="f5f8 真实口径补短板版（2026-11-17，INIT=candf5f8G，5 个端口 bank 绑 dreepy/mega 族，"
+                           "4M 步/43 min 于 4080S）。真实口径 17 格面板 58.6%（父 57.5%，+1.1pp）；"
+                           "五格只过两格：ea39 25.3→34.0（+8.7）、0382 24.7→41.0（+16.3）；"
+                           "07be +2.7、3eaa +1.0、77a5 −5.3 未达标；**镜像 71.8→54.3（−17.5）是过拟合信号** "
+                           "⇒ 不达提交判据，只作 dreepy/mega 陪练与备选"),
     "candf5f8G": dict(agent="candf5f8G", weights="models/ppo/candf5f8G.pt",
                       remote=None, deck="f5f8", fidelity=None,
                       note="f5f8 补短板版（2026-11-16，INIT=candf5f8S，8 bank 里 3 个绑 2617 / 2 个绑 3eaa，"
