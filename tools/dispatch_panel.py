@@ -1,0 +1,127 @@
+#!/usr/bin/env python3
+"""**中央调度器**：任务排队，哪台机器空下来就立刻派下一个（自愈、不空转）。
+
+背景（2026-11-16 用户要求"把队伍排起来"）：早先给每台机器写死一份任务列表，
+跑完脚本就退出 ⇒ 机器空转要人盯。这里改成中央队列：
+  · 任务 = (候选, 格, 种子)；完成判据 = 远端存在 logs/meta/<tag>/vs_<cell>.json
+  · **每轮每台机器只发 1 条 ssh**（同时取"是否在跑"和"已完成清单"），避免 42 次往返
+  · 空闲机器 → 取 pending 任务 `setsid nohup` 派过去；派出去但进程没了又没结果 ⇒ 重新入队
+  · 全部完成打印 DISPATCH_DONE
+
+★ 两个必须记住的坑：
+  1) `pgrep -f "ptcg_league/eval_pair"` 会匹配到**自己这条 ssh 命令行** ⇒ 每台机永远"忙"，
+     调度器一个活都不派（2026-11-16 卡了半小时）。必须写成 `ptcg_league/[e]val_pair`。
+  2) 判活别用 `pgrep -c` 的退出码，用输出数字；空输出要当 0 处理。
+
+    ./tools/py tools/dispatch_panel.py --cands candf5f8G candf5f8S --cells out_07be ...
+    ./tools/py tools/dispatch_panel.py ... --once     # 只跑一轮（调试）
+"""
+from __future__ import annotations
+import argparse, json, os, subprocess, sys, time
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+KIT = "/root/eval_cpu_kit"
+HOSTS = ["root@113.44.216.143", "root@1.92.97.36", "root@113.44.139.218"]
+STATE = os.path.join(ROOT, "logs", "dispatch_state.json")
+
+
+def ssh(host, cmd, timeout=30):
+    try:
+        r = subprocess.run(["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=8", host, cmd],
+                           capture_output=True, text=True, timeout=timeout)
+        return r.stdout
+    except Exception:
+        return ""
+
+
+def remote_state(host):
+    """一次 ssh：返回 (busy, {'tag/cell'}) —— 在跑进程数 + 已完成面板清单。"""
+    cmd = (f'cd {KIT} 2>/dev/null; echo "BUSY=$(pgrep -fc \'ptcg_league/[e]val_pair\' || true)"; '
+           f'ls logs/meta/*/vs_*.json 2>/dev/null')
+    out = ssh(host, cmd) or ""
+    busy = 0
+    inv = set()
+    for line in out.splitlines():
+        line = line.strip()
+        if line.startswith("BUSY="):
+            v = line[5:].strip()
+            busy = int(v) if v.isdigit() else 0
+        elif line.endswith(".json"):
+            p = line.split("/")
+            if len(p) >= 4:
+                inv.add(f"{p[2]}/{p[3][3:-5]}")
+    return busy, inv
+
+
+def dispatch(host, cand, cell, seed, matches, workers):
+    tag = f"{cand}_real_s{seed}"
+    cmd = (f"mkdir -p {KIT}/logs/meta/{tag}; cd {KIT} && "
+           f"dir=$(awk -F'\\t' -v c={cell} '$1==c{{print $2}}' decks/testset_meta_real.tsv); "
+           f"[ -d \"$dir\" ] || {{ echo 'MISSING_AGENT ' $dir; exit 0; }}; "
+           f"setsid nohup ./tools/py ptcg_league/eval_pair.py --cand build/agents/{cand} "
+           f"--opp {cell}=$dir --matches {matches} --workers {workers} --seed-base {seed} "
+           f"--out {KIT}/logs/meta/{tag}/vs_{cell}.json "
+           f"> /root/dispatch_{cand}_{cell}_{seed}.log 2>&1 < /dev/null & echo GO {tag} {cell}")
+    return ssh(host, cmd, timeout=25).strip()
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--cands", nargs="+", required=True)
+    ap.add_argument("--cells", nargs="+", required=True)
+    ap.add_argument("--seeds", nargs="+", type=int, default=[950000])
+    ap.add_argument("--hosts", nargs="+", default=HOSTS)
+    ap.add_argument("--matches", type=int, default=150)
+    ap.add_argument("--workers", type=int, default=24)
+    ap.add_argument("--interval", type=int, default=20)
+    ap.add_argument("--once", action="store_true")
+    ap.add_argument("--max-rounds", type=int, default=200)
+    a = ap.parse_args()
+
+    tasks = [dict(cand=c, cell=x, seed=s, host=None, status="pending")
+             for c in a.cands for x in a.cells for s in a.seeds]
+    print(f"队列 {len(tasks)} 个任务，机器 {len(a.hosts)} 台", flush=True)
+
+    for rnd in range(1, a.max_rounds + 1):
+        st = {h: remote_state(h) for h in a.hosts}          # 每机 1 次 ssh
+        for t in tasks:                                     # ① 结算
+            key = f"{t['cand']}_real_s{t['seed']}/{t['cell']}"
+            if t["status"] != "done" and any(key in st[h][1] for h in a.hosts):
+                t.update(status="done")
+            elif t["status"] == "running":
+                h = t["host"]
+                if key in st[h][1]:
+                    t["status"] = "done"
+                elif st[h][0] == 0:
+                    t.update(status="pending", host=None)
+                    print(f"  ↺ 重排 {t['cand']} {t['cell']}（{h.split('@')[-1]} 空了但没结果）", flush=True)
+        for h in a.hosts:                                   # ② 派活
+            if st[h][0] > 0:
+                continue
+            pend = [t for t in tasks if t["status"] == "pending"]
+            if not pend:
+                break
+            t = pend[0]
+            r = dispatch(h, t["cand"], t["cell"], t["seed"], a.matches, a.workers)
+            if r.startswith("GO"):
+                t.update(status="running", host=h)
+                print(f"  → {t['cand']:10s} {t['cell']:14s} → {h.split('@')[-1]}", flush=True)
+            elif r:
+                print(f"  ✗ {h.split('@')[-1]}: {r[:80]}", flush=True)
+        done = sum(1 for t in tasks if t["status"] == "done")
+        running = sum(1 for t in tasks if t["status"] == "running")
+        json.dump(tasks, open(STATE, "w"), ensure_ascii=False, indent=1)
+        print(f"[{time.strftime('%H:%M:%S')}] 完成 {done}/{len(tasks)} 在跑 {running} "
+              f"空闲机 {[h.split('@')[-1] for h in a.hosts if st[h][0] == 0]}", flush=True)
+        if done == len(tasks):
+            print("DISPATCH_DONE", flush=True)
+            return 0
+        if a.once:
+            return 0
+        time.sleep(a.interval)
+    print("DISPATCH_TIMEOUT", flush=True)
+    return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

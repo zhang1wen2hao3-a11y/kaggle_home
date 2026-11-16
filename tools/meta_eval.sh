@@ -44,7 +44,9 @@ done < "$TS"
 import json, math, os, sys
 d, n, seed = sys.argv[1], int(sys.argv[2]), int(sys.argv[3])
 rows = []
-for ln in open("decks/testset_meta.tsv"):
+# ★ 权重来源必须跟着 $TS 走：早先写死 testset_meta.tsv，用其它口径（如真实份额口径）跑时
+#   会把权重重算成 b05，导致"用新分母跑、却按旧分母汇总"（2026-11-16 修）。
+for ln in open(os.environ.get("TS", "decks/testset_meta.tsv")):
     if ln.startswith("#") or not ln.strip(): continue
     cell, _dir, _deck, grp, wt = ln.rstrip("\n").split("\t")
     f = os.path.join(d, f"vs_{cell}.json")
