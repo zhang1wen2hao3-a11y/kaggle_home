@@ -67,7 +67,7 @@ for h in "${HOSTS[@]}"; do
   REACHABLE+=("$h")
   scp -q tools/driver_registry.py "$h:/root/eval_cpu_kit/tools/"
   timeout 150 ssh -o BatchMode=yes "$h" "cd /root/eval_cpu_kit && bash tools/make_agent_dir.sh build/agents/$NAME stage_$NAME.pt decks/pool_field/abra_kadabra__f5f8.csv 2>&1 | tail -1" | sed "s/^/  [$h] /" | tee -a "$LOG"
-  bash tools/verify_launch.sh "$h" 'ls -d /root/eval_cpu_kit/build/agents/'"$NAME"' 2>/dev/null | wc -l' '/root/setup.log' | tee -a "$LOG"
+  bash tools/verify_launch.sh "$h" 'pgrep -fc "build/agents/'"$NAME"'" || true' "/root/dispatch_${NAME}_*.log" | tee -a "$LOG"
 done
 
 if [ ${#REACHABLE[@]} -eq 0 ]; then
