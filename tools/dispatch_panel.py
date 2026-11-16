@@ -38,7 +38,9 @@ def remote_state(host):
     """一次 ssh：返回 (busy, {'tag/cell'}) —— 在跑进程数 + 已完成面板清单。"""
     cmd = (f'cd {KIT} 2>/dev/null; echo "BUSY=$(pgrep -fc \'ptcg_league/[e]val_pair\' || true)"; '
            f'ls logs/meta/*/vs_*.json 2>/dev/null')
-    out = ssh(host, cmd) or ""
+    out = ssh(host, cmd)
+    if not out:
+        return -1, set()          # ★ -1 = 机器连不上（≠ 空闲 0）
     busy = 0
     inv = set()
     for line in out.splitlines():
@@ -76,10 +78,13 @@ def main():
     ap.add_argument("--interval", type=int, default=20)
     ap.add_argument("--once", action="store_true")
     ap.add_argument("--max-rounds", type=int, default=200)
+    ap.add_argument("--local-after", type=int, default=3,
+                    help="全部机器连不上连续 N 轮后改在本地跑（0=禁用）")
     a = ap.parse_args()
 
     tasks = [dict(cand=c, cell=x, seed=s, host=None, status="pending")
              for c in a.cands for x in a.cells for s in a.seeds]
+    dead_rounds = 0
     print(f"队列 {len(tasks)} 个任务，机器 {len(a.hosts)} 台", flush=True)
 
     for rnd in range(1, a.max_rounds + 1):
@@ -96,7 +101,7 @@ def main():
                     t.update(status="pending", host=None)
                     print(f"  ↺ 重排 {t['cand']} {t['cell']}（{h.split('@')[-1]} 空了但没结果）", flush=True)
         for h in a.hosts:                                   # ② 派活
-            if st[h][0] > 0:
+            if st[h][0] != 0:                               # >0 忙；-1 连不上
                 continue
             pend = [t for t in tasks if t["status"] == "pending"]
             if not pend:
@@ -108,6 +113,35 @@ def main():
                 print(f"  → {t['cand']:10s} {t['cell']:14s} → {h.split('@')[-1]}", flush=True)
             elif r:
                 print(f"  ✗ {h.split('@')[-1]}: {r[:80]}", flush=True)
+        # ③ 机器全掉线 ⇒ 本地兜底（同一 eval_pair、同一口径，只是 worker 少）
+        if a.local_after and all(st[h][0] == -1 for h in a.hosts):
+            dead_rounds += 1
+        else:
+            dead_rounds = 0
+        if a.local_after and dead_rounds >= a.local_after:
+            pend = [t for t in tasks if t["status"] != "done"]
+            print(f"⚠️ 连续 {dead_rounds} 轮所有机器都连不上 ⇒ 剩余 {len(pend)} 个任务改在**本地**跑", flush=True)
+            for t in pend:
+                tag = f"{t['cand']}_real_s{t['seed']}"
+                out = os.path.join(ROOT, "logs", "meta", tag, f"vs_{t['cell']}.json")
+                os.makedirs(os.path.dirname(out), exist_ok=True)
+                if os.path.exists(out):
+                    t["status"] = "done"; continue
+                dirp = ""
+                for ln in open(os.path.join(ROOT, "decks", "testset_meta_real.tsv")):
+                    if ln.startswith("#") or not ln.strip():
+                        continue
+                    f = ln.rstrip("\n").split("\t")
+                    if f[0] == t["cell"]:
+                        dirp = f[1]; break
+                print(f"  → 本地跑 {t['cand']} {t['cell']} s{t['seed']}", flush=True)
+                subprocess.run([sys.executable or "python3", os.path.join(ROOT, "ptcg_league", "eval_pair.py"),
+                                "--cand", f"build/agents/{t['cand']}", "--opp", f"{t['cell']}={dirp}",
+                                "--matches", str(a.matches), "--workers", "8",
+                                "--seed-base", str(t["seed"]), "--out", out],
+                               cwd=ROOT, capture_output=True, text=True)
+                t["status"] = "done" if os.path.exists(out) else "pending"
+            dead_rounds = 0
         done = sum(1 for t in tasks if t["status"] == "done")
         running = sum(1 for t in tasks if t["status"] == "running")
         json.dump(tasks, open(STATE, "w"), ensure_ascii=False, indent=1)

@@ -61,12 +61,23 @@ say "═══ 关 GPU（产物已校验）═══"
 timeout 30 ssh -o BatchMode=yes $GPU_HOST 'sync; nohup shutdown -h now > /dev/null 2>&1 & sleep 2; echo bye' 2>&1 | tail -1 | sed 's/^/  /' | tee -a "$LOG"
 
 bash tools/make_agent_dir.sh "build/agents/$NAME" "models/ppo/$NAME.pt" decks/pool_field/abra_kadabra__f5f8.csv 2>&1 | tail -1 | tee -a "$LOG"
+REACHABLE=()
 for h in "${HOSTS[@]}"; do
   scp -q "models/ppo/$NAME.pt" "$h:/root/eval_cpu_kit/stage_$NAME.pt" || { say "  ✗ 推 $h 失败（可能已释放）"; continue; }
+  REACHABLE+=("$h")
   scp -q tools/driver_registry.py "$h:/root/eval_cpu_kit/tools/"
   timeout 150 ssh -o BatchMode=yes "$h" "cd /root/eval_cpu_kit && bash tools/make_agent_dir.sh build/agents/$NAME stage_$NAME.pt decks/pool_field/abra_kadabra__f5f8.csv 2>&1 | tail -1" | sed "s/^/  [$h] /" | tee -a "$LOG"
   bash tools/verify_launch.sh "$h" 'ls -d /root/eval_cpu_kit/build/agents/'"$NAME"' 2>/dev/null | wc -l' '/root/setup.log' | tee -a "$LOG"
 done
+
+if [ ${#REACHABLE[@]} -eq 0 ]; then
+  say "⚠️ 没有任何远程评估机可用 ⇒ **改在本地跑**"
+  bash tools/eval_candidate_local.sh "$NAME" "$CELLS" ${SEED2_CELLS:+"$SEED2_CELLS"}
+  ./tools/py tools/real_panel_agg.py "$NAME" 2>&1 | tee -a "$LOG" | tail -22
+  bash tools/git_snapshot.sh "$NAME 真实口径面板结果（本地兜底跑）" 2>&1 | tail -1 | tee -a "$LOG"
+  say "DONE(local)"; exit 0
+fi
+HOSTS=("${REACHABLE[@]}")
 
 say "== 17 格真实口径面板（seed 950000）"
 ./tools/py tools/dispatch_panel.py --cands "$NAME" --cells $CELLS --seeds 950000 --matches 150 \
