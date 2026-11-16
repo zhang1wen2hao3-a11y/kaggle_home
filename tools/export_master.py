@@ -50,6 +50,12 @@ TAG2CELL = {
     "cand26c6M": ("26c6", "cand26c6M"),
     "r1A": ("26c6", "r1A"), "r1A_26c6": ("26c6", "r1A"), "r1A_9d6e": ("9d6e", "r1A"),
     "f5f8s_final": ("f5f8", "candf5f8S"),   # 同一权重的旧临时名（3.xM 步快照）
+    # ★ 真实份额口径面板（TS=decks/testset_meta_real.tsv）：tag 形如 `<候选>_real_s95000x`，
+    #   12 个标准格的 cell 名与方案A 完全一致，因此可以并进母表；out_*/unseen_* 那些新格
+    #   不属于 12 格网格，由 REAL_CELL_OK 过滤掉（它们的结论在 docs/提交复盘-输在哪里.md）。
+    "candf5f8D_real": ("f5f8", "candf5f8D"),
+    "candf5f8E_real": ("f5f8", "candf5f8E"),
+    "candf5f8G_real": ("f5f8", "candf5f8G"),
     "g8_bc_parent": ("0d86", "g8_bc_parent"), "g8_shuppet": ("0d86", "g8_shuppet"),
     "bc_26c6": ("26c6", "bc_26c6"),
     # init 基线（新补）
@@ -113,6 +119,11 @@ def cell_short(name):
     return name.split("_")[-1]
 
 
+# 12 格网格（母表 / 交付表的行与列）：真实口径面板里除这 12 格外还有 out_*/unseen_* 新格
+REAL_CELL_OK = {"7e39", "2617", "e8ee", "f5f8", "0d86", "9d6e", "0bf5", "3eaa",
+                "db04", "0904", "26c6", "e1d7"}
+
+
 def from_meta():
     """多种子先按 (base tag, 格) 池化"""
     acc = collections.defaultdict(lambda: [0.0, 0])   # (tag_base, cell) -> [wins, n]
@@ -129,6 +140,8 @@ def from_meta():
         for f in glob.glob(os.path.join(tag_dir, "vs_*.json")):
             o = json.load(open(f))["overall"]
             c = cell_short(os.path.basename(f)[3:-5])
+            if c not in REAL_CELL_OK:
+                continue          # 真实口径面板里的 out_*/unseen_* 新格不进 12 格网格
             k = (base, c)
             acc[k][0] += float(o["score"]) * int(o["n"])
             acc[k][1] += int(o["n"])
