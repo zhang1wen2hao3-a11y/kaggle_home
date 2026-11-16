@@ -37,18 +37,18 @@ OUT = os.path.join(ROOT, "decks", "testset_meta_real.tsv")
 
 # 12 个老格：cell 名 → (对手驾驶员, 说明)。与 testset_meta_A.tsv 保持一致，便于和新口径对比
 OLD = {
-    "ogerpon_7e39":   ("init", "port_7e39"),
-    "grookey_2617":   ("init", "c_grookey"),
-    "abra_e8ee":      ("init", "port_e8ee"),
+    "ogerpon_7e39":   ("init", "build/agents/port_7e39"),
+    "grookey_2617":   ("init", "build/agents/c_grookey"),
+    "abra_e8ee":      ("init", "build/agents/port_e8ee"),
     "abra_f5f8":      ("candf5f8S", "build/agents/candf5f8S"),
-    "champ_0d86":     ("g8_bc_parent", "g8_bc_parent"),
-    "dunsparce_9d6e": ("init", "port_on_9d6e"),
-    "dunsparce_0bf5": ("init", "opp_dunsparce_0bf5"),
-    "dreepy_3eaa":    ("init", "opp_3eaa"),
-    "dunsparce_db04": ("init", "port_db04"),
-    "champ_0904":     ("init", "port_0904"),
-    "champ_26c6":     ("init", "r1A"),
-    "champ_e1d7":     ("init", "port_e1d7"),
+    "champ_0d86":     ("g8_bc_parent", "build/agents/g8_bc_parent"),
+    "dunsparce_9d6e": ("init", "build/agents/port_on_9d6e"),
+    "dunsparce_0bf5": ("init", "build/agents/opp_dunsparce_0bf5"),
+    "dreepy_3eaa":    ("init", "build/agents/opp_3eaa"),
+    "dunsparce_db04": ("init", "build/agents/port_db04"),
+    "champ_0904":     ("init", "build/agents/port_0904"),
+    "champ_26c6":     ("init", "build/agents/r1A_26c6"),
+    "champ_e1d7":     ("init", "build/agents/port_e1d7"),
 }
 
 

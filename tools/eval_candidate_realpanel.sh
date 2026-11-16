@@ -24,8 +24,17 @@ done
 [ "$up" -gt 0 ] || { echo "✗ 没有任何机器可达，先把机器开起来再跑这条"; exit 1; }
 
 echo "== 17 格真实口径面板（seed 950000）"
+# ★ 启动验证（2026-11-17 纪律）：派完 20 秒内必须确认远端真有进程，否则立刻报错退出。
+#   之前"测试集 agent 路径写成裸名"就是这样白等了两轮 30 分钟。
 ./tools/py tools/dispatch_panel.py --cands "$NAME" --cells $CELLS --seeds 950000 \
-   --matches 150 --workers 24 --interval 20 --hosts "${HOSTS[@]}" 2>&1 | tail -4
+   --matches 150 --workers 24 --interval 20 --hosts "${HOSTS[@]}" > "logs/dispatch_${NAME}_s950000.log" 2>&1 &
+DISPATCH_PID=$!
+for h in "${HOSTS[@]}"; do
+  bash tools/verify_launch.sh "$h" 'pgrep -fc "ptcg_league/[e]val_pair" || true' "/root/dispatch_${NAME}_*.log" \
+    || { echo "✗ $h 上派活没跑起来，见上（日志 logs/dispatch_${NAME}_s950000.log）"; kill $DISPATCH_PID 2>/dev/null; exit 2; }
+done
+wait $DISPATCH_PID
+tail -4 "logs/dispatch_${NAME}_s950000.log"
 if [ -n "$SEED2_CELLS" ]; then
   echo "== 补第二种子（n→300）"
   ./tools/py tools/dispatch_panel.py --cands "$NAME" --cells $SEED2_CELLS --seeds 950001 \
