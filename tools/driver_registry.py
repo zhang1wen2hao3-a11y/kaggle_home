@@ -109,6 +109,9 @@ DRIVERS = {
     "candf5f8F": dict(agent="candf5f8F", weights="models/ppo/candf5f8F.pt",
                    remote=None, deck="f5f8", fidelity=None,
                    note="（自动登记，评测后补结论）"),
+    "cand0bf5S": dict(agent="cand0bf5S", weights="models/ppo/cand0bf5S.pt",
+                   remote=None, deck="f5f8", fidelity=None,
+                   note="（自动登记，评测后补结论）"),
     "candf5f8D": dict(agent="candf5f8D", weights="models/ppo/candf5f8D.pt",
                       remote=None, deck="f5f8", fidelity=None,
                       note="f5f8 真实口径补短板版（2026-11-17，INIT=candf5f8G，5 个端口 bank 绑 dreepy/mega 族，"

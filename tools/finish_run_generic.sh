@@ -11,6 +11,7 @@
 set -uo pipefail
 cd "$(dirname "$0")/.." || exit 1
 : "${GPU_HOST:?}" "${FINAL:?}" "${RUN:?}" "${NAME:?}"
+DECK="${DECK:?需要 DECK（卡组文件基名，如 dunsparce_abra__0bf5）}"
 R=/root/ptcg_train_kit/port_repo
 CELLS="${CELLS:-ogerpon_7e39 dunsparce_0bf5 grookey_2617 out_91808263 dreepy_3eaa champ_e1d7 out_07be out_3f45 out_77a5 champ_0904 abra_f5f8 out_ea39 out_9bc9d655 out_0382 dunsparce_9d6e abra_e8ee champ_26c6}"
 SEED2_CELLS="${SEED2_CELLS:-}"
@@ -64,7 +65,7 @@ fi
 say "═══ 关 GPU（产物已校验）═══"
 timeout 30 ssh -o BatchMode=yes $GPU_HOST 'sync; nohup shutdown -h now > /dev/null 2>&1 & sleep 2; echo bye' 2>&1 | tail -1 | sed 's/^/  /' | tee -a "$LOG"
 
-bash tools/make_agent_dir.sh "build/agents/$NAME" "models/ppo/$NAME.pt" decks/pool_field/abra_kadabra__f5f8.csv 2>&1 | tail -1 | tee -a "$LOG"
+bash tools/make_agent_dir.sh "build/agents/$NAME" "models/ppo/$NAME.pt" "decks/pool_field/$DECK.csv" 2>&1 | tail -1 | tee -a "$LOG"
 REACHABLE=()
 for h in "${HOSTS[@]}"; do
   scp -q "models/ppo/$NAME.pt" "$h:/root/eval_cpu_kit/stage_$NAME.pt" || { say "  ✗ 推 $h 失败（可能已释放）"; continue; }

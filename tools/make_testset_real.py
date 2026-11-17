@@ -47,7 +47,9 @@ OLD = {
     "dreepy_3eaa":    ("init", "build/agents/opp_3eaa"),
     "dunsparce_db04": ("init", "build/agents/port_db04"),
     "champ_0904":     ("init", "build/agents/port_0904"),
-    "champ_26c6":     ("init", "build/agents/r1A_26c6"),
+    # 2026-11-18：逐格差距诊断显示「26c6 用端口当对手」偏弱 30pp（真人 slowking 让对手只赢 43.3%，我们赢 73.7%），
+    # 而 r1A 是我们自己训的 slowking 强驾驶员（行分 90%）⇒ 该格对手改用 r1A（零成本修正）。
+    "champ_26c6":     ("r1A", "build/agents/r1A_26c6"),
     "champ_e1d7":     ("init", "build/agents/port_e1d7"),
 }
 
