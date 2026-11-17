@@ -36,7 +36,10 @@ if ! $PY tools/driver_registry.py check 2>&1 | tail -3; then
   die "表里有无法解析的驾驶员名字（见上）—— 先登记 tools/driver_registry.py"
 fi
 
-say "⑤ 方案A 测试集"
+say "⑤ 投资分表（面板补后水平 × 天花板；下一轮补强的排序依据）"
+$PY tools/build_investment_table.py 2>&1 | tail -3 || die "build_investment_table 失败"
+
+say "⑥ 方案A 测试集"
 $PY tools/make_testset_A.py 2>&1 | tail -2 || die "make_testset_A 失败"
 
 say "✓ 刷新完成"

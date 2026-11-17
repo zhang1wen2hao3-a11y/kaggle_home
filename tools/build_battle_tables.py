@@ -407,6 +407,16 @@ def write(path, header, rows, fields):
         for r in rows:
             w.writerow([r.get(k, "") for k in fields])
 
+# 默认按「最高LB」从高到低排序（NA 排最后）；同分按样本局数降序
+def _lbkey(r):
+    try:
+        return (1, float(r.get("最高LB")))
+    except (TypeError, ValueError):
+        return (0, 0.0)
+
+
+cards.sort(key=lambda r: (_lbkey(r), int(r.get("样本局数") or 0)), reverse=True)
+
 write(os.path.join(DOCS, "the-pockmon-battle-cards.csv"),
       ["DeckID", "卡组", "Meta 占比", "样本局数", "最高LB", "自己最高分", "最高分玩家"], cards,
       ["DeckID", "卡组", "Meta占比", "样本局数", "最高LB", "自己最高分", "最高分玩家"])
