@@ -78,6 +78,8 @@ if [ ${#REACHABLE[@]} -eq 0 ]; then
   say "⚠️ 没有任何远程评估机可用 ⇒ **改在本地跑**"
   bash tools/eval_candidate_local.sh "$NAME" "$CELLS" ${SEED2_CELLS:+"$SEED2_CELLS"}
   ./tools/py tools/real_panel_agg.py "$NAME" 2>&1 | tee -a "$LOG" | tail -22
+say "== 逐格差距诊断（我们 vs 高分玩家，判断是"我们偏弱"还是"对手偏弱需精修"）"
+./tools/py tools/cell_gap_diagnosis.py --cand "$NAME" 2>&1 | tee -a "$LOG" | tail -24
   bash tools/git_snapshot.sh "$NAME 真实口径面板结果（本地兜底跑）" 2>&1 | tail -1 | tee -a "$LOG"
   say "DONE(local)"; exit 0
 fi
@@ -96,5 +98,7 @@ for h in "${HOSTS[@]}"; do
     "$h:/root/eval_cpu_kit/logs/meta/" logs/meta/ 2>/dev/null
 done
 ./tools/py tools/real_panel_agg.py "$NAME" 2>&1 | tee -a "$LOG" | tail -22
+say "== 逐格差距诊断（我们 vs 高分玩家，判断是"我们偏弱"还是"对手偏弱需精修"）"
+./tools/py tools/cell_gap_diagnosis.py --cand "$NAME" 2>&1 | tee -a "$LOG" | tail -24
 bash tools/git_snapshot.sh "$NAME 真实口径面板结果" 2>&1 | tail -1 | tee -a "$LOG"
 say "DONE"
