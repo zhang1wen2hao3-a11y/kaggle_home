@@ -48,6 +48,21 @@ def main():
     a = ap.parse_args()
     m = pool_map()
 
+    # ⓿ 真实场份额（环境覆盖率）+ 是否在我们的 17 格测试环境里
+    share, covered = {}, {}
+    tsv = os.path.join(ROOT, "decks", "testset_meta_real.tsv")
+    tail_share = 0.0
+    for ln in open(tsv):
+        if ln.startswith("#") or not ln.strip():
+            continue
+        f = ln.rstrip("\n").split("\t")
+        if f[0] == "tail_mix":
+            tail_share = float(f[4])
+            continue
+        share[f[0].split("_")[-1]] = float(f[4])
+        covered[f[0].split("_")[-1]] = True
+    tot_env = sum(share.values())
+
     # ① 我方回放
     ours = collections.Counter(); ow = collections.Counter()
     for ln in open(os.path.join(ROOT, a.scan)):
@@ -100,24 +115,35 @@ def main():
         elif hi_opp is not None and hn >= 15:
             verdict = "我方偏弱（无端口参照）" if wr < hi_opp - 0.08 else "接近高手（无端口参照）"
         loss = n * (1 - wr)
+        sh = share.get(short)
         rows.append(dict(opp=short, n=n, wr=wr, struct=s_wr, hi=hi_opp, hn=hn,
-                         verdict=verdict, loss=loss))
+                         verdict=verdict, loss=loss, share=sh,
+                         env=("17格" if short in covered else "长尾/未覆盖"),
+                         wloss=((sh / 100.0) * (1 - wr) if sh else None)))
+    rows.sort(key=lambda r: -(r["wloss"] or 0), reverse=False)
     rows.sort(key=lambda r: -r["loss"])
+    env_cov = 100.0 - tail_share
     print(f"== 我方卡组 {a.our_deck}：共 {sum(r['n'] for r in rows)} 局（n≥{a.min_n} 的格）")
-    print(f"{'对手卡组':12s}{'局数':>5s}{'我方':>7s}{'端口基线':>9s}{'高手对手胜率':>12s}{'n':>5s}  判定")
+    print(f"   环境覆盖率：17 格测试集覆盖真实场 {env_cov:.1f}%，长尾 {tail_share:.1f}%（未逐格实测）")
+    print(f"{'对手卡组':12s}{'份额':>6s}{'覆盖':>8s}{'局数':>5s}{'我方':>7s}{'端口基线':>9s}{'高手':>7s}{'加权丢分':>8s}  判定")
     for r in rows:
-        print(f"{r['opp']:12s}{r['n']:5d}{r['wr']*100:6.1f}%"
+        print(f"{r['opp']:12s}{('NA' if r['share'] is None else f'{r[chr(115)+chr(104)+chr(97)+chr(114)+chr(101)]:.1f}%'):>6s}"
+              f"{r['env']:>8s}{r['n']:5d}{r['wr']*100:6.1f}%"
               f"{('NA' if r['struct'] is None else f'{r[chr(115)+chr(116)+chr(114)+chr(117)+chr(99)+chr(116)]*100:.1f}%'):>9s}"
-              f"{('NA' if r['hi'] is None else f'{r[chr(104)+chr(105)]*100:.1f}%'):>12s}{r['hn']:5d}  {r['verdict']}")
+              f"{('NA' if r['hi'] is None else f'{r[chr(104)+chr(105)]*100:.1f}%'):>7s}"
+              f"{('NA' if r['wloss'] is None else f'{r[chr(119)+chr(108)+chr(111)+chr(115)+chr(115)]*100:.2f}pp'):>8s}  {r['verdict']}")
     out = os.path.join(ROOT, "docs", f"输在哪_{a.our_deck}.csv")
     with open(out, "w", newline="", encoding="utf-8-sig") as fh:
         w = csv.writer(fh)
-        w.writerow(["对手卡组", "局数", "我方胜率", "端口基线", "高手对手胜率", "高手n", "判定", "丢局数"])
+        w.writerow(["对手卡组", "真实份额%", "环境覆盖", "局数", "我方胜率", "端口基线",
+                    "高手对手胜率", "高手n", "判定", "丢局数", "加权丢分(份额×输率)"])
         for r in rows:
-            w.writerow([r["opp"], r["n"], f"{r['wr']*100:.1f}%",
+            w.writerow([r["opp"], "" if r["share"] is None else round(r["share"], 2), r["env"],
+                        r["n"], f"{r['wr']*100:.1f}%",
                         "" if r["struct"] is None else f"{r['struct']*100:.1f}%",
                         "" if r["hi"] is None else f"{r['hi']*100:.1f}%",
-                        r["hn"], r["verdict"], round(r["loss"], 1)])
+                        r["hn"], r["verdict"], round(r["loss"], 1),
+                        "" if r["wloss"] is None else round(r["wloss"] * 100, 2)])
     print(f"\n→ {os.path.relpath(out, ROOT)}")
     return 0
 
