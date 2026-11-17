@@ -55,10 +55,29 @@ def remote_state(host):
     return busy, inv
 
 
+CELL_AGENTS: dict = {}
+
+
 def dispatch(host, cand, cell, seed, matches, workers):
     tag = f"{cand}_real_s{seed}"
-    cmd = (f"mkdir -p {KIT}/logs/meta/{tag}; cd {KIT} && "
-           f"dir=$(awk -F'\\t' -v c={cell} '$1==c{{print $2}}' decks/testset_meta_real.tsv); "
+    # 先在本地把 agent 目录解析出来（--cell-agents 覆盖优先，其次查真实口径表），
+    # 再把**确定的路径**发到远端——早先远端自己 awk 查表，导致 --cell-agents 指定的格
+    # （champ_0d86 / dunsparce_db04）在远端永远 MISSING_AGENT。
+    dirp = CELL_AGENTS.get(cell)
+    if not dirp:
+        try:
+            for ln in open(os.path.join(ROOT, "decks", "testset_meta_real.tsv")):
+                if ln.startswith("#") or not ln.strip():
+                    continue
+                f = ln.rstrip("\n").split("\t")
+                if f[0] == cell:
+                    dirp = f[1]
+                    break
+        except OSError:
+            pass
+    if not dirp:
+        return f"NO_DIR {cell}"
+    cmd = (f"mkdir -p {KIT}/logs/meta/{tag}; cd {KIT} && dir={dirp}; "
            f"[ -d \"$dir\" ] || {{ echo 'MISSING_AGENT ' $dir; exit 0; }}; "
            f"setsid nohup ./tools/py ptcg_league/eval_pair.py --cand build/agents/{cand} "
            f"--opp {cell}=$dir --matches {matches} --workers {workers} --seed-base {seed} "
@@ -78,10 +97,17 @@ def main():
     ap.add_argument("--interval", type=int, default=20)
     ap.add_argument("--once", action="store_true")
     ap.add_argument("--max-rounds", type=int, default=200)
+    ap.add_argument("--cell-agents", default="",
+                    help="补充 格子=agent目录 映射（逗号分隔），用于真实口径表里没有、但属于 12 格网格的格，"
+                         "如 champ_0d86=build/agents/g8_bc_parent,dunsparce_db04=build/agents/port_db04")
     ap.add_argument("--local-after", type=int, default=3,
                     help="全部机器连不上连续 N 轮后改在本地跑（0=禁用）")
     a = ap.parse_args()
 
+    for pair in (a.cell_agents or "").split(","):
+        if "=" in pair:
+            k, v = pair.split("=", 1)
+            CELL_AGENTS[k.strip()] = v.strip()
     tasks = [dict(cand=c, cell=x, seed=s, host=None, status="pending")
              for c in a.cands for x in a.cells for s in a.seeds]
     dead_rounds = 0
@@ -127,8 +153,8 @@ def main():
                 os.makedirs(os.path.dirname(out), exist_ok=True)
                 if os.path.exists(out):
                     t["status"] = "done"; continue
-                dirp = ""
-                for ln in open(os.path.join(ROOT, "decks", "testset_meta_real.tsv")):
+                dirp = CELL_AGENTS.get(t["cell"], "")
+                for ln in ([] if dirp else open(os.path.join(ROOT, "decks", "testset_meta_real.tsv"))):
                     if ln.startswith("#") or not ln.strip():
                         continue
                     f = ln.rstrip("\n").split("\t")
