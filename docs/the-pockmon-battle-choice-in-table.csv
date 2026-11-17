@@ -329,6 +329,7 @@ f5f8,0bf5,candf5f8E,init,0.6933,150,meta:candf5f8E_real
 f5f8,0bf5,candf5f8G,init,0.5867,450,meta:candf5f8G
 f5f8,0bf5,candf5f8S,init,0.5978,450,meta:candf5f8S
 f5f8,0bf5,init,init,0.4800,150,meta:port_f5f8
+f5f8,0d86,candf5f8E,init,0.9600,150,meta:candf5f8E_real
 f5f8,0d86,candf5f8G,init,0.8889,450,meta:candf5f8G
 f5f8,0d86,candf5f8S,init,0.9000,450,meta:candf5f8S
 f5f8,0d86,candf5f8S,deck_0d86_,0.9150,600,vsopp:f5f8S_vs_d0d86
@@ -362,6 +363,7 @@ f5f8,9d6e,candf5f8E,init,0.5733,150,meta:candf5f8E_real
 f5f8,9d6e,candf5f8G,init,0.5533,450,meta:candf5f8G
 f5f8,9d6e,candf5f8S,init,0.5422,450,meta:candf5f8S
 f5f8,9d6e,init,init,0.4200,150,meta:port_f5f8
+f5f8,db04,candf5f8E,init,0.5267,150,meta:candf5f8E_real
 f5f8,db04,candf5f8G,init,0.4267,450,meta:candf5f8G
 f5f8,db04,candf5f8S,init,0.3822,450,meta:candf5f8S
 f5f8,db04,init,init,0.3400,150,meta:port_f5f8
