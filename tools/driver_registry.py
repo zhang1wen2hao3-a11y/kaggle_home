@@ -102,6 +102,10 @@ DRIVERS = {
                       note="slowking 特攻 · 镜像强化版（2026-11-15，INIT=cand26c6S，陪练换成 2 个 slowking "
                            "镜像 + shuppet + f5f8，4M 步/43 min 于 3090）。"
                            "镜像 vs r1A 39.9%→55.8%、H2H vs cand26c6S 59.5%，但整体弱（全梯场 49.7%）"),
+    "candf5f8E": dict(agent="candf5f8E", weights="models/ppo/candf5f8E.pt",
+                      remote=None, deck="f5f8", fidelity=None,
+                      note="f5f8 真实口径第三版（2026-11-17，INIT=candf5f8D，bank 配平：镜像 2/8 + dreepy 3/8 + mega 1/8 + 守格 2/8，"
+                           "去掉负迁移的 77a5；4M 步/40 min 于 4080S）。权重从实验目录 final.bin 恢复（OUT 目录那份 rsync 失败）"),
     "candf5f8D": dict(agent="candf5f8D", weights="models/ppo/candf5f8D.pt",
                       remote=None, deck="f5f8", fidelity=None,
                       note="f5f8 真实口径补短板版（2026-11-17，INIT=candf5f8G，5 个端口 bank 绑 dreepy/mega 族，"

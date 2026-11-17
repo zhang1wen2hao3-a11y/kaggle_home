@@ -1,7 +1,7 @@
 DeckID,卡组,Meta 占比,样本局数,最高LB
 0d86,shuppet-dunsparce-dhelmise,28.5,1001,1594.4
 26c6,slowking,28.47,1000,1594.4
-f5f8,alakazam-dunsparce,22.58,793,1428.0
+f5f8,alakazam-dunsparce,22.58,793,1428
 ea39,dragapult,8.94,314,1446.2
 e1f9,metagross-excadrill,3.16,111,1311.3
 2617,rillaboom-applin,2.9,102,1312.9
@@ -13,7 +13,7 @@ da1d,archaludon,0.37,13,1008.8
 efb2,lucario,0.31,11,999.2
 b395,lucario-makuhita,0.23,8,1100.2
 dd63,dunsparce-froslass,0.17,6,973.4
-1eb0,dwebble-cinderace-kangaskhan,0.11,4,1428.0
+1eb0,dwebble-cinderace-kangaskhan,0.11,4,1428
 c20a,grimmsnarl-froslass-munkidori,0.11,4,894.6
 1661,dunsparce-lopunny,0.06,2,786.5
 903f,girafarig,0.06,2,NA
@@ -32,11 +32,11 @@ b6cf,ceruledge,0.03,1,1212.3
 eb56,gengar-toxtricity,0.03,1,364.7
 bc2f,dwebble-froslass-munkidori,0.03,1,587.7
 7dc2,voltorb,0.03,1,NA
-148e,garchomp,0.03,1,264.0
-7c66,cramorant-kangaskhan,0.03,1,147.0
+148e,garchomp,0.03,1,264
+7c66,cramorant-kangaskhan,0.03,1,147
 7357,slowking-kangaskhan,0.03,1,623.3
-db04,alakazam-dunsparce（db04·我们）,0.0,0,1060.3
-9d6e,alakazam-dunsparce（9d6e·我们）,0.0,0,992.1
-7e39,applin-meganium-ogerpon（7e39·我们）,0.0,0,880.9
-e1d7,ogerpon（e1d7·我们）,0.0,0,875.5
-0d86,shuppet-dunsparce-dhelmise（0d86·我们）,0.0,0,779.6
+db04,alakazam-dunsparce（db04·我们）,0,0,1060.3
+9d6e,alakazam-dunsparce（9d6e·我们）,0,0,992.1
+7e39,applin-meganium-ogerpon（7e39·我们）,0,0,880.9
+e1d7,ogerpon（e1d7·我们）,0,0,875.5
+0d86,shuppet-dunsparce-dhelmise（0d86·我们）,0,0,779.6

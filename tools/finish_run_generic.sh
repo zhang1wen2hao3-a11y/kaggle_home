@@ -31,10 +31,14 @@ done
 [ "${sz:-0}" = 18205408 ] || { say "✗ 等不到 $FINAL"; exit 1; }
 
 mkdir -p "models/ppo/gpu_$RUN"
-rsync -az -e "ssh -o BatchMode=yes ${GPU_HOST%% *} $(echo "$GPU_HOST" | grep -q -- '-p ' && echo "-p $(echo "$GPU_HOST" | sed 's/.*-p \([0-9]*\).*/\1/')")" \
-  "${GPU_HOST##* }:$FINAL" "models/ppo/gpu_$RUN/$RUN.bin"
-rsync -az -e "ssh -o BatchMode=yes -p $(echo "$GPU_HOST" | sed 's/.*-p \([0-9]*\).*/\1/')" \
-  "${GPU_HOST##* }:$R/experiments/native-$RUN/" "models/ppo/gpu_$RUN/snapshots/"
+# 端口/主机分开取，rsync 用 -e "ssh ... -p PORT"（早先那版拼接出错 ⇒ final.bin 根本没拉下来，
+# md5 比对必然失败，白丢一次训练产物；这次改成显式 PORT/HOSTNAME 再拼）。
+SSHOPT=$(echo "$GPU_HOST" | sed -n 's/.*-p *\([0-9]\+\).*/\1/p'); SSHOPT=${SSHOPT:-22}
+RHOST=$(echo "$GPU_HOST" | awk '{print $NF}')
+rsync -az -e "ssh -o BatchMode=yes -p $SSHOPT" "$RHOST:$FINAL" "models/ppo/gpu_$RUN/$RUN.bin" \
+  || { say "✗ 拉 final 失败：$FINAL"; exit 1; }
+rsync -az -e "ssh -o BatchMode=yes -p $SSHOPT" "$RHOST:$R/experiments/native-$RUN/" "models/ppo/gpu_$RUN/snapshots/"
+[ "$(stat -c %s "models/ppo/gpu_$RUN/$RUN.bin")" = 18205408 ] || { say "✗ 拉回的 final 大小不对"; exit 1; }
 lf=$(md5sum "models/ppo/gpu_$RUN/$RUN.bin" | cut -d' ' -f1)
 rf=$(timeout 25 ssh -o BatchMode=yes $GPU_HOST "md5sum $FINAL | cut -d' ' -f1")
 [ "$lf" = "$rf" ] || { say "✗ final md5 不一致"; exit 1; }
