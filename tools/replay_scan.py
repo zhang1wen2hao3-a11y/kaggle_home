@@ -76,6 +76,8 @@ def scan_one(path: str):
         rec = {"file": os.path.relpath(path, ROOT), "seat": me, "first": fp,
                "n_agents": len(names), "names": names, "steps": len(steps)}
         if me is not None and len(dk) >= 2:
+            rec["our_hash"] = hashlib.sha256(
+                ",".join(map(str, sorted(dk[me]))).encode()).hexdigest()[:8]
             opp = next((j for j in dk if j != me), None)
             if opp is not None:
                 rec["opp_ids"] = dk[opp]

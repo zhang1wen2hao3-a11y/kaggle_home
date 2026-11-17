@@ -54,6 +54,9 @@ def main():
         try: r = json.loads(ln)
         except Exception: continue
         if not r.get("opp_hash") or r.get("win") is None or r.get("selfmirror"): continue
+        # ★ 只统计"我们开这副牌"的对局（不同提交臂的卡组不同，混在一起会算错）
+        if (m.get(r.get("our_hash") or "") or "").split("__")[-1] not in (a.our_deck, ""):
+            continue
         short = (m.get(r["opp_hash"]) or r["opp_hash"]).split("__")[-1]
         ours[short] += 1; ow[short] += 1 if r["win"] else 0
 
