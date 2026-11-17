@@ -106,6 +106,9 @@ DRIVERS = {
                       remote=None, deck="f5f8", fidelity=None,
                       note="f5f8 真实口径第三版（2026-11-17，INIT=candf5f8D，bank 配平：镜像 2/8 + dreepy 3/8 + mega 1/8 + 守格 2/8，"
                            "去掉负迁移的 77a5；4M 步/40 min 于 4080S）。权重从实验目录 final.bin 恢复（OUT 目录那份 rsync 失败）"),
+    "candf5f8F": dict(agent="candf5f8F", weights="models/ppo/candf5f8F.pt",
+                   remote=None, deck="f5f8", fidelity=None,
+                   note="（自动登记，评测后补结论）"),
     "candf5f8D": dict(agent="candf5f8D", weights="models/ppo/candf5f8D.pt",
                       remote=None, deck="f5f8", fidelity=None,
                       note="f5f8 真实口径补短板版（2026-11-17，INIT=candf5f8G，5 个端口 bank 绑 dreepy/mega 族，"
@@ -120,6 +123,11 @@ DRIVERS = {
                            "、强 2617 驾驶员 42.5%→47.7%（+5.2pp ✓）、3eaa 格 33.5%→35.5%（+2.0pp ✗ 未达标）；"
                            "方案A 面板 61.3%→62.7%（+1.4pp，n=450）；直接对打 vs candf5f8S 52.7%（n=600，未显著）；"
                            "vs shuppet 90.0% 持平。⇒ 2617 修好、3eaa 没修好，整体略优于 candf5f8S"),
+    "p9d6e": dict(agent="p9d6e", weights="build/port_plain/model.pt",
+                   remote=None, deck="9d6e", fidelity=None,
+                   note="**对照臂**：端口权重原样开 dunsparce_abra__9d6e（不训练）。"
+                        "同名历史上 LB 1046.3–1051.1（2026-10-24/27），行分 b05 73.6%，"
+                        "用来检验「换牌是不是比继续训 f5f8 更值」"),
     "candf5f8S": dict(agent="candf5f8S", weights="models/ppo/candf5f8S.pt",
                       remote="/root/kl/candf5f8S.bin", deck="f5f8", fidelity=None,
                       note="f5f8 特攻（2026-11-15，4,030,464 步）；训练内原名 deck_f5f8__db04，"
