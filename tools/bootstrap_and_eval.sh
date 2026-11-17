@@ -55,4 +55,11 @@ done
 ./tools/py tools/real_panel_agg.py "$CAND" 2>&1 | tee -a "$LOG" | tail -22
 bash tools/refresh_tables.sh --quiet 2>&1|tail -1|tee -a "$LOG"
 bash tools/git_snapshot.sh "$CAND 真实口径面板（17格+五格第二种子）" 2>&1|tail -1|tee -a "$LOG"
+if [ "${SHUTDOWN_CPU:-1}" = 1 ]; then
+  EXPECT=$(( $(echo $CELLS | wc -w) + $(echo ${SEED2_CELLS:-} | wc -w) ))
+  for h in "${READY[@]}"; do
+    say "收尾：$h（期望 ${EXPECT} 格）"
+    bash tools/finish_box.sh "$h" "$EXPECT" || say "⚠️ $h 关机前校验未通过，保持开机"
+  done
+fi
 say BOOTSTRAP_DONE

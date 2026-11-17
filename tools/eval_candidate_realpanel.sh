@@ -46,4 +46,14 @@ for h in "${HOSTS[@]}"; do
 done
 ./tools/py tools/real_panel_agg.py "$NAME" 2>&1 | tail -25
 bash tools/git_snapshot.sh "$NAME 真实口径面板结果" 2>&1 | tail -1
+
+# ★ 收尾关机（2026-11-18 用户要求）：**所有拉取与校验完成之后**才关评估机。
+#   SHUTDOWN_CPU=0 可关闭该行为；校验不过（坏文件/格数不足）则不关机并告警。
+if [ "${SHUTDOWN_CPU:-1}" = 1 ]; then
+  EXPECT=$(( $(echo $CELLS | wc -w) + $(echo ${SEED2_CELLS:-} | wc -w) ))
+  for h in "${HOSTS[@]}"; do
+    echo "== 收尾：$h（期望 ${EXPECT} 格）"
+    bash tools/finish_box.sh "$h" "$EXPECT" || echo "⚠️ $h 关机前校验未通过，保持开机"
+  done
+fi
 echo EVAL_CANDIDATE_DONE

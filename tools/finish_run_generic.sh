@@ -102,4 +102,13 @@ done
 say "== 逐格差距诊断（我们 vs 高分玩家，判断是"我们偏弱"还是"对手偏弱需精修"）"
 ./tools/py tools/cell_gap_diagnosis.py --cand "$NAME" 2>&1 | tee -a "$LOG" | tail -24
 bash tools/git_snapshot.sh "$NAME 真实口径面板结果" 2>&1 | tail -1 | tee -a "$LOG"
+# ★ 收尾关机（2026-11-18 用户要求）：CPU 评估机在所有拉取/聚合/提交之后才关。
+#   GPU 已经在上面"md5 校验通过"后立即关掉（同样属于"拉取结束再关"）。
+if [ "${SHUTDOWN_CPU:-1}" = 1 ]; then
+  EXPECT=$(( $(echo $CELLS | wc -w) + $(echo ${SEED2_CELLS:-} | wc -w) ))
+  for h in "${HOSTS[@]}"; do
+    say "收尾：$h（期望 ${EXPECT} 格）"
+    bash tools/finish_box.sh "$h" "$EXPECT" || say "⚠️ $h 关机前校验未通过，保持开机"
+  done
+fi
 say "DONE"
