@@ -52,9 +52,17 @@ LB = json.load(open(os.path.join(ROOT, "data", "lb_scores.json")))
 
 # 每副牌「最高可查 LB」：优先外部强玩家的分数；我们自己创造/提交的用我们的天梯分；
 # 两者都没有 → NA。hash → 分数。
-OUR_LB = {   # 我们真实提交过的天梯分（data/lb_ours.json 的 deck 视角）
-    "db04": 1060.3, "9d6e": 992.1, "7e39": 880.9, "e1d7": 875.5, "0d86": 779.6,
-}
+def _load_ours():
+    """我们各牌的天梯最高分：data/lb_ours_by_deck.json（由 kaggle submissions --csv 生成，
+    见 tools/ 里的用法），回退到旧硬编码。"""
+    try:
+        d = json.load(open(os.path.join(ROOT, "data", "lb_ours_by_deck.json")))
+        return {k: float(v["score"]) for k, v in d.items()}
+    except Exception:
+        return {"db04": 1060.3, "9d6e": 992.1, "7e39": 880.9, "e1d7": 875.5, "0d86": 779.6}
+
+
+OUR_LB = _load_ours()
 
 
 def deck_lb_map():
@@ -67,22 +75,60 @@ def deck_lb_map():
         pass
     out = {}
     for h, teams in users.items():
-        best = max((LB.get(t, 0) for t in teams), default=0)
+        best, who = 0, ""
+        for t in teams:
+            s_ = LB.get(t, 0)
+            if s_ > best:
+                best, who = s_, t
         if best > 0:
             out[h] = best
+            FIELD_WHO[h] = who
+    # ★ 4 位前缀兜底：`deck_corpus` 里有些卡表只有 8 位 hash 的外部使用者记录、
+    #   但 `ladder_games` 里没有对局 ⇒ 上面按 4 位 key 建的表会漏掉它们，
+    #   导致「最高LB」错误地回退成我们自己的天梯分（如 db04 显示 1060.3，
+    #   而外部其实有 Hawksartelier 用同族 4 位 db04 打到 1093.3）。
+    by4 = collections.defaultdict(list)
+    for h, teams in users.items():
+        by4[(h or "")[:4]].extend(teams)
+    for h4, teams in by4.items():
+        best, who = 0, ""
+        for t in teams:
+            s_ = LB.get(t, 0)
+            if s_ > best:
+                best, who = s_, t
+        if best > (out.get(h4) or 0):
+            out[h4] = best
+            FIELD_WHO[h4] = who
     return out
 
 
+FIELD_WHO = {}   # hash → 该卡表外部使用者里天梯分最高的玩家名
 FIELD_LB = deck_lb_map()
 
 
-def best_lb(hashes):
-    """一组 deck hash 里的最高可查 LB：外部使用者 vs 我们自己取 max；都没有 → NA。"""
-    vals = []
+def ext_lb(hashes):
+    """一组 deck hash 里**外部玩家**的最高天梯分（不含我们自己）→ (分数, 玩家名)。"""
+    best, who = 0.0, ""
     for h in hashes:
-        if h in FIELD_LB: vals.append(FIELD_LB[h])
-        if h in OUR_LB: vals.append(OUR_LB[h])
-    return f"{max(vals):.1f}" if vals else "NA"
+        for k in (h, (h or "")[:4]):
+            v = FIELD_LB.get(k)
+            if v and v > best:
+                best, who = v, FIELD_WHO.get(k, "")
+    return (f"{best:.1f}", who) if best else ("NA", "")
+
+
+def our_lb(hashes):
+    for h in hashes:
+        for k in (h, (h or "")[:4]):
+            if k in OUR_LB:
+                return f"{OUR_LB[k]:.1f}"
+    return "NA"
+
+
+def best_lb(hashes):
+    """兼容旧调用：外部优先，没有就用我们自己的。"""
+    e, _ = ext_lb(hashes)
+    return e if e != "NA" else our_lb(hashes)
 
 # ---------- 卡组名聚合：archetype → 简洁主体名 ----------
 # 规则：取牌组"主体"（通常是主攻手/最终进化）作为名字，主体基本一致就归同一个名字。
@@ -183,7 +229,11 @@ for c in cards:
 cards = sorted(_agg.values(), key=lambda r: -r["样本局数"])
 for r in cards:
     r.pop("_mx", None)
-    r["最高LB"] = best_lb(r.pop("_hashes"))
+    hs = r.pop("_hashes")
+    ext, who = ext_lb(hs)               # 外部最高天梯分 + 该玩家
+    r["最高LB"] = ext if ext != "NA" else our_lb(hs)
+    r["自己最高分"] = our_lb(hs)         # 我们自己的天梯最高分（没有则 NA）
+    r["最高分玩家"] = who
     r["Meta占比"] = round(r["Meta占比"], 2)
 
 # 补：我们自己提交过、但档案里没出现的牌（否则它的天梯分会被 archetype 聚合吞掉）
@@ -196,8 +246,11 @@ for h, lbv in OUR_LB.items():
     row = _row_by_name.get(grp)
     if row is not None and abs(float(row["最高LB"]) - lbv) < 0.05 if row["最高LB"] != "NA" else False:
         continue                      # 组内最高就是它自己，不需要补
-    cards.append(dict(DeckID=h, 卡组=f"{grp}（{h}·我们）", Meta占比=0.0,
-                      样本局数=0, 最高LB=f"{lbv:.1f}"))
+    # ★ 「最高LB」= 外部最高分（该原型/该 4 位后缀能被谁打到多少）；我们自己另列一栏。
+    ext, who = ext_lb([h])
+    cards.append(dict(DeckID=h, 卡组=f"{grp}（{h}·我们）", Meta占比=0.0, 样本局数=0,
+                      最高LB=(ext if ext != "NA" else f"{lbv:.1f}"),
+                      自己最高分=f"{lbv:.1f}", 最高分玩家=who))
 
 # ---------- match ----------
 matches = []
@@ -355,8 +408,8 @@ def write(path, header, rows, fields):
             w.writerow([r.get(k, "") for k in fields])
 
 write(os.path.join(DOCS, "the-pockmon-battle-cards.csv"),
-      ["DeckID", "卡组", "Meta 占比", "样本局数", "最高LB"], cards,
-      ["DeckID", "卡组", "Meta占比", "样本局数", "最高LB"])
+      ["DeckID", "卡组", "Meta 占比", "样本局数", "最高LB", "自己最高分", "最高分玩家"], cards,
+      ["DeckID", "卡组", "Meta占比", "样本局数", "最高LB", "自己最高分", "最高分玩家"])
 write(os.path.join(DOCS, "the-pockmon-battle-match.csv"),
       ["DeckID", "玩家卡组", "玩家", "DeckID", "对手卡组", "对手", "胜局", "败局", "平局"],
       matches, ["DeckID", "玩家卡组", "玩家", "DeckID2", "对手卡组", "对手", "胜局", "败局", "平局"])

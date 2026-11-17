@@ -81,10 +81,23 @@ ce3a,Jemin,真人,,lucario,,Kaggle 回放（2 局）
 e8ee,Charles Backman On LinkedIn,真人,,alakazam-dunsparce,,Kaggle 回放（2 局）
 e8ee,Kengo Mukai,真人,,alakazam-dunsparce,,Kaggle 回放（2 局）
 fa86,Guenoir,真人,,lucario,,Kaggle 回放（2 局）
+9d6e,ab9d6e_r1A,PPO训练,,alakazam-dunsparce,build/agents/ab9d6e_r1A/model.pt,我们训练
+9d6e,ab9d6e_r1A_blend,PPO训练,,alakazam-dunsparce,build/agents/ab9d6e_r1A_blend/model.pt,我们训练
+9d6e,ab9d6e_r1B,PPO训练,,alakazam-dunsparce,build/agents/ab9d6e_r1B/model.pt,我们训练
+9d6e,ab9d6e_r2A,PPO训练,,alakazam-dunsparce,build/agents/ab9d6e_r2A/model.pt,我们训练
 26c6,bc_26c6,PPO训练,,slowking,build/agents/bc_26c6/model.pt,我们训练
 3eaa,bc_3eaa,PPO训练,,dragapult,build/agents/bc_3eaa/model.pt,我们训练
 f5f8,c_abra,端口基线,,alakazam-dunsparce,build/agents/c_abra/model.pt,端口仓库权重
 2617,c_grookey,端口基线,,rillaboom-applin,build/agents/c_grookey/model.pt,端口仓库权重
+26c6,cand26c6S,PPO训练,,slowking,build/agents/cand26c6S/model.pt,我们训练
+7e39,cand7e39S,PPO训练,,applin-meganium-ogerpon,build/agents/cand7e39S/model.pt,我们训练
+f5f8,candf5f8D,PPO训练,,alakazam-dunsparce,build/agents/candf5f8D/model.pt,我们训练
+f5f8,candf5f8E,PPO训练,,alakazam-dunsparce,build/agents/candf5f8E/model.pt,我们训练
+f5f8,candf5f8F,PPO训练,,alakazam-dunsparce,build/agents/candf5f8F/model.pt,我们训练
+f5f8,candf5f8G,PPO训练,,alakazam-dunsparce,build/agents/candf5f8G/model.pt,我们训练
+f5f8,candf5f8S,PPO训练,,alakazam-dunsparce,build/agents/candf5f8S/model.pt,我们训练
+f5f8,f5f8_s1048k,PPO训练,,alakazam-dunsparce,build/agents/f5f8_s1048k/model.pt,我们训练
+f5f8,f5f8_s524k,PPO训练,,alakazam-dunsparce,build/agents/f5f8_s524k/model.pt,我们训练
 db04,g6_db04,PPO训练,,alakazam-dunsparce,build/agents/g6_db04/model.pt,我们训练
 2617,g6_db04_on_2617,PPO训练,,rillaboom-applin,build/agents/g6_db04_on_2617/model.pt,我们训练
 0d86,g8_bc_parent,BC克隆,やる気元気ミワハルキ 2nd ver.,shuppet-dunsparce-dhelmise,build/agents/g8_bc_parent/model.pt,我们训练
@@ -92,6 +105,7 @@ db04,g6_db04,PPO训练,,alakazam-dunsparce,build/agents/g6_db04/model.pt,我们训练
 3eaa,opp_3eaa,端口基线,,dragapult,build/agents/opp_3eaa/model.pt,端口仓库权重
 0bf5,opp_dunsparce_0bf5,端口基线,,alakazam-dunsparce,build/agents/opp_dunsparce_0bf5/model.pt,端口仓库权重
 0d86,opp_shuppet_human,BC克隆,やる気元気ミワハルキ 2nd ver.,shuppet-dunsparce-dhelmise,build/agents/opp_shuppet_human/model.pt,我们训练
+9d6e,p9d6e,端口基线,,alakazam-dunsparce,build/agents/p9d6e/model.pt,端口仓库权重
 2617,ph3_2617_v1,PPO训练,,rillaboom-applin,build/agents/ph3_2617_v1/model.pt,我们训练
 2617,ph3_2617_v2,PPO训练,,rillaboom-applin,build/agents/ph3_2617_v2/model.pt,我们训练
 9d6e,ph3_9d6e_v2,PPO训练,,alakazam-dunsparce,build/agents/ph3_9d6e_v2/model.pt,我们训练
