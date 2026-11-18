@@ -71,7 +71,9 @@ for h in "${HOSTS[@]}"; do
   scp -q "models/ppo/$NAME.pt" "$h:/root/eval_cpu_kit/stage_$NAME.pt" || { say "  ✗ 推 $h 失败（可能已释放）"; continue; }
   REACHABLE+=("$h")
   scp -q tools/driver_registry.py "$h:/root/eval_cpu_kit/tools/"
-  timeout 150 ssh -o BatchMode=yes "$h" "cd /root/eval_cpu_kit && bash tools/make_agent_dir.sh build/agents/$NAME stage_$NAME.pt decks/pool_field/abra_kadabra__f5f8.csv 2>&1 | tail -1" | sed "s/^/  [$h] /" | tee -a "$LOG"
+  # ★ 2026-11-18 修：原来这里硬编码 decks/pool_field/abra_kadabra__f5f8.csv，
+  #   非 f5f8 候选（如 e1d7 专项）会被铺成错卡组 ⇒ 现在统一用 $DECK
+  timeout 150 ssh -o BatchMode=yes "$h" "cd /root/eval_cpu_kit && bash tools/make_agent_dir.sh build/agents/$NAME stage_$NAME.pt decks/pool_field/$DECK.csv 2>&1 | tail -1" | sed "s/^/  [$h] /" | tee -a "$LOG"
   bash tools/verify_launch.sh "$h" 'pgrep -fc "build/agents/'"$NAME"'" || true' "/root/dispatch_${NAME}_*.log" | tee -a "$LOG"
 done
 
