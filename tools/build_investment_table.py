@@ -73,9 +73,57 @@ def lb_maps():
     return ext, extwho, ours
 
 
+def real_panel_levels():
+    """从 logs/meta/<cand>_real_s95*/vs_*.json 算真实口径 17 格加权分（若有）。"""
+    import glob, json
+    out = {}
+    for tag in glob.glob(os.path.join(ROOT, "logs", "meta", "*_real_s95*")):
+        cand = os.path.basename(tag).split("_real_s95")[0]
+        num = den = 0.0
+        for p in glob.glob(os.path.join(tag, "vs_*.json")):
+            try:
+                o = json.load(open(p))["overall"]
+            except Exception:
+                continue
+            cell = os.path.basename(p)[3:-5].split("_")[-1]
+            w = REALW.get(cell, 0.0)
+            if w:
+                num += w * o["score"] * o["n"]; den += w * o["n"]
+        if den:
+            out[cand] = (num / den * 100.0, den)
+    return out
+
+
+def cand_deck_map():
+    """面板候选名 → 它开的卡组 4 位后缀（走注册表；查不到就用名字里的卡组号猜）。"""
+    sys.path.insert(0, os.path.join(ROOT, "tools"))
+    try:
+        import driver_registry as REG
+    except Exception:
+        REG = None
+    out = {}
+    for cand in real_panel_levels():
+        dk = None
+        if REG:
+            try:
+                dk = str(REG.info(cand).get("deck") or "").lower()
+            except Exception:
+                dk = None
+        if not dk:
+            for tok in ("f5f8", "0bf5", "9d6e", "db04", "26c6", "7e39", "0d86", "2617", "3eaa", "e1d7", "0904", "e8ee"):
+                if tok in cand.lower():
+                    dk = tok; break
+        if dk:
+            out[cand] = dk
+    return out
+
+
 def main():
     W = real_weights()
+    global REALW
+    REALW = W
     D = load_master()
+    PANEL = real_panel_levels()
     ext, extwho, ours = lb_maps()
     rows = []
     for deck, cells in D.items():
@@ -96,7 +144,15 @@ def main():
             if W.get(c) and "init" in v and best[0] in v:
                 gap += W[c] * max(0.0, v["init"][0] - v[best[0]][0]) * 100
         lvl = best[1] * 100
-        rows.append(dict(deck=deck, best=best[0], lvl=lvl, gap=gap, after=lvl + gap,
+        src = "母表12格"
+        # ★ 有真实 17 格实测就用实测（更接近真实场）；此时"可补缺口"也失去意义 → 置 0
+        CD = cand_deck_map()
+        same = [(cand, PANEL[cand]) for cand, dk in CD.items() if dk == deck.lower() and cand in PANEL]
+        if same:
+            panel_key, (lvl, pn) = max(same, key=lambda t: t[1][0])
+            src, gap = f"真实17格({panel_key},n={int(pn)})", 0.0
+            best = (panel_key, lvl / 100.0)
+        rows.append(dict(deck=deck, best=best[0], lvl=lvl, gap=gap, after=lvl + gap, src=src,
                          ext=ext.get(deck), extwho=extwho.get(deck, ""), ours=ours.get(deck)))
     vals = sorted({r["c"] for r in [dict(c=max([x for x in (r["ext"], r["ours"]) if x] or [0])) for r in rows] if r["c"]})
     med = vals[len(vals) // 2] if vals else 1.0
@@ -109,10 +165,10 @@ def main():
     rows.sort(key=lambda r: -r["inv"])
     with open(OUT, "w", newline="", encoding="utf-8-sig") as fh:
         w = csv.writer(fh)
-        w.writerow(["卡组", "最佳驾驶员", "覆盖加权胜率%", "可补缺口pp", "面板补后水平%",
+        w.writerow(["卡组", "最佳驾驶员", "覆盖加权胜率%", "可补缺口pp", "面板补后水平%", "口径",
                     "外部天花板", "外部最高分玩家", "我们最高分", "天花板", "K", "上限差距", "投资分"])
         for r in rows:
-            w.writerow([r["deck"], r["best"], round(r["lvl"], 1), round(r["gap"], 2), round(r["after"], 1),
+            w.writerow([r["deck"], r["best"], round(r["lvl"], 1), round(r["gap"], 2), round(r["after"], 1), r["src"],
                         r["ext"] or "", r["extwho"], r["ours"] or "", r["ceil"] or "",
                         round(r["K"], 3), "" if r["gapceil"] is None else round(r["gapceil"], 1),
                         round(r["inv"], 1)])
