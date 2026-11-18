@@ -60,40 +60,62 @@ def _load_ours():
 
 
 def lb_maps():
-    """外部天花板：**按牌算，不按人算**。
+    """外部天花板：**按牌算，并同时要求"这牌本身能赢"**。
 
-    坑（2026-11-18 实测）：`lb_scores.json` 是**玩家级**分数。若把他用过的每副牌都记上他的分，
-    会严重高估 —— Ondrej Kubicek 名下挂了 `0bf5`，但他 0bf5 只打过 **4 局、0 胜**；
-    `f5f8` 也只打 4 局。他的 1428 其实来自 shuppet（0d86，51 条记录、23/41 胜）。
-    ⇒ 只有该玩家在这副牌上 **≥MIN_GAMES 局**，才把他的分数算作这副牌的天花板。
+    两条踩过的坑（都在 2026-11-18 实测到）：
+      ① `lb_scores.json` 是**玩家级**分数。把某个玩家的分记到他用过的每副牌上会严重高估
+         （Ondrej Kubicek 名下挂 `0bf5`，但他 0bf5 只打 4 局、0 胜）；
+      ② 更隐蔽：即使玩家在这副牌上打了 **100+ 局**，也可能一直输 —— Raihan 打 `ea39`
+         104 局只有 **29.8%** 胜率，1309 分显然不是这副牌给的。
+    ⇒ 规则：只有「该玩家在这副牌 ≥10 局」**且**「他在该牌胜率 ≥ 50%」时，才把他的天梯分
+      算作这副牌的天花板；否则该牌天花板记 NA（宁缺毋滥）。
+    另附 `deck_wr`：该牌在真人档案里的实测胜率（≥30 局才给），用于第三列参考。
     """
     LB = json.load(open(os.path.join(ROOT, "data", "lb_scores.json")))
-    MIN_GAMES = 10
-    games = collections.Counter()          # (h4, team) -> 局数（从真人档案统计）
+    MIN_GAMES, MIN_WR = 10, 0.50
+    games = collections.Counter()          # (h4, team) -> 局数
+    wins = collections.Counter()           # (h4, team) -> 胜场
+    deck_n = collections.Counter(); deck_w = collections.Counter()
     try:
         for r in csv.DictReader(open(os.path.join(ROOT, "data", "ladder_games.tsv")), delimiter="\t"):
+            try:
+                win = int(r["winner"])
+            except (TypeError, ValueError):
+                continue
             for i in (0, 1):
                 t = (r.get(f"seat{i}_agent") or "").strip()
                 h4 = (r.get(f"seat{i}_deck") or "")[:4]
-                if t and h4:
+                if not h4:
+                    continue
+                deck_n[h4] += 1
+                if win == i:
+                    deck_w[h4] += 1
+                if t:
                     games[(h4, t)] += 1
+                    if win == i:
+                        wins[(h4, t)] += 1
     except OSError:
         pass
     users = collections.defaultdict(set)
     for r in csv.DictReader(open(os.path.join(ROOT, "data", "deck_corpus.csv"))):
         users[(r.get("deck_hash") or "")[:4]].add(r.get("team") or "")
-    ext, extwho = {}, {}
+    ext, extwho, deckwr = {}, {}, {}
     for h4, teams in users.items():
         best, who = 0.0, ""
         for t in teams:
-            if games.get((h4, t), 0) < MIN_GAMES:
+            g = games.get((h4, t), 0)
+            if g < MIN_GAMES:
                 continue
-            s_ = LB.get(t, 0)
-            if s_ > best:
-                best, who = s_, t
+            if g and (wins.get((h4, t), 0) / g) < MIN_WR:
+                continue                    # 打得多但一直输 ⇒ 这个分不是这牌给的
+            sc = LB.get(t, 0)
+            if sc > best:
+                best, who = sc, t
         if best:
             ext[h4], extwho[h4] = best, who
-    return ext, extwho, _load_ours()
+        if deck_n.get(h4, 0) >= 30:
+            deckwr[h4] = (deck_w[h4] / deck_n[h4], deck_n[h4])
+    return ext, extwho, deckwr, _load_ours()
 
 
 def real_panel_levels():
@@ -147,7 +169,7 @@ def main():
     REALW = W
     D = load_master()
     PANEL = real_panel_levels()
-    ext, extwho, ours = lb_maps()
+    ext, extwho, deckwr, ours = lb_maps()
     rows = []
     for deck, cells in D.items():
         def sc(drv):
@@ -183,16 +205,20 @@ def main():
         ceil_ = max([x for x in (r["ext"], r["ours"]) if x] or [0]) or None
         r["ceil"] = ceil_
         r["K"] = max(0.85, min(1.25, ceil_ / med)) if ceil_ else 1.0
+        r["deckwr"] = deckwr.get(deck)
         r["inv"] = r["after"] * r["K"]
         r["gapceil"] = (ceil_ - r["ours"]) if (ceil_ and r["ours"]) else None
     rows.sort(key=lambda r: -r["inv"])
     with open(OUT, "w", newline="", encoding="utf-8-sig") as fh:
         w = csv.writer(fh)
         w.writerow(["卡组", "最佳驾驶员", "覆盖加权胜率%", "可补缺口pp", "面板补后水平%", "口径",
-                    "外部天花板", "外部最高分玩家", "我们最高分", "天花板", "K", "上限差距", "投资分"])
+                    "外部天花板", "外部最高分玩家", "牌天梯胜率", "牌天梯局数", "我们最高分", "天花板", "K", "上限差距", "投资分"])
         for r in rows:
             w.writerow([r["deck"], r["best"], round(r["lvl"], 1), round(r["gap"], 2), round(r["after"], 1), r["src"],
-                        r["ext"] or "", r["extwho"], r["ours"] or "", r["ceil"] or "",
+                        r["ext"] or "", r["extwho"],
+                        ("" if not r["deckwr"] else f"{r['deckwr'][0]*100:.1f}%"),
+                        ("" if not r["deckwr"] else r["deckwr"][1]),
+                        r["ours"] or "", r["ceil"] or "",
                         round(r["K"], 3), "" if r["gapceil"] is None else round(r["gapceil"], 1),
                         round(r["inv"], 1)])
     print(f"→ {os.path.relpath(OUT, ROOT)}（{len(rows)} 副，天花板中位数 {med:.1f}）")
