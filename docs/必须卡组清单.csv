@@ -1,0 +1,29 @@
+﻿4hex,8hex,卡组文件,原型,17格,榜前N队局数,榜前N队胜率,对手覆盖率,覆盖率(我方对局),回放口径天花板,回放口径最高分玩家,已训练驾驶员,现有驾驶员,建议
+3eaa,3eaaf117,dreepy_drakloak__3eaa,dreepy_drakloak,✓,206,58.7%,18.3%,2.9%,1404.0,Dipam Chakraborty,bc_3eaa,"bc_3eaa,opp_3eaa",
+e1d7,e1d754a7,z_ogerpon_toolbox_miwa__e1d7,z_ogerpon_toolbox_miwa,✓,144,66.0%,12.9%,2.5%,1600.4,knshnb,candE1D7T,"candE1D7T,port_e1d7",
+a47a,a47a7971,beldum_metang__a47a,beldum_metang,,124,31.5%,10.8%,0.8%,1277.9,SeaGoat,,init_a47a,仅 init/BC，优先排训练
+7e39,7e398437,teal_mask_ogerpon_ex_applin__7e39,teal_mask_ogerpon_ex_applin,✓,25,40.0%,9.3%,34.9%,,,cand7e39S,"cand7e39S,p_7e39,port_7e39",
+8fe3,8fe3645a,dreepy-drakloak__8fe3,dreepy-drakloak,,48,52.1%,4.1%,0.0%,1318.5,tyr1218,bc_8fe3,bc_8fe3,
+0bf5,0bf5955c,dunsparce_abra__0bf5,dunsparce_abra,✓,14,28.6%,3.9%,12.9%,,,cand0bf5S,"cand0bf5S,opp_dunsparce_0bf5",
+0904,0904e46f,z_dragapult_dreepy_petit__0904,z_dragapult_dreepy_petit,✓,38,44.7%,3.6%,1.7%,1554.6,Petit Canard,,"init_0904,port_0904",仅 init/BC，优先排训练
+ea39,ea39ccb1,dreepy_drakloak__ea39,dreepy_drakloak,✓,37,43.2%,3.4%,1.2%,,,bc_ea39,bc_ea39,
+f91d,f91d57e2,beldum_metang__f91d,beldum_metang,,37,43.2%,3.2%,0.0%,,,,init_f91d,仅 init/BC，优先排训练
+9180,91808263,unseen__91808263,unseen,✓,26,57.7%,2.8%,2.9%,1284.2,Swag Collectors,,"bc_9180,init_9180",仅 init/BC，优先排训练
+5b8f,5b8f64c8,dreepy-drakloak__5b8f,dreepy-drakloak,,32,65.6%,2.7%,0.0%,1310.7,RtoABC2,bc_5b8f,bc_5b8f,
+0b34,0b345ad1,tealmaskogerponex-forestofvitality__0b34,tealmaskogerponex-forestofvitality,,30,56.7%,2.7%,0.4%,1334.3,ktr,,init_0b34,仅 init/BC，优先排训练
+cb25,cb250bae,beldum-metang__cb25,beldum-metang,,30,50.0%,2.6%,0.0%,1285.0,fufufukakaka,,init_cb25,仅 init/BC，优先排训练
+049c,049cb6e7,dreepy-drakloak__049c,dreepy-drakloak,,29,65.5%,2.5%,0.0%,1291.4,バーベナヘレナでコンボ決めたい連合,bc_049c,bc_049c,
+2617,2617a1c6,grookey_thwackey__2617,grookey_thwackey,✓,7,42.9%,1.5%,4.1%,,,"g6_db04_on_2617,ph3_2617_v1,ph3_2617_v2","c_grookey,g6_db04_on_2617,ph3_2617_v1,ph3_2617_v2",
+71b2,71b2ac01,slowpoke-academyatnight__71b2,slowpoke-academyatnight,,13,46.2%,1.1%,0.0%,,,,init_71b2,仅 init/BC，优先排训练
+e8ee,e8eef8d8,abra_kadabra__e8ee,abra_kadabra,✓,9,44.4%,0.9%,0.8%,,,,"init_e8ee,port_e8ee",仅 init/BC，优先排训练
+1917,19172ecd,dreepy-drakloak__1917,dreepy-drakloak,,10,60.0%,0.9%,0.0%,1310.7,RtoABC2,bc_1917,bc_1917,
+3f45,3f451509,abra_kadabra__3f45,abra_kadabra,✓,2,100.0%,0.6%,2.1%,,,,init_3f45,仅 init/BC，优先排训练
+77a5,77a53ffc,mega_lucario_ex_solrock__77a5,mega_lucario_ex_solrock,✓,2,0.0%,0.6%,2.1%,,,,init_77a5,仅 init/BC，优先排训练
+07be,07bedfff,dreepy_drakloak__07be,dreepy_drakloak,✓,0,,0.5%,2.5%,,,bc_07be,bc_07be,
+f5f8,f5f8201b,abra_kadabra__f5f8,abra_kadabra,✓,1,0.0%,0.3%,1.2%,,,"candf5f8D,candf5f8E,candf5f8F,candf5f8G,candf5f8S,f5f8_s1048k,f5f8_s524k","c_abra,candf5f8D,candf5f8E,candf5f8F,candf5f8G,candf5f8S,f5f8_s1048k,f5f8_s524k,p_f5f8",
+9d6e,9d6ea740,dunsparce_abra__9d6e,dunsparce_abra,✓,1,100.0%,0.3%,0.8%,,,"ab9d6e_r1A,ab9d6e_r1A_blend,ab9d6e_r1B,ab9d6e_r2A,b9d6e,ph3_9d6e_v2","ab9d6e_r1A,ab9d6e_r1A_blend,ab9d6e_r1B,ab9d6e_r2A,b9d6e,p9d6e,ph3_9d6e_v2,port_on_9d6e",
+0382,03822cc7,mega_kangaskhan_ex_dwebble__0382,mega_kangaskhan_ex_dwebble,✓,0,,0.3%,1.2%,,,,init_0382,仅 init/BC，优先排训练
+9bc9,9bc9d655,unseen__9bc9d655,unseen,✓,0,,0.3%,1.2%,,,,"bc_9bc9,init_9bc9",仅 init/BC，优先排训练
+26c6,26c6e843,slowpoke_slowking__26c6,slowpoke_slowking,✓,1,0.0%,0.2%,0.4%,,,"bc_26c6,cand26c6S,r1A_26c6","bc_26c6,cand26c6S,port_26c6,r1A_26c6",
+0d86,0d86f3a5,shuppet_dhelmise__0d86,shuppet_dhelmise,,1,0.0%,0.1%,0.0%,,,"g8_bc_parent,g8_shuppet,opp_shuppet_human","g8_bc_parent,g8_shuppet,opp_shuppet_human,p_0d86,port_0d86",
+db04,db042305,dunsparce_abra__db04,dunsparce_abra,,0,,0.0%,0.0%,,,g6_db04,"g6_db04,port_db04",

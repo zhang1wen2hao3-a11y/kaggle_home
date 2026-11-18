@@ -36,9 +36,18 @@
 
 ## 4. 每轮都要维护的表（别让表变旧）
 
-`bash tools/refresh_tables.sh` 会重算：
-`docs/the-pockmon-battle-choice-in-table.csv`（母表）、`docs/卡组天花板与投资分.csv`（天花板/投资分）、
-`decks/testset_meta_real.tsv`（17 格真实份额测试集）、`decks/testset_meta_A.tsv`。
+`bash tools/refresh_tables.sh` 会重算（**任何一步失败都非零退出，不许跳过**）：
+① 母表 → ②③ 交付表 → **④ 必须卡组清单 → ⑤ 补必须卡组的驾驶员（BC/init）** → ⑥ 名字校验
+→ **⑦ 投资分 → ⑧ 覆盖校验（必须卡组一条不漏）** → ⑨ 方案A 测试集。
+
+- **训练资源按投资分排**：`docs/卡组天花板与投资分.csv`。
+  公式 `投资分 = 100 × (缺口G × 覆盖C × 高峰H)^(1/3)`，
+  口径见 **`docs/投资分口径.md`**（用户 2026-11-19 要求：向**高分卡组 + 高覆盖率**倾斜，
+  缺口 = 远端高分 − 我们在这副牌上的分）。
+- **必须卡组**（17 格 ∪ 母表 ∪ 榜前 N 队≥10 局用过的牌，现在 28 副）见 `docs/必须卡组清单.csv`；
+  缺驾驶员会被自动补成 `bc_<4hex>`（该原型有 BC 权重）或 `init_<4hex>`（端口权重），并登记注册表。
+- 旧脚本 `tools/build_investment_table.py` 已降级为**库**（提供真实份额权重/母表/天花板规则/17 格面板分），
+  被 `tools/build_investment_score.py` import；不要再直接跑它生成投资分。
 
 ## 5. 当前状态入口
 

@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
-# **固定刷新流程**：把 logs/meta 的新结果 → 母表 → 全部交付表 → 校验 → 方案A 测试集。
+# **固定刷新流程**：把 logs/meta 的新结果 → 母表 → 全部交付表 → 必须卡组 → 投资分 → 校验 → 方案A 测试集。
 #
-# 固定评测流程的唯一执行入口（规则见 docs/驾驶员与覆盖规则.md）：
-#   ① 导出母表（唯一证据源）      ② 重算 b05 口径交付表   ③ 重算顶分段口径交付表
-#   ④ 校验表里每个驾驶员都能被注册表解析   ⑤ 生成方案 A 测试集（对手=各牌最佳驾驶员）
-#
+# 固定评测流程的唯一执行入口（规则见 docs/驾驶员与覆盖规则.md）。
 # 任何一步失败都会**非零退出**并打印原因，不允许"跳过继续"。
-# orchestrate_cpu.sh 每轮拉完结果就调用本脚本；手工更新也只调它，不要单步跑。
+#
+# 2026-11-19 起新增（用户要求）：训练资源要向「高分卡组 + 高覆盖率」倾斜 ⇒
+#   ④ 必须卡组清单（17 格 ∪ 母表 ∪ 榜前 N 队用过的牌）
+#   ⑤ 补必须卡组的驾驶员（缺模型 ⇒ 优先 BC 权重，没有就端口 init）
+#   ⑦ 投资分 = 缺口(远端高分 − 我们) × 覆盖率 × 天花板，三项开三次方
+#   ⑧ 覆盖校验：必须卡组**必须**一条不漏地出现在投资分表里，否则非零退出
 #
 #   bash tools/refresh_tables.sh            # 全流程
 #   bash tools/refresh_tables.sh --quiet    # 只打错误
@@ -31,15 +33,25 @@ $PY tools/build_pilot_table.py 2>&1 | tail -1 || die "build_pilot_table(b05) 失
 $PY tools/build_pilot_table.py --weights decks/weights_top.txt --suffix _top 2>&1 | tail -1 \
   || die "build_pilot_table(top) 失败"
 
-say "④ 名字校验"
+say "④ 必须卡组清单（17格 ∪ 母表 ∪ 榜前N队用过的牌）"
+$PY tools/required_decks.py 2>&1 | tail -2 || die "required_decks 失败"
+
+say "⑤ 补必须卡组的驾驶员（缺模型 ⇒ BC 优先，否则端口 init）"
+$PY tools/materialize_required_drivers.py 2>&1 | tail -2 || die "materialize_required_drivers 失败"
+$PY tools/required_decks.py 2>&1 | tail -1 || die "required_decks(复核) 失败"   # 补完再算，驾驶员列才准
+
+say "⑥ 名字校验"
 if ! $PY tools/driver_registry.py check 2>&1 | tail -3; then
   die "表里有无法解析的驾驶员名字（见上）—— 先登记 tools/driver_registry.py"
 fi
 
-say "⑤ 投资分表（面板补后水平 × 天花板；下一轮补强的排序依据）"
-$PY tools/build_investment_table.py 2>&1 | tail -3 || die "build_investment_table 失败"
+say "⑦ 投资分表（缺口 × 覆盖率 × 天花板；向高分卡组 + 高覆盖倾斜）"
+$PY tools/build_investment_score.py 2>&1 | tail -3 || die "build_investment_score 失败"
 
-say "⑥ 方案A 测试集"
+say "⑧ 覆盖校验（必须卡组一条不漏）"
+$PY tools/required_decks.py --check-covered 2>&1 | tail -3 || die "投资分表没覆盖全部必须卡组"
+
+say "⑨ 方案A 测试集"
 $PY tools/make_testset_A.py 2>&1 | tail -2 || die "make_testset_A 失败"
 
 say "✓ 刷新完成"
