@@ -52,8 +52,33 @@ def load_master():
     return rec
 
 
+def _load_ours():
+    p = os.path.join(ROOT, "data", "lb_ours_by_deck.json")
+    if os.path.exists(p):
+        return {k: float(v["score"]) for k, v in json.load(open(p)).items()}
+    return {}
+
+
 def lb_maps():
+    """外部天花板：**按牌算，不按人算**。
+
+    坑（2026-11-18 实测）：`lb_scores.json` 是**玩家级**分数。若把他用过的每副牌都记上他的分，
+    会严重高估 —— Ondrej Kubicek 名下挂了 `0bf5`，但他 0bf5 只打过 **4 局、0 胜**；
+    `f5f8` 也只打 4 局。他的 1428 其实来自 shuppet（0d86，51 条记录、23/41 胜）。
+    ⇒ 只有该玩家在这副牌上 **≥MIN_GAMES 局**，才把他的分数算作这副牌的天花板。
+    """
     LB = json.load(open(os.path.join(ROOT, "data", "lb_scores.json")))
+    MIN_GAMES = 10
+    games = collections.Counter()          # (h4, team) -> 局数（从真人档案统计）
+    try:
+        for r in csv.DictReader(open(os.path.join(ROOT, "data", "ladder_games.tsv")), delimiter="\t"):
+            for i in (0, 1):
+                t = (r.get(f"seat{i}_agent") or "").strip()
+                h4 = (r.get(f"seat{i}_deck") or "")[:4]
+                if t and h4:
+                    games[(h4, t)] += 1
+    except OSError:
+        pass
     users = collections.defaultdict(set)
     for r in csv.DictReader(open(os.path.join(ROOT, "data", "deck_corpus.csv"))):
         users[(r.get("deck_hash") or "")[:4]].add(r.get("team") or "")
@@ -61,16 +86,14 @@ def lb_maps():
     for h4, teams in users.items():
         best, who = 0.0, ""
         for t in teams:
-            s = LB.get(t, 0)
-            if s > best:
-                best, who = s, t
+            if games.get((h4, t), 0) < MIN_GAMES:
+                continue
+            s_ = LB.get(t, 0)
+            if s_ > best:
+                best, who = s_, t
         if best:
             ext[h4], extwho[h4] = best, who
-    ours = {}
-    p = os.path.join(ROOT, "data", "lb_ours_by_deck.json")
-    if os.path.exists(p):
-        ours = {k: float(v["score"]) for k, v in json.load(open(p)).items()}
-    return ext, extwho, ours
+    return ext, extwho, _load_ours()
 
 
 def real_panel_levels():
