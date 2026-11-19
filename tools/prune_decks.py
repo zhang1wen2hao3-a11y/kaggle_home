@@ -194,7 +194,10 @@ def main(argv=None):
         # 同时 init 口径也不能比全场最高还高（防止靠一个强驾驶员掩盖牌本身很弱）
         sbest = S_best.get(d)
         weakest = sbest is not None and sbest <= min(S_best.values()) + 1e-9   # 就是全场最低
-        if reasons:
+        if s_val is None and p_max is None:
+            status = "待补种子"       # 表里刚接进来、还没跑过任何一格 ⇒ 先补种子才能判断
+            reasons.append("维护表里没有任何对局数据（下一步：tools/run_seeds_new_decks.sh）")
+        elif reasons:
             status = "保留"
         elif weakest and (p_max is None or p_max < MIN_PRESSURE) and (c_val or 0) < MIN_COVERAGE:
             status = "淘汰"
@@ -214,7 +217,7 @@ def main(argv=None):
         adds.append(dict(deck=d, status="建议新增", s=None, s_n=0, p=None, p_who="",
                          cov=cov.get(d), inv=v,
                          why=f"投资分 {v:.1f}、覆盖率 {(cov.get(d) or 0)*100:.1f}% —— 不在维护表里"))
-    rows.sort(key=lambda r: (r["status"] != "淘汰", -(r["inv"] or 0)))
+    rows.sort(key=lambda r: ({"淘汰": 0, "待补种子": 1}.get(r["status"], 2), -(r["inv"] or 0)))
     rows = rows + adds          # ★ 新增建议也要落表（之前只算没写，白算了）
 
     with open(OUT, "w", newline="", encoding="utf-8-sig") as fh:
@@ -227,8 +230,9 @@ def main(argv=None):
                         ("" if r["cov"] is None else f"{r['cov']*100:.1f}%"),
                         ("" if r["inv"] is None else round(r["inv"], 1)), r["why"]])
     n_cut = sum(1 for r in rows if r["status"] == "淘汰")
+    n_wait = sum(1 for r in rows if r["status"] == "待补种子")
     print(f"→ {os.path.relpath(OUT, ROOT)}：维护表 {len(decks)} 副，淘汰 {n_cut} 副，建议新增 {len(adds)} 副"
-          f"（阈值 P<{MIN_PRESSURE*100:.0f}% 且 C<{MIN_COVERAGE*100:.0f}% 且强度最低）")
+          f"（阈值 P<{MIN_PRESSURE*100:.0f}% 且 C<{MIN_COVERAGE*100:.0f}% 且强度最低）；待补种子 {n_wait} 副")
     print(f"{'状态':6s}{'牌':6s}{'强度':>7s}{'格压力':>7s}{'覆盖率':>8s}{'投资分':>7s}  理由")
     for r in rows:
         print(f"{r['status']:6s}{r['deck']:6s}{(f'{r[chr(115)]*100:.1f}%' if r['s'] is not None else '—'):>7s}"
@@ -241,7 +245,7 @@ def main(argv=None):
                   f"{', '.join(r['deck'] for r in rows if r['status'] == '淘汰')}")
             print("  ⇒ 从 docs/the-pockmon-battle-choice*.csv 里移除（或补一条'为什么不能淘汰'的证据）后再刷新")
             return 4
-        print(f"✓ 维护表没有需要淘汰的卡组（{len(decks)} 副）")
+        print(f"✓ 维护表没有需要淘汰的卡组（{len(decks)} 副，其中待补种子 {n_wait} 副）")
     return 0
 
 
