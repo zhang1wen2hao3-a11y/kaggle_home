@@ -123,6 +123,8 @@ def main():
     for rnd in range(1, a.max_rounds + 1):
         st = {h: remote_state(h) for h in a.hosts}          # 每机 1 次 ssh
         for t in tasks:                                     # ① 结算
+            if t.get("status") == "failed" and t.get("retries", 0) >= 3:
+                continue
             key = f"{t['cand']}_real_s{t['seed']}/{t['cell']}"
             if t["status"] != "done" and any(key in st[h][1] for h in a.hosts):
                 t.update(status="done")
@@ -131,8 +133,15 @@ def main():
                 if key in st[h][1]:
                     t["status"] = "done"
                 elif st[h][0] == 0:
-                    t.update(status="pending", host=None)
-                    print(f"  ↺ 重排 {t['cand']} {t['cell']}（{h.split('@')[-1]} 空了但没结果）", flush=True)
+                    t["retries"] = t.get("retries", 0) + 1
+                    if t["retries"] >= 3:
+                        # ★ 2026-11-19：agent 目录缺失时 eval 会瞬间失败 → 无限"重排"、机器空转。
+                        #   连续 3 次空手而归就判 failed，别再占着队列。
+                        t.update(status="failed", host=None)
+                        print(f"  ✗ 放弃 {t['cand']} {t['cell']}（连续 3 次派出去没结果，八成远端缺 agent）", flush=True)
+                    else:
+                        t.update(status="pending", host=None)
+                        print(f"  ↺ 重排 {t['cand']} {t['cell']}（{h.split('@')[-1]} 空了但没结果，第 {t['retries']} 次）", flush=True)
         for h in a.hosts:                                   # ② 派活
             if st[h][0] != 0:                               # >0 忙；-1 连不上
                 continue

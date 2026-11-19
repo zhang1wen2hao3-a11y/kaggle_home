@@ -65,6 +65,13 @@ fi
 say "═══ 关 GPU（产物已校验）═══"
 timeout 30 ssh -o BatchMode=yes $GPU_HOST 'sync; nohup shutdown -h now > /dev/null 2>&1 & sleep 2; echo bye' 2>&1 | tail -1 | sed 's/^/  /' | tee -a "$LOG"
 
+# ★ 2026-11-19 用户要求：GPU 跑完**立刻停**；CPU 机器可能已经按计划关掉，
+#   这时不要回落到本地跑面板（用户明确禁止开发机跑评估）。SKIP_CPU=1 ⇒ 只做"拉权重→md5→转 pt→关机"。
+if [ "${SKIP_CPU:-0}" = 1 ]; then
+  say "SKIP_CPU=1：GPU 已关，权重已落 models/ppo/$NAME.bin/.pt，面板等有 CPU 机器时再跑"
+  exit 0
+fi
+
 bash tools/make_agent_dir.sh "build/agents/$NAME" "models/ppo/$NAME.pt" "decks/pool_field/$DECK.csv" 2>&1 | tail -1 | tee -a "$LOG"
 REACHABLE=()
 for h in "${HOSTS[@]}"; do
