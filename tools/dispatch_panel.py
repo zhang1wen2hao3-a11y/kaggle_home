@@ -101,7 +101,9 @@ def main():
     ap.add_argument("--workers", type=int, default=24)
     ap.add_argument("--interval", type=int, default=20)
     ap.add_argument("--once", action="store_true")
-    ap.add_argument("--max-rounds", type=int, default=200)
+    # ★ 2026-11-19：默认 200 轮 × 15 s ≈ 50 分钟就到顶，102 格的种子队列必被腰斩
+    #   （123 的反向跑到 58/102 就 DISPATCH_TIMEOUT 了）。按"每格 ~60 s"算，1000 轮 ≈ 4 小时够用。
+    ap.add_argument("--max-rounds", type=int, default=1000)
     ap.add_argument("--cell-agents", default="",
                     help="补充 格子=agent目录 映射（逗号分隔），用于真实口径表里没有、但属于 12 格网格的格，"
                          "如 champ_0d86=build/agents/g8_bc_parent,dunsparce_db04=build/agents/port_db04")
