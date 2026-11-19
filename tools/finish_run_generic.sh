@@ -52,10 +52,10 @@ say "✓ models/ppo/$NAME.pt"
 if ! grep -q "\"$NAME\"" tools/driver_registry.py; then
   python3 - "$NAME" <<'PY'
 import sys
-name=sys.argv[1]; p='tools/driver_registry.py'; s=open(p).read()
+name=sys.argv[1]; deck=sys.argv[2]; p='tools/driver_registry.py'; s=open(p).read()
 add=('    "%s": dict(agent="%s", weights="models/ppo/%s.pt",\n'
-     '                   remote=None, deck="f5f8", fidelity=None,\n'
-     '                   note="（自动登记，评测后补结论）"),\n') % (name,name,name)
+     '                   remote=None, deck="%s", fidelity=None,\n'
+     '                   note="（自动登记，评测后补结论）"),\n') % (name,name,name,deck)
 anchor='    "candf5f8D": dict('
 open(p,'w').write(s.replace(anchor, add+anchor))
 PY

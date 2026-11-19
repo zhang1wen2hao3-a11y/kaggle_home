@@ -178,8 +178,10 @@ DRIVERS = {
                    remote=None, deck="f5f8", fidelity=None,
                    note="（自动登记，评测后补结论）"),
     "candE1D7R2": dict(agent="candE1D7R2", weights="models/ppo/candE1D7R2.pt",
-                   remote=None, deck="f5f8", fidelity=None,
-                   note="（自动登记，评测后补结论）"),
+                       remote=None, deck="e1d7", fidelity=None,
+                       note="e1d7 第 2 轮（bank 换成 3eaa×2/a47a/0904/ea39/f91d/2617/镜像；"
+                            "面板 42.9% vs 起点 41.6%，未过闸门；但单格 07be +22pp / 2617 +8.7pp / "
+                            "0904 +5.3pp / 镜像 +6.7pp 有戏 ⇒ 可作物色单格专精或强对手 bank）"),
     "candf5f8D": dict(agent="candf5f8D", weights="models/ppo/candf5f8D.pt",
                       remote=None, deck="f5f8", fidelity=None,
                       note="f5f8 真实口径补短板版（2026-11-17，INIT=candf5f8G，5 个端口 bank 绑 dreepy/mega 族，"
