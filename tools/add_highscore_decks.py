@@ -209,11 +209,9 @@ def main(argv=None):
     if a.dry:
         return 0
     if adds:
-        with open(ORDER, "w", encoding="utf-8") as fh:
-            fh.write("# 维护表牌序（build_from_master.py 读这个文件；一行一副，顺序即矩阵列顺序）\n")
-            for h4 in new_order:
-                fh.write(h4 + "\n")
-        print(f"✓ 写入 {os.path.relpath(ORDER, ROOT)}")
+        import deck_order as DO
+        DO.save(new_order)          # ← 走统一写入口，自动排序（数字在字母前）
+        print(f"✓ 写入 {os.path.relpath(ORDER, ROOT)}（已按统一规则排序）")
     with open(OUT_LIST, "w", newline="", encoding="utf-8-sig") as fh:
         w = csv.writer(fh)
         w.writerow(["卡组", "文件", "判定", "相似度结论", "对手覆盖率", "天花板", "缺种子格数", "缺的格（前8）", "动作"])

@@ -147,11 +147,9 @@ def main(argv=None):
         fh.write("# 近似同构卡组合并表（变体 -> 代表）；export_master.py 会把变体的对局数据并入代表\n")
         for k, v in sorted(merge.items()):
             fh.write(f"{k} {v}\n")
-    with open(ORDER, "w", encoding="utf-8") as fh:
-        fh.write("# 维护表牌序（build_from_master.py 读这个文件；一行一副，顺序即矩阵列顺序）\n")
-        for h in new_order:
-            fh.write(h + "\n")
-    print(f"✓ 写入 {os.path.relpath(MERGE, ROOT)} 与 {os.path.relpath(ORDER, ROOT)}")
+    import deck_order as DO
+    DO.save(new_order)              # ← 统一写入口，自动排序
+    print(f"✓ 写入 {os.path.relpath(MERGE, ROOT)} 与 {os.path.relpath(ORDER, ROOT)}（牌序已统一排序）")
     return 0
 
 

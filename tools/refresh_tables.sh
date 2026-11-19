@@ -20,6 +20,9 @@ Q=0
 say() { [ "$Q" = 1 ] || echo "$@"; }
 die() { echo "✗ $*" >&2; exit 1; }
 
+say "⓪ 牌序（统一排序：数字在字母前；不通过就中断）"
+$PY tools/deck_order.py check 2>&1 | tail -1 || die "牌序未统一排序 —— 跑 tools/deck_order.py 修（或检查是不是有人手改了 deck_order.txt）"
+
 say "① 母表"
 $PY tools/export_master.py 2>&1 | tail -2 || die "export_master 失败"
 

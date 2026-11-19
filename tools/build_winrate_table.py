@@ -30,20 +30,20 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DETAIL = os.path.join(ROOT, "docs", "the-pockmon-battle-choice-detail.csv")
 OUTCSV = os.path.join(ROOT, "docs", "the-pockmon-battle-choices-win-rate.csv")
 NEWDIR = os.path.join(ROOT, "logs", "winrate")
+import os as _os
 _LEGACY_DECKS = ["0904", "0bf5", "0d86", "2617", "26c6", "3eaa", "7e39",
          "9d6e", "db04", "e1d7", "e8ee", "f5f8"]
 
 def _load_decks():
-    """维护表牌序的唯一来源：decks/deck_order.txt（一行一副）；文件不存在时退回旧的 12 副。"""
-    import os as _os
-    _p = _os.path.join(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))), "decks", "deck_order.txt")
+    """牌序的唯一来源：tools/deck_order.py（已统一排序：数字在字母前，内部按字符顺序）。
+    不要再在这里硬编码列表 —— 2026-11-20 之前硬编码导致"新加的牌永远排到末尾"。"""
+    import sys as _sys
+    _sys.path.insert(0, _os.path.join(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))), "tools"))
     try:
-        ids = [ln.strip() for ln in open(_p) if ln.strip() and not ln.startswith("#")]
-        if ids:
-            return ids
-    except OSError:
-        pass
-    return _LEGACY_DECKS
+        import deck_order as _DO
+        return _DO.load()
+    except Exception:
+        return list(_LEGACY_DECKS)
 
 
 DECKS = _load_decks()
