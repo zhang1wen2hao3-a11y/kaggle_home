@@ -45,8 +45,23 @@ WINRATE = os.path.join(ROOT, "docs", "the-pockmon-battle-choices-win-rate.csv")
 OUTCSV = os.path.join(ROOT, "docs", "the-pockmon-battle-choice-in-table.csv")
 RUNDIR = os.path.join(ROOT, "logs", "in_table")
 
-DECKS = ["0904", "0bf5", "0d86", "2617", "26c6", "3eaa", "7e39",
+_LEGACY_DECKS = ["0904", "0bf5", "0d86", "2617", "26c6", "3eaa", "7e39",
          "9d6e", "db04", "e1d7", "e8ee", "f5f8"]
+
+def _load_decks():
+    """维护表牌序的唯一来源：decks/deck_order.txt（一行一副）；文件不存在时退回旧的 12 副。"""
+    import os as _os
+    _p = _os.path.join(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))), "decks", "deck_order.txt")
+    try:
+        ids = [ln.strip() for ln in open(_p) if ln.strip() and not ln.startswith("#")]
+        if ids:
+            return ids
+    except OSError:
+        pass
+    return _LEGACY_DECKS
+
+
+DECKS = _load_decks()
 
 # 每副卡组的最佳驾驶员（= win-rate 矩阵每行的口径）
 PILOT_OF = {"db04": "g6_db04", "2617": "ph3_2617_v1", "26c6": "r1A",

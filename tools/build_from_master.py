@@ -33,7 +33,22 @@ DET = os.path.join(ROOT, "docs", "the-pockmon-battle-choice-detail.csv")
 WR = os.path.join(ROOT, "docs", "the-pockmon-battle-choices-win-rate.csv")
 PILOT = os.path.join(ROOT, "docs", "the-pockmon-battle-choices-win-rate-pilot.csv")
 
-DECKS = ["0904", "0bf5", "0d86", "2617", "26c6", "3eaa", "7e39", "9d6e", "db04", "e1d7", "e8ee", "f5f8"]
+_LEGACY_DECKS = ["0904", "0bf5", "0d86", "2617", "26c6", "3eaa", "7e39", "9d6e", "db04", "e1d7", "e8ee", "f5f8"]
+
+def _load_decks():
+    """维护表牌序的唯一来源：decks/deck_order.txt（一行一副）；文件不存在时退回旧的 12 副。"""
+    import os as _os
+    _p = _os.path.join(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))), "decks", "deck_order.txt")
+    try:
+        ids = [ln.strip() for ln in open(_p) if ln.strip() and not ln.startswith("#")]
+        if ids:
+            return ids
+    except OSError:
+        pass
+    return _LEGACY_DECKS
+
+
+DECKS = _load_decks()
 THRESH_CELL = 5.0     # pp：格级替换门槛
 THRESH_ROW = 1.0      # pp：行级替换门槛
 VERIFIED_N = 400      # 池化样本 ≥ 这个数才算"多种子验证"
