@@ -121,6 +121,31 @@ PANEL2CELL = {
 PRI = {"meta": 3, "panel7": 2, "matrix": 1}
 
 
+def _merge_map():
+    """近似同构卡组合并表（decks/deck_merge.txt，由 tools/merge_similar_decks.py 生成）：
+    把变体的对局数据并入代表，避免"同一副牌两个 2 张差异变体"各算一套、样本被摊薄。"""
+    out = {}
+    p = os.path.join(ROOT, "decks", "deck_merge.txt")
+    try:
+        for ln in open(p, encoding="utf-8"):
+            ln = ln.strip()
+            if not ln or ln.startswith("#"):
+                continue
+            parts = ln.split()
+            if len(parts) == 2:
+                out[parts[0]] = parts[1]
+    except OSError:
+        pass
+    return out
+
+
+MERGE = _merge_map()
+
+
+def canon(deck):
+    return MERGE.get(deck, deck)
+
+
 def cell_short(name):
     return name.split("_")[-1]
 
@@ -149,14 +174,14 @@ def from_meta():
             o = json.load(open(f))["overall"]
             c = cell_short(os.path.basename(f)[3:-5])
             if c not in REAL_CELL_OK:
-                continue          # 真实口径面板里的 out_*/unseen_* 新格不进 12 格网格
+                continue          # 真实口径面板里的 out_*/unseen_* 新格不进网格
             k = (base, c)
             acc[k][0] += float(o["score"]) * int(o["n"])
             acc[k][1] += int(o["n"])
     out = []
     for (base, c), (w, n) in acc.items():
         our, drv = TAG2CELL[base]
-        out.append((our, c, drv, w / n, n, f"meta:{base}"))
+        out.append((canon(our), c, drv, w / n, n, f"meta:{base}"))   # ★ 只 canon 我方一侧
     return out
 
 
@@ -170,7 +195,7 @@ def from_panel7():
         our, drv = PANEL2CELL[key]
         for opp, o in (d.get("per_opp") or {}).items():
             if isinstance(o, dict) and "score" in o:
-                out.append((our, cell_short(opp), drv, o["score"], o["n"], f"panel7:{key}"))
+                out.append((canon(our), cell_short(opp), drv, o["score"], o["n"], f"panel7:{key}"))
     return out
 
 
@@ -179,7 +204,7 @@ def from_matrix():
     out = []
     if os.path.exists(p):
         for r in csv.DictReader(open(p)):
-            out.append((r["cand_deck"], r["opp_deck"], "init",
+            out.append((canon(r["cand_deck"]), r["opp_deck"], "init",
                         float(r["cand_win"]), int(float(r["n_games"])), "matrix_full"))
     return out
 
@@ -188,6 +213,7 @@ def from_strong_opp():
     """对手是**强驾驶员**的单格测量（对手驾驶员≠init），每个 json 只有一个格子。"""
     out = []
     for key, (our, drv, opp_deck, opp_drv) in OPP2CELL.items():
+        our = canon(our)   # 对手侧保留原牌名（0bf5/db04 在对面就是不同的对手牌）
         wins = n = 0.0
         pats = OPP_GLOBS.get(key) or [f"{key}*.json"]
         for p in [q for pat in pats

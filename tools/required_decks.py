@@ -248,7 +248,16 @@ def main():
             print("✗ 还没有 docs/卡组天花板与投资分.csv（先跑 build_investment_score.py）")
             return 2
         have = {(r.get("卡组") or "").strip() for r in csv.DictReader(open(invp, encoding="utf-8-sig"))}
-        missing = [r["h4"] for r in rows if r["h4"] not in have]
+        # 近似同构变体（0bf5→9d6e 等）在投资分表里已并入代表 ⇒ 校验时按代表名比对
+        merge = {}
+        try:
+            for ln in open(os.path.join(ROOT, "decks", "deck_merge.txt"), encoding="utf-8"):
+                ln = ln.strip()
+                if ln and not ln.startswith("#") and len(ln.split()) == 2:
+                    merge[ln.split()[0]] = ln.split()[1]
+        except OSError:
+            pass
+        missing = [r["h4"] for r in rows if merge.get(r["h4"], r["h4"]) not in have]
         if missing:
             print(f"✗ 投资分表缺 {len(missing)} 副必须卡组：{', '.join(missing)}")
             for r in rows:

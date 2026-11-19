@@ -1,0 +1,4 @@
+# 近似同构卡组合并表（变体 -> 代表）；export_master.py 会把变体的对局数据并入代表
+0bf5 9d6e
+db04 9d6e
+e8ee f5f8

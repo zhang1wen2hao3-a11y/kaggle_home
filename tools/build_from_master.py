@@ -93,6 +93,10 @@ def main():
     global WEIGHTS_FILE
     WEIGHTS_FILE = a.weights
     rec, W = load_master(), field_weights()
+    # 行 = 我方（已合并同构变体的 15 副）；列 = 数据里出现的全部对手牌（含 0bf5/db04/e8ee 这些
+    # "我们不再当主牌、但场上仍然会遇到"的牌），否则会丢掉 0bf5 这种占 12.9% 的对手格。
+    global OPP_DECKS
+    OPP_DECKS = sorted({b for (_, b) in rec} | set(DECKS))
     if a.suffix:
         global CH, DET, WR, PILOT
         f = lambda p: p[:-4] + a.suffix + ".csv"
@@ -101,7 +105,7 @@ def main():
     # ── 1/2. 格级选人 ──
     choice, detail = {}, []
     for a_ in DECKS:
-        for b_ in DECKS:
+        for b_ in OPP_DECKS:
             cell = rec.get((a_, b_), {})
             if a_ == b_:
                 # ★ 对角 = 内战格：写"当前内战最强的驾驶员"（我方驾驶员 vs 对手端口），
@@ -180,18 +184,18 @@ def main():
 
     with open(CH, "w", newline="", encoding="gb18030") as f:
         w = csv.writer(f, lineterminator="\r\n")
-        w.writerow(["挑战者\\被挑战者"] + DECKS)
+        w.writerow(["挑战者\\被挑战者"] + OPP_DECKS)
         for x in DECKS:
-            w.writerow([x] + [choice[(x, y)] for y in DECKS])
+            w.writerow([x] + [choice.get((x, y), "init") for y in OPP_DECKS])
     with open(DET, "w", newline="", encoding="gb18030") as f:
         w = csv.writer(f, lineterminator="\r\n")
         w.writerow(["挑战者", "被挑战者", "驾驶员", "胜率", "样本场次", "状态", "依据"])
         w.writerows(detail)
     with open(WR, "w", newline="", encoding="gb18030") as f:
         w = csv.writer(f, lineterminator="\r\n")
-        w.writerow(["挑战者\\被挑战者"] + DECKS)
+        w.writerow(["挑战者\\被挑战者"] + OPP_DECKS)
         for x in DECKS:
-            w.writerow([x] + [row_wr[(x, y)] for y in DECKS])
+            w.writerow([x] + [row_wr.get((x, y), "") for y in OPP_DECKS])
     with open(PILOT, "w", newline="", encoding="gb18030") as f:
         w = csv.writer(f, lineterminator="\r\n")
         w.writerow(["卡组", "最佳驾驶员", "面板场地加权", "每格样本", "依据"])

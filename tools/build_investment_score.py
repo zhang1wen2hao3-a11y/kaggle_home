@@ -37,6 +37,22 @@ import build_investment_table as LEGACY  # 复用口径：真实份额权重、�
 import required_decks as REQ
 
 REQ_LIST = os.path.join(ROOT, "docs", "必须卡组清单.csv")
+MERGE_FILE = os.path.join(ROOT, "decks", "deck_merge.txt")
+
+
+def merge_map():
+    """近似同构变体 → 代表（decks/deck_merge.txt）。投资分要按"实体"算，
+    否则 9d6e/db04/0bf5 这种只差 2–4 张的会被当成三条路线各算一遍。"""
+    out = {}
+    try:
+        for ln in open(MERGE_FILE, encoding="utf-8"):
+            ln = ln.strip()
+            if ln and not ln.startswith("#") and len(ln.split()) == 2:
+                a, b = ln.split()
+                out[a] = b
+    except OSError:
+        pass
+    return out
 OUT = os.path.join(ROOT, "docs", "卡组天花板与投资分.csv")
 GAP_SCALE = 400.0        # 分差到这个量级 ⇒ G=1
 CEIL_FLOOR = 600.0       # 天花板归一化的下界（600 是"什么都没赢"的默认分）
@@ -57,9 +73,26 @@ def main():
     port_md5 = hashlib.md5(open(os.path.join(ROOT, "build", "port_plain", "model.pt"), "rb").read()).hexdigest()
     REQ.pool_index()                      # 填好 DECK_IDS
     req_rows = list(csv.DictReader(open(REQ_LIST, encoding="utf-8-sig")))
+    MERGE = merge_map()
+
+    def canon(x):
+        return MERGE.get(x, x)
+
+    # 变体并入代表：同一实体的行只出一条，覆盖率相加、天花板取最大（用户 2026-11-19：同构牌要聚合）
+    grouped = collections.defaultdict(list)
+    for r in req_rows:
+        grouped[canon(r["4hex"])].append(r)
 
     rows = []
-    for r in req_rows:
+    for h4c, group in grouped.items():
+        r = dict(group[0])
+        r["4hex"] = h4c
+        variants = [g["4hex"] for g in group[1:]]
+        merged_cov = sum(float((g["对手覆盖率"] or "0%").rstrip("%") or 0) for g in group) / 100.0
+        r["对手覆盖率"] = f"{merged_cov*100:.1f}%"
+        if variants:
+            r["卡组文件"] = r["卡组文件"] + f"（含变体 {'/'.join(variants)}）"
+        best_cov = merged_cov
         h4 = r["4hex"]
         all_d, trained = REQ.driver_for(h4, port_md5)
         # ① 我方水平：优先用真实 17 格面板（哪个驾驶员有实测就用哪个）
@@ -111,7 +144,7 @@ def main():
             G = 0.5                                      # 没有外部天花板 ⇒ 中性（不奖励也不惩罚）
             gap_note = "无外部天花板"
         # 覆盖 C：线性归一到全场最常出现的牌（不再开方 —— 用户要的就是"高覆盖率"倾斜）
-        cov = float((r["对手覆盖率"] or "0%").rstrip("%") or 0) / 100.0
+        cov = best_cov
         cov_max = max([float((x["对手覆盖率"] or "0%").rstrip("%") or 0) / 100.0 for x in req_rows] or [0.01])
         C = (cov / cov_max) if cov_max else 0.0
         # 高峰 H

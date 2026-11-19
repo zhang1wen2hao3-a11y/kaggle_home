@@ -48,8 +48,10 @@ def gb(p):
 
 
 def table_decks():
-    hdr = gb(CHOICE).splitlines()[0].split(",")
-    return hdr[1:]
+    """维护表里**我方**的牌 = 第一列（行名）。表头列还包含 0bf5/db04/e8ee 这类
+    "我们已经合并掉、但场上仍作为对手出现"的牌，不能算进我方牌单（2026-11-19 行/列分离后修正）。"""
+    lines = gb(CHOICE).splitlines()
+    return [ln.split(",")[0] for ln in lines[1:] if ln.strip()]
 
 
 def winrate_matrix(decks):
@@ -167,6 +169,14 @@ def main(argv=None):
     cov = load_keyed(REQLIST, "4hex", "对手覆盖率")
     CEIL = load_ceil()
     inv = load_keyed(INV, "卡组", "投资分")
+    variants = set()
+    try:
+        for ln in open(os.path.join(ROOT, "decks", "deck_merge.txt"), encoding="utf-8"):
+            ln = ln.strip()
+            if ln and not ln.startswith("#") and len(ln.split()) == 2:
+                variants.add(ln.split()[0])
+    except OSError:
+        pass
 
     # 冠军卡组：强度最高 + 投资分最高 → 一律保护
     champ_s = max(S, key=lambda d: S[d][0]) if S else None
@@ -212,8 +222,8 @@ def main(argv=None):
     # 新增建议：必须卡组里不在本表的牌，按投资分排序
     adds = []
     for d, v in sorted(inv.items(), key=lambda kv: -kv[1]):
-        if d in decks:
-            continue
+        if d in decks or d in variants:
+            continue      # 已在表里，或已并入代表（变体不该提"新增"）
         adds.append(dict(deck=d, status="建议新增", s=None, s_n=0, p=None, p_who="",
                          cov=cov.get(d), inv=v,
                          why=f"投资分 {v:.1f}、覆盖率 {(cov.get(d) or 0)*100:.1f}% —— 不在维护表里"))
