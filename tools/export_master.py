@@ -62,6 +62,12 @@ TAG2CELL = {
     "port_7e39": ("7e39", "init"), "port_0d86": ("0d86", "init"), "port_e1d7": ("e1d7", "init"),
     "port_db04": ("db04", "init"), "port_0904": ("0904", "init"), "port_0bf5": ("0bf5", "init"),
     "port_3eaa": ("3eaa", "init"), "port_e8ee": ("e8ee", "init"), "port_f5f8": ("f5f8", "init"),
+    # ── 2026-11-19 新接入的 6 副（tools/add_highscore_decks.py 加进维护表）──
+    #   它们的驾驶员来自 tools/materialize_required_drivers.py：dreepy 原型用 BC 权重，其余用端口 init
+    "bc_5b8f_real": ("5b8f", "bc_5b8f"), "bc_049c_real": ("049c", "bc_049c"),
+    "bc_1917_real": ("1917", "bc_1917"),
+    "init_0b34_real": ("0b34", "init"), "init_71b2_real": ("71b2", "init"),
+    "init_cb25_real": ("cb25", "init"),
 }
 
 # `data/opp_matrix/<key>.json`：我们 vs **强驾驶员**（对手驾驶员 ≠ init）的单格测量。
@@ -121,7 +127,9 @@ def cell_short(name):
 
 # 12 格网格（母表 / 交付表的行与列）：真实口径面板里除这 12 格外还有 out_*/unseen_* 新格
 REAL_CELL_OK = {"7e39", "2617", "e8ee", "f5f8", "0d86", "9d6e", "0bf5", "3eaa",
-                "db04", "0904", "26c6", "e1d7"}
+                "db04", "0904", "26c6", "e1d7",
+                # 2026-11-19 新接入（维护表 12 → 18 副）
+                "5b8f", "049c", "1917", "0b34", "71b2", "cb25"}
 
 
 def from_meta():

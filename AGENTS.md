@@ -30,6 +30,9 @@
 ## 3. 机器纪律
 
 - 训练：GPU 跑完 → **md5 校验 → 转 pt → 立刻关机**；评估：结果 **拉回并校验数量后** → 关机。
+- **新物化卡组后要把池子同步到评估机**，否则远端 `make_agent_dir` 找不到 deck.csv（2026-11-19 踩过）：
+  `rsync -az -e ssh --include '*.csv' --exclude '*' decks/pool_field/ <host>:/root/eval_cpu_kit/decks/pool_field/`
+  再把 `decks/testset_meta_real.tsv`、`tools/driver_registry.py` 一起推过去。
 - 中途不要用 `pgrep -f "<字面量>"`：会匹配到自己那条 ssh/bash 命令行（`pkill` 把自己 shell 杀了 3 次）。用中括号形式 `[e]val_pair`。
 - `ssh` 端口是小写 `-p`（大写 `-P` 是 tag 选项，会白等 4 小时）。
 - 不要长 sleep 等任务；起任务后 12–20 s 内做一次探活，之后靠日志轮询。
