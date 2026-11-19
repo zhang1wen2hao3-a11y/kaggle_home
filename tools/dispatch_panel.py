@@ -27,7 +27,12 @@ STATE = os.path.join(ROOT, "logs", "dispatch_state.json")
 
 def ssh(host, cmd, timeout=30):
     try:
-        r = subprocess.run(["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=8", host, cmd],
+        # ★ 2026-11-19：少了 StrictHostKeyChecking/UserKnownHostsFile，
+        #   新机器（如 123.249.80.18）第一次被调度时会因"未知 host key"直接失败 ⇒ 判活返回 -1（连不上），
+        #   调度器认为"0 台空闲机"，任务一个都派不出去（本地 40 分钟白等）。两台机器都要带上这两个选项。
+        r = subprocess.run(["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=8",
+                            "-o", "StrictHostKeyChecking=no", "-o", "UserKnownHostsFile=/dev/null",
+                            host, cmd],
                            capture_output=True, text=True, timeout=timeout)
         return r.stdout
     except Exception:

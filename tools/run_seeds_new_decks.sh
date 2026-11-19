@@ -39,7 +39,7 @@ case "$MODE" in
     echo "[$(date +%H:%M:%S)] 反向 17 个现有驾驶员 × 6 个新格"
     ./tools/py tools/dispatch_panel.py --cands $EXIST_AGENTS --cells $NEWCELLS \
        --cell-agents "5b8f=build/agents/bc_5b8f,049c=build/agents/bc_049c,1917=build/agents/bc_1917,0b34=build/agents/init_0b34,71b2=build/agents/init_71b2,cb25=build/agents/init_cb25" \
-       --seeds 950000 --matches "$MATCHES" --workers 24 --interval 15 --hosts "$HOST" 2>&1 | tail -3
+       --seeds 950000 --matches "$MATCHES" --workers 24 --interval 15 --hosts "$HOST" --local-after 0 2>&1 | tail -3
     ;;
 esac
 echo "[$(date +%H:%M:%S)] SEEDS_DONE ($MODE, matches=$MATCHES)"
