@@ -17,7 +17,7 @@ say() { echo "[$(date +%H:%M:%S)] $*" | tee -a "$LOG"; }
 
 # ① 等远端空闲（最多 120 分钟，每 30s 探）
 for i in $(seq 1 240); do
-  n=$(timeout 20 ssh -o BatchMode=yes -o ConnectTimeout=8 "$H" 'pgrep -fc "ptcg_league/[e]val_pair" || true' 2>/dev/null | tr -d '[:space:]')
+  n=$(timeout 20 ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=8 "$H" 'pgrep -fc "ptcg_league/[e]val_pair" || true' 2>/dev/null | tr -d '[:space:]')
   case "${n:-}" in ''|*[!0-9]*) n="?";; esac
   [ "$n" = 0 ] && { say "远端已空闲（第 $i 次探测）"; break; }
   [ "$n" = "?" ] && say "（第 $i 次探测连不上，继续等）"
@@ -26,7 +26,7 @@ done
 
 # ② 拉结果
 say "拉取 vs_*.json"
-timeout 240 rsync -az -e "ssh -o BatchMode=yes -o ConnectTimeout=8" \
+timeout 240 rsync -az -e "ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=8" \
   --include '*/' --include 'vs_*.json' --exclude '*' \
   "$H:/root/eval_cpu_kit/logs/meta/" logs/meta/ 2>&1 | tail -2
 
@@ -55,7 +55,7 @@ fi
 
 # ④ 关机
 say "═══ 校验通过，关远端机器 ═══"
-timeout 30 ssh -o BatchMode=yes "$H" 'sync; nohup shutdown -h now > /dev/null 2>&1 & sleep 2; echo bye' 2>&1 | tail -1 | sed 's/^/  /' | tee -a "$LOG"
+timeout 30 ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$H" 'sync; nohup shutdown -h now > /dev/null 2>&1 & sleep 2; echo bye' 2>&1 | tail -1 | sed 's/^/  /' | tee -a "$LOG"
 sleep 20
-timeout 15 ssh -o BatchMode=yes -o ConnectTimeout=8 "$H" 'echo still-up' 2>&1 | tail -1 | sed 's/^/  探测: /' | tee -a "$LOG"
+timeout 15 ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=8 "$H" 'echo still-up' 2>&1 | tail -1 | sed 's/^/  探测: /' | tee -a "$LOG"
 say "DONE"

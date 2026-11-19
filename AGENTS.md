@@ -30,9 +30,16 @@
 ## 3. 机器纪律
 
 - 训练：GPU 跑完 → **md5 校验 → 转 pt → 立刻关机**；评估：结果 **拉回并校验数量后** → 关机。
+- **双重保险（2026-11-19 用户要求）**：在任何机器上开工前，先挂一个 systemd 兜底定时关机——
+  `bash tools/arm_deadline_shutdown.sh <host> 02:00`（或派发时带 `DEADLINE=02:00`）。
+  原因：看门狗靠"日志标记 + 结果数量"，一旦调度器被中断或 ssh 因主机指纹失败，
+  脚本会**退出但不关机**，机器空转（已经发生过两次）。定时关机由机器自己执行，不受我这边的进程/网络影响。
 - **新物化卡组后要把池子同步到评估机**，否则远端 `make_agent_dir` 找不到 deck.csv（2026-11-19 踩过）：
   `rsync -az -e ssh --include '*.csv' --exclude '*' decks/pool_field/ <host>:/root/eval_cpu_kit/decks/pool_field/`
   再把 `decks/testset_meta_real.tsv`、`tools/driver_registry.py` 一起推过去。
+- **所有跨机 ssh/scp/rsync 都要带 `-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null`**：
+  新机器第一次连接时没这条会 `Host key verification failed`，而收尾脚本会把"连不上"当成机器已释放
+  ⇒ 2026-11-19 就因此把面板跑到了开发机本地（用户明确禁止），并且让 123 关不掉机。
 - 中途不要用 `pgrep -f "<字面量>"`：会匹配到自己那条 ssh/bash 命令行（`pkill` 把自己 shell 杀了 3 次）。用中括号形式 `[e]val_pair`。
 - `ssh` 端口是小写 `-p`（大写 `-P` 是 tag 选项，会白等 4 小时）。
 - 不要长 sleep 等任务；起任务后 12–20 s 内做一次探活，之后靠日志轮询。

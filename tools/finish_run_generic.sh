@@ -21,8 +21,8 @@ say() { echo "[$(date +%H:%M:%S)] $*" | tee -a "$LOG"; }
 
 say "等训练落地（每 30s 探，最多 90 分钟）"
 for i in $(seq 1 180); do
-  sz=$(timeout 25 ssh -o BatchMode=yes $GPU_HOST "stat -c %s $FINAL 2>/dev/null" 2>/dev/null | tr -d '[:space:]')
-  run=$(timeout 20 ssh -o BatchMode=yes $GPU_HOST 'pgrep -fc "train_[n]ative" 2>/dev/null || true' 2>/dev/null | head -1 | tr -d '[:space:]')
+  sz=$(timeout 25 ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $GPU_HOST "stat -c %s $FINAL 2>/dev/null" 2>/dev/null | tr -d '[:space:]')
+  run=$(timeout 20 ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $GPU_HOST 'pgrep -fc "train_[n]ative" 2>/dev/null || true' 2>/dev/null | head -1 | tr -d '[:space:]')
   case "${sz:-}" in ''|*[!0-9]*) sz=0;; esac
   case "${run:-}" in ''|*[!0-9]*) run=0;; esac
   say "  第 $i 次：final=${sz}B 训练进程=$run"
@@ -36,12 +36,12 @@ mkdir -p "models/ppo/gpu_$RUN"
 # md5 比对必然失败，白丢一次训练产物；这次改成显式 PORT/HOSTNAME 再拼）。
 SSHOPT=$(echo "$GPU_HOST" | sed -n 's/.*-p *\([0-9]\+\).*/\1/p'); SSHOPT=${SSHOPT:-22}
 RHOST=$(echo "$GPU_HOST" | awk '{print $NF}')
-rsync -az -e "ssh -o BatchMode=yes -p $SSHOPT" "$RHOST:$FINAL" "models/ppo/gpu_$RUN/$RUN.bin" \
+rsync -az -e "ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p $SSHOPT" "$RHOST:$FINAL" "models/ppo/gpu_$RUN/$RUN.bin" \
   || { say "✗ 拉 final 失败：$FINAL"; exit 1; }
-rsync -az -e "ssh -o BatchMode=yes -p $SSHOPT" "$RHOST:$R/experiments/native-$RUN/" "models/ppo/gpu_$RUN/snapshots/"
+rsync -az -e "ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p $SSHOPT" "$RHOST:$R/experiments/native-$RUN/" "models/ppo/gpu_$RUN/snapshots/"
 [ "$(stat -c %s "models/ppo/gpu_$RUN/$RUN.bin")" = 18205408 ] || { say "✗ 拉回的 final 大小不对"; exit 1; }
 lf=$(md5sum "models/ppo/gpu_$RUN/$RUN.bin" | cut -d' ' -f1)
-rf=$(timeout 25 ssh -o BatchMode=yes $GPU_HOST "md5sum $FINAL | cut -d' ' -f1")
+rf=$(timeout 25 ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $GPU_HOST "md5sum $FINAL | cut -d' ' -f1")
 [ "$lf" = "$rf" ] || { say "✗ final md5 不一致"; exit 1; }
 say "✓ final md5 $lf"
 
@@ -63,7 +63,7 @@ PY
 fi
 
 say "═══ 关 GPU（产物已校验）═══"
-timeout 30 ssh -o BatchMode=yes $GPU_HOST 'sync; nohup shutdown -h now > /dev/null 2>&1 & sleep 2; echo bye' 2>&1 | tail -1 | sed 's/^/  /' | tee -a "$LOG"
+timeout 30 ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $GPU_HOST 'sync; nohup shutdown -h now > /dev/null 2>&1 & sleep 2; echo bye' 2>&1 | tail -1 | sed 's/^/  /' | tee -a "$LOG"
 
 # ★ 2026-11-19 用户要求：GPU 跑完**立刻停**；CPU 机器可能已经按计划关掉，
 #   这时不要回落到本地跑面板（用户明确禁止开发机跑评估）。SKIP_CPU=1 ⇒ 只做"拉权重→md5→转 pt→关机"。
@@ -104,7 +104,7 @@ if [ -n "$SEED2_CELLS" ]; then
      --workers 24 --interval 20 --hosts "${HOSTS[@]}" 2>&1 | tee -a "$LOG" | tail -3
 fi
 for h in "${HOSTS[@]}"; do
-  timeout 90 rsync -az -e "ssh -o BatchMode=yes" --include '*/' --include 'vs_*.json' --exclude '*' \
+  timeout 90 rsync -az -e "ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" --include '*/' --include 'vs_*.json' --exclude '*' \
     "$h:/root/eval_cpu_kit/logs/meta/" logs/meta/ 2>/dev/null
 done
 ./tools/py tools/real_panel_agg.py "$NAME" 2>&1 | tee -a "$LOG" | tail -22

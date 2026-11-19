@@ -10,7 +10,7 @@ INTERVAL="${INTERVAL:-120}"
 for round in $(seq 1 240); do
   got=0
   for h in "${HOSTS[@]}"; do
-    out=$(timeout 90 rsync -az -e "ssh -o BatchMode=yes -o ConnectTimeout=8" \
+    out=$(timeout 90 rsync -az -e "ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=8" \
       --include '*/' --include 'vs_*.json' --exclude '*' \
       "$h:/root/eval_cpu_kit/logs/meta/" logs/meta/ 2>&1 | wc -l)
     [ "${out:-0}" -gt 0 ] && got=$((got+out))

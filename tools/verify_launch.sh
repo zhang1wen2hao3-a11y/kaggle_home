@@ -22,17 +22,17 @@ ALLOW_ZERO="${ALLOW_ZERO:-0}"
 die() {
   echo "✗ 启动验证失败：$*"
   echo "--- 远端日志尾部（$LOGLOB）---"
-  timeout 20 ssh -o BatchMode=yes -o ConnectTimeout=8 "$HOST" \
+  timeout 20 ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=8 "$HOST" \
     "for f in $LOGLOB; do echo \"== \$f\"; tail -12 \"\$f\"; done" 2>&1 | tail -40
   exit 2
 }
 for i in $(seq 1 "$ROUNDS"); do
-  out=$(timeout 20 ssh -o BatchMode=yes -o ConnectTimeout=8 "$HOST" "$PROBE" 2>&1 | head -1 | tr -d '[:space:]')
+  out=$(timeout 20 ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=8 "$HOST" "$PROBE" 2>&1 | head -1 | tr -d '[:space:]')
   case "$out" in ''|*[!0-9]*) out=0;; esac
   echo "  探第 $i 次（每 ${INTERVAL}s）：$out"
   if [ "$out" -gt 0 ]; then echo "✓ 启动确认（$out）"; exit 0; fi
   # 顺手查致命错误关键字，有就直接失败（不用等满轮次）
-  err=$(timeout 20 ssh -o BatchMode=yes -o ConnectTimeout=8 "$HOST" \
+  err=$(timeout 20 ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=8 "$HOST" \
         "for f in $LOGLOB; do grep -lE 'Traceback|AssertionError|MISSING_AGENT|不存在' \"\$f\" 2>/dev/null; done" 2>/dev/null | head -1)
   [ -n "$err" ] && die "日志里已有致命错误：$err"
   sleep "$INTERVAL"

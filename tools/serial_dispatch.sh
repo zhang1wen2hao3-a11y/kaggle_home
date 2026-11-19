@@ -10,6 +10,12 @@
 set -uo pipefail
 cd "$(dirname "$0")/.." || exit 1
 HOST="${1:?host}"; shift
+
+# ★ 兜底定时关机（用户 2026-11-19 要求）：DEADLINE=02:00 时，先在目标机挂 systemd 定时关机，
+#   这样即使看门狗失效/网络断了，机器到点也会自己关。
+if [ -n "${DEADLINE:-}" ]; then
+  bash tools/arm_deadline_shutdown.sh "$HOST" "$DEADLINE" >/dev/null 2>&1 || true
+fi
 for spec in "$@"; do
   CAND="${spec%%:*}"; CELLS="${spec#*:}"
   echo "[$(date +%H:%M:%S)] === $CAND ($CELLS)"

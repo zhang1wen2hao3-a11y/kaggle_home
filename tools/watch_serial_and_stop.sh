@@ -17,7 +17,7 @@ done
 grep -q "$DONE_TAG" "$LOG" 2>/dev/null || { say "⚠️ 等超时，不关机"; exit 1; }
 
 for try in 1 2 3; do
-  rsync -az -e "ssh -o BatchMode=yes" --include '*/' --include 'vs_*.json' --include 'summary.json' \
+  rsync -az -e "ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" --include '*/' --include 'vs_*.json' --include 'summary.json' \
     --exclude '*' "$H:/root/eval_cpu_kit/logs/meta/" logs/meta/ && break
   say "  rsync 第 $try 次失败，重试"; sleep 10
 done
@@ -27,5 +27,5 @@ say "本次新增结果 $new 个（期望 ≥$NEED）"
 if [ "$new" -lt "$NEED" ]; then say "✗ 结果数不够 ⇒ 保持开机"; exit 2; fi
 
 say "收尾：关 $H"
-timeout 30 ssh -o BatchMode=yes "$H" 'sync; nohup shutdown -h now > /dev/null 2>&1 & sleep 2; echo bye' 2>&1 | tail -1 | sed 's/^/  /' | tee -a "$TAG.log"
+timeout 30 ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$H" 'sync; nohup shutdown -h now > /dev/null 2>&1 & sleep 2; echo bye' 2>&1 | tail -1 | sed 's/^/  /' | tee -a "$TAG.log"
 say DONE
