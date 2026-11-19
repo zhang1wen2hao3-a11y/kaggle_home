@@ -1,20 +1,19 @@
-# 真实份额口径测试集（由 tools/make_testset_real.py 生成，数据源 logs/sub_feedback/scan.jsonl）
-# cell	agent_dir	deck	group	weight(%)	driver
-ogerpon_7e39	build/agents/port_7e39	teal_mask_ogerpon_ex_applin__7e39	old	34.8548	init
-dunsparce_0bf5	build/agents/opp_dunsparce_0bf5	dunsparce_abra__0bf5	old	12.8631	init
-grookey_2617	build/agents/c_grookey	grookey_thwackey__2617	old	4.1494	init
+# 真实场口径（2026-11-20 起为**强对手**版）：每格用该牌实测最硬的对手驾驶员；出场概率权重见第 5 列；旧端口口径见 testset_meta_real_port.tsv
+ogerpon_7e39	build/agents/cand7e39S	teal_mask_ogerpon_ex_applin__7e39	old	34.8548	init
+dunsparce_0bf5	build/agents/cand0bf5S	dunsparce_abra__0bf5	old	12.8631	init
+grookey_2617	build/agents/g6_db04_on_2617	grookey_thwackey__2617	old	4.1494	init
 out_91808263	build/agents/port_on_91808263	unseen__91808263	new	2.9046	init
-dreepy_3eaa	build/agents/opp_3eaa	dreepy_drakloak__3eaa	old	2.9046	init
-champ_e1d7	build/agents/port_e1d7	z_ogerpon_toolbox_miwa__e1d7	old	2.4896	init
-out_07be	build/agents/port_on_07be	dreepy_drakloak__07be	new	2.4896	init
-out_3f45	build/agents/port_on_3f45	abra_kadabra__3f45	new	2.0747	init
-out_77a5	build/agents/port_on_77a5	mega_lucario_ex_solrock__77a5	new	2.0747	init
-champ_0904	build/agents/port_0904	z_dragapult_dreepy_petit__0904	old	1.6598	init
-abra_f5f8	build/agents/candf5f8S	abra_kadabra__f5f8	old	1.2448	candf5f8S
-out_ea39	build/agents/port_on_ea39	dreepy_drakloak__ea39	new	1.2448	init
+dreepy_3eaa	build/agents/bc_3eaa	dreepy_drakloak__3eaa	old	2.9046	init
+champ_e1d7	build/agents/candE1D7R2	z_ogerpon_toolbox_miwa__e1d7	old	2.4896	init
+out_07be	build/agents/bc_07be	dreepy_drakloak__07be	new	2.4896	init
+out_3f45	build/agents/init_3f45	abra_kadabra__3f45	new	2.0747	init
+out_77a5	build/agents/init_77a5	mega_lucario_ex_solrock__77a5	new	2.0747	init
+champ_0904	build/agents/init_0904	z_dragapult_dreepy_petit__0904	old	1.6598	init
+abra_f5f8	build/agents/deck_f5f8_	abra_kadabra__f5f8	old	1.2448	candf5f8S
+out_ea39	build/agents/bc_ea39	dreepy_drakloak__ea39	new	1.2448	init
 out_9bc9d655	build/agents/port_on_9bc9d655	unseen__9bc9d655	new	1.2448	init
-out_0382	build/agents/port_on_0382	mega_kangaskhan_ex_dwebble__0382	new	1.2448	init
-dunsparce_9d6e	build/agents/port_on_9d6e	dunsparce_abra__9d6e	old	0.8299	init
-abra_e8ee	build/agents/port_e8ee	abra_kadabra__e8ee	old	0.8299	init
+out_0382	build/agents/init_0382	mega_kangaskhan_ex_dwebble__0382	new	1.2448	init
+dunsparce_9d6e	build/agents/b9d6e	dunsparce_abra__9d6e	old	0.8299	init
+abra_e8ee	build/agents/init_e8ee	abra_kadabra__e8ee	old	0.8299	init
 champ_26c6	build/agents/r1A_26c6	slowpoke_slowking__26c6	old	0.4149	r1A
 tail_mix	-	-	tail	24.4813	init

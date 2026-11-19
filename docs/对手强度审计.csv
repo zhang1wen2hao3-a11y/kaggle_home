@@ -1,0 +1,18 @@
+﻿格,4hex,原对手,新对手,选它的理由
+ogerpon_7e39,7e39,port_7e39,cand7e39S,无实测硬度数据，取最近训练的驾驶员
+dunsparce_0bf5,0bf5,opp_dunsparce_0bf5,cand0bf5S,无实测硬度数据，取最近训练的驾驶员
+grookey_2617,2617,c_grookey,g6_db04_on_2617,无实测硬度数据，取最近训练的驾驶员
+out_91808263,91808263,,,保持原样（找不到 agent）
+dreepy_3eaa,3eaa,opp_3eaa,bc_3eaa,无实测硬度数据，取最近训练的驾驶员
+champ_e1d7,e1d7,port_e1d7,candE1D7R2,无实测硬度数据，取最近训练的驾驶员
+out_07be,07be,port_on_07be,bc_07be,无实测硬度数据，取最近训练的驾驶员
+out_3f45,3f45,port_on_3f45,init_3f45,只有端口权重（该牌无训练驾驶员）
+out_77a5,77a5,port_on_77a5,init_77a5,只有端口权重（该牌无训练驾驶员）
+champ_0904,0904,port_0904,init_0904,只有端口权重（该牌无训练驾驶员）
+abra_f5f8,f5f8,candf5f8S,deck_f5f8_,实测比端口更硬 -7.1pp（deck_f5f8_）
+out_ea39,ea39,port_on_ea39,bc_ea39,无实测硬度数据，取最近训练的驾驶员
+out_9bc9d655,9bc9d655,,,保持原样（找不到 agent）
+out_0382,0382,port_on_0382,init_0382,只有端口权重（该牌无训练驾驶员）
+dunsparce_9d6e,9d6e,port_on_9d6e,b9d6e,无实测硬度数据，取最近训练的驾驶员
+abra_e8ee,e8ee,port_e8ee,init_e8ee,只有端口权重（该牌无训练驾驶员）
+champ_26c6,26c6,r1A_26c6,r1A_26c6,实测比端口更硬 -4.9pp（r1A）
