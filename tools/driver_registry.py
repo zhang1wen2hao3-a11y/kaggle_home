@@ -37,6 +37,11 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # 每个驾驶员：agent = 评估机上的 build/agents/<agent>；weights = 本地权重；remote = GPU 机上的纯权重 .bin
 # deck = 该驾驶员是"针对哪副牌"训出来的（None = 跨牌能通用）；fidelity = docs/opponent_library.md 的 A 一致率
 DRIVERS = {
+    "cand9D6ER3": dict(agent="cand9D6ER3", weights="models/ppo/cand9D6ER3.pt",
+                     remote=None, deck="9d6e", fidelity=None,
+                     note="9d6e_r3（2026-11-22 完成）：bank 全部换成我们自己的强驾驶员"
+                          "（cand7e39S×2/ph3_2617_v2×2/candE1D7R2/candf5f8E/b9d6e/bc_3eaa），"
+                          "4M 步，起点 ab9d6e_r2A，md5 1fedc7e2ea5bdf2835d23244a339e085"),
     # ── 必须卡组自动补位（tools/materialize_required_drivers.py 生成，勿手改）──
     "bc_9180": dict(agent="bc_9180", weights='build/agents/init_9bc9/model.pt', remote=None,
                      deck="9180", fidelity=None,
