@@ -67,7 +67,7 @@ def field_weights():
     return {k: v / tot for k, v in w.items()}
 
 
-def load_master():
+def load_master(strong_only=False):
     txt = open(MASTER, "rb").read().decode("gb18030", errors="replace")
     rec = collections.defaultdict(dict)     # (our, opp) -> {driver: (wr, n, src)}
     for r in csv.DictReader(io.StringIO(txt)):
@@ -77,8 +77,11 @@ def load_master():
             continue
         opp_drv = r.get("对手驾驶员") or "init"
         # 只把"对手=预期基线(init)"的记录用于选表；强对手版本另算（见 check_stale.py）
-        if opp_drv != "init":
-            continue
+        if strong_only:
+            if opp_drv == "init":
+                continue          # 强口径：只要"对手也是非 init 驾驶员"的记录
+        elif opp_drv != "init":
+            continue              # 端口口径：默认表只用"对手=端口"的记录
         rec[(r["挑战者"], r["被挑战者"])][r["驾驶员"]] = (wr, n, r["来源"])
     return rec
 
@@ -89,14 +92,23 @@ def main():
     ap.add_argument("--weights", default="decks/weights_field_b05.txt",
                     help="场地权重文件；顶分段用 decks/weights_top.txt")
     ap.add_argument("--suffix", default="", help="输出文件名后缀，如 _top")
+    ap.add_argument("--min-n", type=int, default=0,
+                    help="覆盖池化样本门槛（默认用 VERIFIED_N=400）；强口径数据稀少时可降到 150，但要标注是暂定")
+    ap.add_argument("--strong", action="store_true",
+                    help="出**强对强口径**矩阵（只取 对手驾驶员 != init 的记录）→ 文件名自动加 -strong")
     a = ap.parse_args()
     global WEIGHTS_FILE
     WEIGHTS_FILE = a.weights
-    rec, W = load_master(), field_weights()
+    rec, W = load_master(strong_only=a.strong), field_weights()
+    global VERIFIED_N
+    if a.min_n:
+        VERIFIED_N = a.min_n
     # 行 = 我方（已合并同构变体的 15 副）；列 = 数据里出现的全部对手牌（含 0bf5/db04/e8ee 这些
     # "我们不再当主牌、但场上仍然会遇到"的牌），否则会丢掉 0bf5 这种占 12.9% 的对手格。
     global OPP_DECKS
     OPP_DECKS = sorted({b for (_, b) in rec} | set(DECKS))
+    if a.strong and not a.suffix:
+        a.suffix = "-strong"      # 强口径单独出表，不覆盖端口口径
     if a.suffix:
         global CH, DET, WR, PILOT
         f = lambda p: p[:-4] + a.suffix + ".csv"

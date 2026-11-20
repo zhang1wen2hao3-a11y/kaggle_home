@@ -36,6 +36,9 @@ $PY tools/build_pilot_table.py 2>&1 | tail -1 || die "build_pilot_table(b05) 失
 $PY tools/build_pilot_table.py --weights decks/weights_top.txt --suffix _top 2>&1 | tail -1 \
   || die "build_pilot_table(top) 失败"
 
+say "③b 强对强口径矩阵（只取 对手驾驶员≠init 的记录；n 门槛降到 150，标为暂定）"
+$PY tools/build_from_master.py --strong --min-n 150 2>&1 | tail -2 || die "build_from_master --strong 失败"
+
 say "④ 必须卡组清单（17格 ∪ 母表 ∪ 榜前N队用过的牌）"
 $PY tools/required_decks.py 2>&1 | tail -2 || die "required_decks 失败"
 

@@ -227,6 +227,47 @@ def from_strong_opp():
     return out
 
 
+def from_sym():
+    """**强 vs 强**单格测量：`logs/meta/sym/<我方驾驶员>__vs__<对手驾驶员>.json`。
+
+    这批数据是 2026-11-20 本地跑的：两边都用非 init 驾驶员（如 cand7e39S 打 ab9d6e_r1A）。
+    与"对手=端口"的记录是**不同记录**（对手驾驶员列不同），互不覆盖；
+    它们才是"真实场"口径的证据 —— 端口口径那些 89%/93% 都是拿软对手量的。
+    """
+    out = []
+    by_ids = {}
+    for p in glob.glob(os.path.join(ROOT, "decks", "pool_field", "*.csv")):
+        try:
+            ids = tuple(sorted(int(x) for x in open(p) if x.strip()))
+        except (OSError, ValueError):
+            continue
+        if len(ids) == 60:
+            by_ids[ids] = os.path.basename(p)[:-4].split("__")[-1][:4].lower()
+
+    def deck_of(agent):
+        q = os.path.join(ROOT, "build", "agents", agent, "deck.csv")
+        try:
+            ids = tuple(sorted(int(x) for x in open(q) if x.strip()))
+        except (OSError, ValueError):
+            return None
+        return by_ids.get(ids)
+
+    for f in glob.glob(os.path.join(ROOT, "logs", "meta", "sym", "*.json")):
+        base = os.path.basename(f)[:-5]
+        if "__vs__" not in base:
+            continue
+        a, b = base.split("__vs__", 1)
+        try:
+            o = json.load(open(f))["overall"]
+        except Exception:
+            continue
+        da, db = deck_of(a), deck_of(b)
+        if not da or not db or not o.get("n"):
+            continue
+        out.append((canon(da), db, a, o["score"], int(o["n"]), f"sym:{base}", b))
+    return out
+
+
 def _reg_ok(REG, name):
     try:
         REG.info(name)
@@ -239,7 +280,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry", action="store_true")
     a = ap.parse_args()
-    recs = [r + ("init",) for r in from_meta() + from_panel7() + from_matrix()] + from_strong_opp()
+    recs = ([r + ("init",) for r in from_meta() + from_panel7() + from_matrix()]
+            + from_strong_opp() + from_sym())
 
     best = {}
     for our, opp, drv, wr, n, src, opp_drv in recs:
