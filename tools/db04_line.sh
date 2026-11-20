@@ -196,7 +196,15 @@ if [ "${used:-0}" -gt 4000 ]; then
 fi
 
 RD="experiments/native-$RUN"
-rm -rf "$RD"; mkdir -p "$RD"
+# ★ 2026-11-21：原来无条件 rm -rf ⇒ 机器重启后想"从 state_latest 续训"根本做不到
+#   （一启动就把 checkpoint 删了，train_native 的自动 resume 永远看不到文件）。
+#   现在给 NO_CLEAN=1 开关：续训时带上它，保留 experiments/native-<RUN>/ 里的 state。
+if [ "${NO_CLEAN:-0}" = 1 ]; then
+  mkdir -p "$RD"
+  echo "  ↻ NO_CLEAN=1：保留 $RD（若存在 state_latest.bin，train_native 会自动从它续训）"
+else
+  rm -rf "$RD"; mkdir -p "$RD"
+fi
 cp -f "$INIT" "$RD/init.bin"
 [ -s "$RD/init.bin" ] || { echo "✗ init.bin 拷贝失败（0 字节）"; exit 1; }
 
