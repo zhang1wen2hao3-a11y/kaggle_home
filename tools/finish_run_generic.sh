@@ -26,7 +26,10 @@ say() { echo "[$(date +%H:%M:%S)] $*" | tee -a "$LOG"; }
 say "等训练落地（每 30s 探，最多 90 分钟）"
 for i in $(seq 1 180); do
   sz=$(timeout 25 ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $SSHEXTRA $GPU_HOST "stat -c %s $FINAL 2>/dev/null" 2>/dev/null | tr -d '[:space:]')
-  run=$(timeout 20 ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $SSHEXTRA $GPU_HOST 'pgrep -fc "train_[n]ative" 2>/dev/null || true' 2>/dev/null | head -1 | tr -d '[:space:]')
+  # ★ 2026-11-21：这里原来用 `pgrep -fc ... || true`。`pgrep -c` 无匹配时会打印 0 且退出码 1，
+  #   叠加 `|| true` 后输出可能被吞/拼成 "0\n0"，导致"训练明明在跑却判成 0 进程"（误判过一次）。
+  #   改成 `pgrep -f ... | wc -l`，输出永远是单个数字。
+  run=$(timeout 20 ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $SSHEXTRA $GPU_HOST 'pgrep -f "[n]ative/train_native" 2>/dev/null | wc -l' 2>/dev/null | head -1 | tr -d '[:space:]')
   case "${sz:-}" in ''|*[!0-9]*) sz=0;; esac
   case "${run:-}" in ''|*[!0-9]*) run=0;; esac
   say "  第 $i 次：final=${sz}B 训练进程=$run"
