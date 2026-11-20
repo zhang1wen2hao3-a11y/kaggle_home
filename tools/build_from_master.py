@@ -119,6 +119,14 @@ def main():
     for a_ in DECKS:
         for b_ in OPP_DECKS:
             cell = rec.get((a_, b_), {})
+            if a.strong and cell:
+                # ★ 强对强口径：这一格本来就只有"对手=强驾驶员"的记录，没有 init 对照可比，
+                #   因此直接取胜率最高（并列看样本）的那条作为该格选择。
+                pick = max(cell.items(), key=lambda t: (t[1][0], t[1][1]))
+                choice[(a_, b_)] = pick[0]
+                detail.append([a_, b_, pick[0], f"{pick[1][0]:.4f}", pick[1][1], "强对强",
+                               f"强口径实测：{pick[0]} 胜率 {pick[1][0]*100:.1f}%（n={pick[1][1]}，对手亦为非 init）"])
+                continue
             if a_ == b_:
                 # ★ 对角 = 内战格：写"当前内战最强的驾驶员"（我方驾驶员 vs 对手端口），
                 #   胜率在矩阵里统一记 0.5（镜像期望值），这里只决定**派谁**。
@@ -160,7 +168,7 @@ def main():
     row_pilot, row_wr, pilot_rows = {}, {}, []
     for a_ in DECKS:
         best_by_drv = collections.defaultdict(lambda: [0.0, 0.0, 0])   # driver -> [num, weight, n]
-        for b_ in DECKS:
+        for b_ in (OPP_DECKS if a.strong else DECKS):
             if a_ == b_:
                 continue
             for d, (wr, n, _src) in rec.get((a_, b_), {}).items():
@@ -174,17 +182,22 @@ def main():
         pick = "init"
         if scored:
             top = max(scored.items(), key=lambda t: t[1])
-            if top[0] != "init" and base is not None and (top[1] - base) * 100 >= THRESH_ROW:
+            if a.strong:
+                pick = top[0]                    # 强口径没有 init 对照，直接取加权最高者
+            elif top[0] != "init" and base is not None and (top[1] - base) * 100 >= THRESH_ROW:
                 pick = top[0]
         row_pilot[a_] = pick
         pilot_rows.append([a_, pick, f"{scored.get(pick, 0):.4f}" if pick in scored else "NA",
                            str(max((rec.get((a_, b_), {}).get(pick, (0, 0, ""))[1] for b_ in DECKS), default=0)),
                            "面板场地加权选行级驾驶员"])
-        for b_ in DECKS:
+        for b_ in (OPP_DECKS if a.strong else DECKS):
             if a_ == b_:
                 row_wr[(a_, b_)] = "0.5000"     # 镜像格：期望胜率 0.5（派谁由 choice 表给）
                 continue
-            v = rec.get((a_, b_), {}).get(pick) or rec.get((a_, b_), {}).get("init")
+            cell = rec.get((a_, b_), {})
+            v = cell.get(pick) or cell.get("init")
+            if v is None and cell:              # 强口径：该格可能只有别的驾驶员有数据
+                v = max(cell.values(), key=lambda t: t[1])
             row_wr[(a_, b_)] = f"{v[0]:.4f}" if v else ""
 
     n_cell_other = sum(1 for v in choice.values() if v != "init")

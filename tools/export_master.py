@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import argparse
 import collections
+import collections
 import csv
 import glob
 import io
@@ -252,19 +253,28 @@ def from_sym():
             return None
         return by_ids.get(ids)
 
+    # 同一对可能有多轮（`A__vs__B.json` 是第一轮 150 局，`A__vs__B__r1.json` / `__r2.json` 是后补的两轮）
+    # ⇒ 先按 (A, B) 池化，再出一条记录，n = 三轮之和（凑到 450 才能过交付表 n≥400 的门槛）。
+    acc = collections.defaultdict(lambda: [0.0, 0])
     for f in glob.glob(os.path.join(ROOT, "logs", "meta", "sym", "*.json")):
         base = os.path.basename(f)[:-5]
         if "__vs__" not in base:
             continue
         a, b = base.split("__vs__", 1)
+        b = b.split("__r")[0]            # 去掉轮次后缀（__r1 / __r2）
         try:
             o = json.load(open(f))["overall"]
         except Exception:
             continue
-        da, db = deck_of(a), deck_of(b)
-        if not da or not db or not o.get("n"):
+        if not o.get("n"):
             continue
-        out.append((canon(da), db, a, o["score"], int(o["n"]), f"sym:{base}", b))
+        acc[(a, b)][0] += float(o["score"]) * int(o["n"])
+        acc[(a, b)][1] += int(o["n"])
+    for (a, b), (w, n) in acc.items():
+        da, db = deck_of(a), deck_of(b)
+        if not da or not db or not n:
+            continue
+        out.append((canon(da), db, a, w / n, int(n), f"sym:{a}__vs__{b}", b))
     return out
 
 

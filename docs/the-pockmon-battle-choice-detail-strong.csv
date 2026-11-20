@@ -90,7 +90,7 @@
 2617,3eaa,init,,,默认,无数据，默认 init
 2617,5b8f,init,,,默认,无数据，默认 init
 2617,71b2,init,,,默认,无数据，默认 init
-2617,7e39,init,,,默认,无数据，默认 init
+2617,7e39,ph3_2617_v2,0.7845,450,强对强,强口径实测：ph3_2617_v2 胜率 78.5%（n=450，对手亦为非 init）
 2617,9d6e,init,,,默认,无数据，默认 init
 2617,cb25,init,,,默认,无数据，默认 init
 2617,e1d7,init,,,默认,无数据，默认 init
@@ -99,10 +99,10 @@
 26c6,0904,init,,,默认,无数据，默认 init
 26c6,0b34,init,,,默认,无数据，默认 init
 26c6,0bf5,init,,,默认,无数据，默认 init
-26c6,0d86,init,,,默认,无数据，默认 init
+26c6,0d86,cand26c6S,0.5592,600,强对强,强口径实测：cand26c6S 胜率 55.9%（n=600，对手亦为非 init）
 26c6,1917,init,,,默认,无数据，默认 init
 26c6,2617,init,,,默认,无数据，默认 init
-26c6,26c6,cand26c6M,0.5000,600,内战,内战最强：cand26c6M 0.6117（n=600，vs 对手端口）；矩阵记 0.5；候选 ['cand26c6M']
+26c6,26c6,cand26c6M,0.6117,600,强对强,强口径实测：cand26c6M 胜率 61.2%（n=600，对手亦为非 init）
 26c6,3eaa,init,,,默认,无数据，默认 init
 26c6,5b8f,init,,,默认,无数据，默认 init
 26c6,71b2,init,,,默认,无数据，默认 init
@@ -110,7 +110,7 @@
 26c6,9d6e,init,,,默认,无数据，默认 init
 26c6,cb25,init,,,默认,无数据，默认 init
 26c6,e1d7,init,,,默认,无数据，默认 init
-26c6,f5f8,init,,,默认,无数据，默认 init
+26c6,f5f8,cand26c6M,0.3392,600,强对强,强口径实测：cand26c6M 胜率 33.9%（n=600，对手亦为非 init）
 3eaa,049c,init,,,默认,无数据，默认 init
 3eaa,0904,init,,,默认,无数据，默认 init
 3eaa,0b34,init,,,默认,无数据，默认 init
@@ -123,7 +123,7 @@
 3eaa,5b8f,init,,,默认,无数据，默认 init
 3eaa,71b2,init,,,默认,无数据，默认 init
 3eaa,7e39,init,,,默认,无数据，默认 init
-3eaa,9d6e,init,,,默认,无数据，默认 init
+3eaa,9d6e,bc_3eaa,0.2978,450,强对强,强口径实测：bc_3eaa 胜率 29.8%（n=450，对手亦为非 init）
 3eaa,cb25,init,,,默认,无数据，默认 init
 3eaa,e1d7,init,,,默认,无数据，默认 init
 3eaa,f5f8,init,,,默认,无数据，默认 init
@@ -163,25 +163,25 @@
 7e39,0904,init,,,默认,无数据，默认 init
 7e39,0b34,init,,,默认,无数据，默认 init
 7e39,0bf5,init,,,默认,无数据，默认 init
-7e39,0d86,init,,,默认,无数据，默认 init
+7e39,0d86,cand7e39S,0.9150,400,强对强,强口径实测：cand7e39S 胜率 91.5%（n=400，对手亦为非 init）
 7e39,1917,init,,,默认,无数据，默认 init
-7e39,2617,init,,,默认,无数据，默认 init
-7e39,26c6,init,,,默认,无数据，默认 init
+7e39,2617,cand7e39S,0.2333,450,强对强,强口径实测：cand7e39S 胜率 23.3%（n=450，对手亦为非 init）
+7e39,26c6,cand7e39S,0.8525,400,强对强,强口径实测：cand7e39S 胜率 85.2%（n=400，对手亦为非 init）
 7e39,3eaa,init,,,默认,无数据，默认 init
 7e39,5b8f,init,,,默认,无数据，默认 init
 7e39,71b2,init,,,默认,无数据，默认 init
 7e39,7e39,init,0.5000,0,内战,无 n≥150 的内战数据（该格候选全部样本不足）
-7e39,9d6e,init,,,默认,无数据，默认 init
+7e39,9d6e,cand7e39S,0.0956,450,强对强,强口径实测：cand7e39S 胜率 9.6%（n=450，对手亦为非 init）
 7e39,cb25,init,,,默认,无数据，默认 init
-7e39,e1d7,init,,,默认,无数据，默认 init
-7e39,f5f8,init,,,默认,无数据，默认 init
+7e39,e1d7,cand7e39S,0.5956,450,强对强,强口径实测：cand7e39S 胜率 59.6%（n=450，对手亦为非 init）
+7e39,f5f8,cand7e39S,0.5975,400,强对强,强口径实测：cand7e39S 胜率 59.8%（n=400，对手亦为非 init）
 9d6e,049c,init,,,默认,无数据，默认 init
 9d6e,0904,init,,,默认,无数据，默认 init
 9d6e,0b34,init,,,默认,无数据，默认 init
-9d6e,0bf5,init,,,默认,无数据，默认 init
-9d6e,0d86,init,,,默认,无数据，默认 init
+9d6e,0bf5,ab9d6e_r2A,0.6244,450,强对强,强口径实测：ab9d6e_r2A 胜率 62.4%（n=450，对手亦为非 init）
+9d6e,0d86,ab9d6e_r2A,0.0850,200,强对强,强口径实测：ab9d6e_r2A 胜率 8.5%（n=200，对手亦为非 init）
 9d6e,1917,init,,,默认,无数据，默认 init
-9d6e,2617,init,,,默认,无数据，默认 init
+9d6e,2617,ab9d6e_r2A,0.3778,450,强对强,强口径实测：ab9d6e_r2A 胜率 37.8%（n=450，对手亦为非 init）
 9d6e,26c6,init,,,默认,无数据，默认 init
 9d6e,3eaa,init,,,默认,无数据，默认 init
 9d6e,5b8f,init,,,默认,无数据，默认 init
@@ -190,7 +190,7 @@
 9d6e,9d6e,init,0.5000,0,内战,无 n≥150 的内战数据（该格候选全部样本不足）
 9d6e,cb25,init,,,默认,无数据，默认 init
 9d6e,e1d7,init,,,默认,无数据，默认 init
-9d6e,f5f8,init,,,默认,无数据，默认 init
+9d6e,f5f8,cand0bf5S,0.4689,450,强对强,强口径实测：cand0bf5S 胜率 46.9%（n=450，对手亦为非 init）
 cb25,049c,init,,,默认,无数据，默认 init
 cb25,0904,init,,,默认,无数据，默认 init
 cb25,0b34,init,,,默认,无数据，默认 init
@@ -218,8 +218,8 @@ e1d7,26c6,init,,,默认,无数据，默认 init
 e1d7,3eaa,init,,,默认,无数据，默认 init
 e1d7,5b8f,init,,,默认,无数据，默认 init
 e1d7,71b2,init,,,默认,无数据，默认 init
-e1d7,7e39,init,,,默认,无数据，默认 init
-e1d7,9d6e,init,,,默认,无数据，默认 init
+e1d7,7e39,candE1D7R2,0.4289,450,强对强,强口径实测：candE1D7R2 胜率 42.9%（n=450，对手亦为非 init）
+e1d7,9d6e,candE1D7R2,0.0689,450,强对强,强口径实测：candE1D7R2 胜率 6.9%（n=450，对手亦为非 init）
 e1d7,cb25,init,,,默认,无数据，默认 init
 e1d7,e1d7,init,0.5000,0,内战,无 n≥150 的内战数据（该格候选全部样本不足）
 e1d7,f5f8,init,,,默认,无数据，默认 init
@@ -227,10 +227,10 @@ f5f8,049c,init,,,默认,无数据，默认 init
 f5f8,0904,init,,,默认,无数据，默认 init
 f5f8,0b34,init,,,默认,无数据，默认 init
 f5f8,0bf5,init,,,默认,无数据，默认 init
-f5f8,0d86,candf5f8S,0.9200,600,实测,训练件 0.9200 vs init 0.1150（+80.5pp ≥5pp；n=600；vsopp:f5f8S_vs_shbc）
+f5f8,0d86,candf5f8S,0.9200,600,强对强,强口径实测：candf5f8S 胜率 92.0%（n=600，对手亦为非 init）
 f5f8,1917,init,,,默认,无数据，默认 init
 f5f8,2617,init,,,默认,无数据，默认 init
-f5f8,26c6,init,,,默认,无数据，默认 init
+f5f8,26c6,candf5f8S,0.7375,800,强对强,强口径实测：candf5f8S 胜率 73.8%（n=800，对手亦为非 init）
 f5f8,3eaa,init,,,默认,无数据，默认 init
 f5f8,5b8f,init,,,默认,无数据，默认 init
 f5f8,71b2,init,,,默认,无数据，默认 init
@@ -238,4 +238,4 @@ f5f8,7e39,init,,,默认,无数据，默认 init
 f5f8,9d6e,init,,,默认,无数据，默认 init
 f5f8,cb25,init,,,默认,无数据，默认 init
 f5f8,e1d7,init,,,默认,无数据，默认 init
-f5f8,f5f8,candf5f8S,0.5000,550,内战,内战最强：candf5f8S 0.6800（n=550，vs 对手端口）；矩阵记 0.5；候选 ['candf5f8S']
+f5f8,f5f8,candf5f8S,0.6800,550,强对强,强口径实测：candf5f8S 胜率 68.0%（n=550，对手亦为非 init）
