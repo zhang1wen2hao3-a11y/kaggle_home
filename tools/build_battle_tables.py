@@ -65,6 +65,39 @@ def _load_ours():
 OUR_LB = _load_ours()
 
 
+MIN_GAMES_CEIL = 10      # 外部天花板规则：该玩家在这副牌至少打这么多局
+MIN_WR_CEIL = 0.50       # 且胜率至少这么高，否则他的分不是这副牌给的（见 docs/下一步计划 §5/§6）
+
+
+def _deck_player_stats():
+    """(4hex, 玩家) → [局数, 胜场]，来自 data/ladder_games.tsv。"""
+    st = {}
+    try:
+        for r in csv.DictReader(open(os.path.join(ROOT, "data", "ladder_games.tsv")), delimiter="\t"):
+            try:
+                win = int(r["winner"])
+            except (KeyError, TypeError, ValueError):
+                continue
+            for i in (0, 1):
+                h4 = (r.get(f"seat{i}_deck") or "")[:4]
+                t = (r.get(f"seat{i}_agent") or "").strip()
+                if not h4 or not t:
+                    continue
+                rec = st.setdefault((h4, t), [0, 0])
+                rec[0] += 1
+                if win == i:
+                    rec[1] += 1
+    except OSError:
+        pass
+    return st
+
+
+def _ceil_ok(h4, team, st):
+    """这个玩家能不能当这副牌的天花板：≥10 局且胜率 ≥50%（与投资分表同一把尺子）。"""
+    n, w = st.get((h4, team), (0, 0))
+    return n >= MIN_GAMES_CEIL and (w / n if n else 0) >= MIN_WR_CEIL, n, (w / n if n else 0)
+
+
 def deck_lb_map():
     """hash → 外部使用者最高 LB（来自语料 + lb_scores）。"""
     users = collections.defaultdict(set)
@@ -73,10 +106,14 @@ def deck_lb_map():
             users[(r.get("deck_hash") or "")[:4]].add(r.get("team") or "")
     except Exception:
         pass
+    st = _deck_player_stats()
     out = {}
     for h, teams in users.items():
         best, who = 0, ""
         for t in teams:
+            ok, _n, _wr = _ceil_ok((h or "")[:4], t, st)
+            if not ok:
+                continue                      # ★ 打得少或一直输 ⇒ 这个分不是这副牌给的
             s_ = LB.get(t, 0)
             if s_ > best:
                 best, who = s_, t
@@ -92,7 +129,12 @@ def deck_lb_map():
         by4[(h or "")[:4]].extend(teams)
     for h4, teams in by4.items():
         best, who = 0, ""
+        # ★ 兜底分支同样要求"该玩家在这副牌 ≥10 局且 ≥50% 胜率"，
+        #   否则 Darren Sheehan 这种"只打 1 局还输了"的玩家 1312.9 会被算成 9d6e 的天花板。
         for t in teams:
+            ok, _n, _wr = _ceil_ok((h4 or "")[:4], t, st)
+            if not ok:
+                continue
             s_ = LB.get(t, 0)
             if s_ > best:
                 best, who = s_, t

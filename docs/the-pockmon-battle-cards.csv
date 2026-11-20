@@ -2,44 +2,42 @@ DeckID,卡组,Meta 占比,样本局数,最高LB,自己最高分,最高分玩家
 0d86,shuppet-dunsparce-dhelmise,28.5,1001,1594.4,751.5,やる気元気ミワハルキ 2nd ver.
 26c6,slowking,28.47,1000,1594.4,NA,やる気元気ミワハルキ 2nd ver.
 0d86,shuppet-dunsparce-dhelmise（0d86·我们）,0.0,0,1594.4,751.5,やる気元気ミワハルキ 2nd ver.
-ea39,dragapult,8.94,314,1446.2,NA,Dipam Chakraborty
-7e39,applin-meganium-ogerpon,1.22,43,1446.2,944.4,Dipam Chakraborty
-7e39,applin-meganium-ogerpon（7e39·我们）,0.0,0,1446.2,944.4,Dipam Chakraborty
-f5f8,alakazam-dunsparce,22.58,793,1428.0,1071.4,Ondrej Kubicek
-1eb0,dwebble-cinderace-kangaskhan,0.11,4,1428.0,NA,Ondrej Kubicek
-f5f8,alakazam-dunsparce（f5f8·我们）,0.0,0,1428.0,993.5,Ondrej Kubicek
-2617,rillaboom-applin,2.9,102,1312.9,1033.5,Darren Sheehan
-7e79,dwebble-kangaskhan,0.97,34,1312.9,NA,Darren Sheehan
-9d6e,alakazam-dunsparce（9d6e·我们）,0.0,0,1312.9,1048.5,Darren Sheehan
-2617,rillaboom-applin（2617·我们）,0.0,0,1312.9,1033.5,Darren Sheehan
-e1f9,metagross-excadrill,3.16,111,1311.3,NA,RtoABC2
-b702,abomasnow,0.85,30,1247.6,NA,masterlincs
-5026,chandelure,0.03,1,1212.3,NA,sue124
-b6cf,ceruledge,0.03,1,1212.3,NA,sue124
-b395,lucario-makuhita,0.23,8,1100.2,NA,LSomang
-db04,alakazam-dunsparce（db04·我们）,0.0,0,1093.3,1071.4,Hawksartelier
-da1d,archaludon,0.37,13,1008.8,NA,Zhe Peng666
-efb2,lucario,0.31,11,999.2,NA,test_poke
-7477,crustle,0.4,14,973.4,NA,Majiro_ns
-dd63,dunsparce-froslass,0.17,6,973.4,NA,Majiro_ns
-8486,alakazam-dusknoir,0.06,2,945.7,NA,Tianyu Hou
-c20a,grimmsnarl-froslass-munkidori,0.11,4,894.6,NA,Chukka Venugopalam
+f5f8,alakazam-dunsparce,22.58,793,1145.1,993.5,YumeNeko
+f5f8,alakazam-dunsparce（f5f8·我们）,0.0,0,1145.1,993.5,YumeNeko
+db04,alakazam-dunsparce（db04·我们）,0.0,0,1071.4,1071.4,
+9d6e,alakazam-dunsparce（9d6e·我们）,0.0,0,1048.5,1048.5,
+2617,rillaboom-applin,2.9,102,1033.5,1033.5,
+7e39,applin-meganium-ogerpon,1.22,43,944.4,944.4,
 0904,dragapult（0904·我们）,0.0,0,880.4,880.4,
 e1d7,ogerpon（e1d7·我们）,0.0,0,875.5,875.5,
-93bf,starmie,0.06,2,818.3,NA,BSCode
-1661,dunsparce-lopunny,0.06,2,786.5,NA,Don_Cry_Baby
-5e60,ogerpon,0.03,1,736.2,NA,Noel Bobby
-9d5d,metagross-delibird,0.03,1,662.9,NA,PP.TAKEHIRO_KAWADA
-7357,slowking-kangaskhan,0.03,1,623.3,NA,teppei
-bc2f,dwebble-froslass-munkidori,0.03,1,587.7,NA,Yorukuma
-b35e,tyranitar-dwebble,0.03,1,534.5,NA,nguyenbaotri-VIETNAM
-3696,diggersby-dwebble,0.03,1,508.1,NA,Rajveer Vora
-59cf,dwebble-ogerpon,0.03,1,427.8,NA,kaerururu
-99d8,raging_bolt-ogerpon,0.03,1,398.8,NA,Zapaxe
-eb56,gengar-toxtricity,0.03,1,364.7,NA,DeadJed
-148e,garchomp,0.03,1,264.0,NA,Vinit
-8f42,great_tusk-koraidon-stonjourner,0.03,1,177.4,NA,Red
-7c66,cramorant-kangaskhan,0.03,1,147.0,NA,AllenCheng329
-2334,iron_thorns-tapu_koko,0.03,1,30.8,NA,Jacob Adkins GIA GD
+ea39,dragapult,8.94,314,NA,NA,
+e1f9,metagross-excadrill,3.16,111,NA,NA,
+7e79,dwebble-kangaskhan,0.97,34,NA,NA,
+b702,abomasnow,0.85,30,NA,NA,
+7477,crustle,0.4,14,NA,NA,
+da1d,archaludon,0.37,13,NA,NA,
+efb2,lucario,0.31,11,NA,NA,
+b395,lucario-makuhita,0.23,8,NA,NA,
+dd63,dunsparce-froslass,0.17,6,NA,NA,
+1eb0,dwebble-cinderace-kangaskhan,0.11,4,NA,NA,
+c20a,grimmsnarl-froslass-munkidori,0.11,4,NA,NA,
+1661,dunsparce-lopunny,0.06,2,NA,NA,
 903f,girafarig,0.06,2,NA,NA,
+8486,alakazam-dusknoir,0.06,2,NA,NA,
+93bf,starmie,0.06,2,NA,NA,
+5e60,ogerpon,0.03,1,NA,NA,
+5026,chandelure,0.03,1,NA,NA,
+b35e,tyranitar-dwebble,0.03,1,NA,NA,
+8f42,great_tusk-koraidon-stonjourner,0.03,1,NA,NA,
+59cf,dwebble-ogerpon,0.03,1,NA,NA,
+3696,diggersby-dwebble,0.03,1,NA,NA,
+2334,iron_thorns-tapu_koko,0.03,1,NA,NA,
+99d8,raging_bolt-ogerpon,0.03,1,NA,NA,
+9d5d,metagross-delibird,0.03,1,NA,NA,
+b6cf,ceruledge,0.03,1,NA,NA,
+eb56,gengar-toxtricity,0.03,1,NA,NA,
+bc2f,dwebble-froslass-munkidori,0.03,1,NA,NA,
 7dc2,voltorb,0.03,1,NA,NA,
+148e,garchomp,0.03,1,NA,NA,
+7c66,cramorant-kangaskhan,0.03,1,NA,NA,
+7357,slowking-kangaskhan,0.03,1,NA,NA,
