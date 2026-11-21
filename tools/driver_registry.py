@@ -37,6 +37,18 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # 每个驾驶员：agent = 评估机上的 build/agents/<agent>；weights = 本地权重；remote = GPU 机上的纯权重 .bin
 # deck = 该驾驶员是"针对哪副牌"训出来的（None = 跨牌能通用）；fidelity = docs/opponent_library.md 的 A 一致率
 DRIVERS = {
+    # 母表里偶尔出现 agent 目录名（auto 反查产生）；与 r1A 同权重，仅用于名字解析
+    "r1A_26c6": dict(agent="r1A_26c6", weights="models/ppo/r1A.pt", remote=None, deck="26c6",
+                     fidelity=None, note="r1A 的 agent 目录名（同权重；对外统一用 r1A）"),
+    "b9d6e": dict(agent="b9d6e", weights="build/agents/b9d6e/model.pt",
+                       remote=None, deck="9d6e", fidelity=None,
+                       note="p9d6e 与 ab9d6e_r2A 的权重平均（面板 68.0%），曾作为 9d6e 候选/镜像 bank"),
+    "cand9D6ER4": dict(agent="cand9D6ER4", weights="models/ppo/cand9D6ER4.pt",
+                       remote=None, deck="9d6e", fidelity=None,
+                       note="9d6e_r4 反克制（bank 加 91808263/0382 各 2 槽）"),
+    "cand3EAAR1": dict(agent="cand3EAAR1", weights="models/ppo/cand3EAAR1.pt",
+                       remote=None, deck="3eaa", fidelity=None,
+                       note="dreepy_drakloak__3eaa 轮训第 1 号（从 bc_3eaa 起步，bank 用现役最强 6 个）"),
     "cand9D6ER3": dict(agent="cand9D6ER3", weights="models/ppo/cand9D6ER3.pt",
                      remote=None, deck="9d6e", fidelity=None,
                      note="9d6e_r3（2026-11-22 完成）：bank 全部换成我们自己的强驾驶员"

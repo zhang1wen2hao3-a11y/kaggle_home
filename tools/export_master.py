@@ -73,6 +73,9 @@ TAG2CELL = {
 
 # `data/opp_matrix/<key>.json`：我们 vs **强驾驶员**（对手驾驶员 ≠ init）的单格测量。
 # 与"对手=端口"的格是**不同记录**（对手驾驶员列不同），互不覆盖。
+OPP_PORT = {}
+OPP_STRONG = {}
+
 OPP2CELL = {
     # key: (我方卡组, 我方驾驶员, 对手卡组, 对手驾驶员)
     #   文件名 `data/opp_matrix/<key>.json` 或 `<key>_s95000x.json`（多 seed 会按基名池化）
@@ -158,6 +161,88 @@ REAL_CELL_OK = {"7e39", "2617", "e8ee", "f5f8", "0d86", "9d6e", "0bf5", "3eaa",
                 "5b8f", "049c", "1917", "0b34", "71b2", "cb25"}
 
 
+def _auto_tag2cell(base):
+    """未知 tag 兜底：`<候选>_real` 之类，按该候选 agent 的 deck.csv 反查卡组，驾驶员=候选名。
+
+    ★ 2026-11-22：以前 TAG2CELL 是硬编码白名单，新训出来的候选（cand9D6ER3/R4、cand3EAAR1 …）
+      跑完面板**全被静默丢弃**，表格里看不到任何新结果。现在改成"查不到就按 agent 目录反查"，
+      新候选只要有 build/agents/<名字>/deck.csv 就能自动进母表。
+    """
+    cand = base[:-5] if base.endswith("_real") else base
+    d = os.path.join(ROOT, "build", "agents", cand, "deck.csv")
+    try:
+        ids = tuple(sorted(int(x) for x in open(d) if x.strip()))
+    except (OSError, ValueError):
+        return None
+    for p in glob.glob(os.path.join(ROOT, "decks", "pool_field", "*.csv")):
+        try:
+            i2 = tuple(sorted(int(x) for x in open(p) if x.strip()))
+        except (OSError, ValueError):
+            continue
+        if i2 == ids:
+            deck = os.path.basename(p)[:-4].split("__")[-1][:4].lower()
+            # ★ 与端口权重同 md5 的 agent（port_* / opp_* / c_* / init_* 那批）语义就是 init 基线，
+            #   不能把它们当成独立驾驶员名字写进表里（否则名字校验会失败、也会污染"最强驾驶员"选择）。
+            try:
+                import hashlib as _h
+                m1 = _h.md5(open(os.path.join(ROOT, "build", "agents", cand, "model.pt"), "rb").read()).hexdigest()
+                m0 = _h.md5(open(os.path.join(ROOT, "build", "port_plain", "model.pt"), "rb").read()).hexdigest()
+                driver = "init" if m1 == m0 else cand
+            except OSError:
+                driver = cand
+            return (deck, driver)
+    return None
+
+
+def _agent_to_driver():
+    """agent 目录名 → 驾驶员名（注册表）；端口同权重的 agent 一律算 'init'。"""
+    import hashlib as _h
+    m = {}
+    try:
+        m0 = _h.md5(open(os.path.join(ROOT, "build", "port_plain", "model.pt"), "rb").read()).hexdigest()
+    except OSError:
+        m0 = ""
+    sys.path.insert(0, os.path.join(ROOT, "tools"))
+    try:
+        import driver_registry as REG
+        for name, info in REG.DRIVERS.items():
+            ag = info.get("agent")
+            if ag:
+                m.setdefault(ag, name)
+    except Exception:
+        pass
+    for d in glob.glob(os.path.join(ROOT, "build", "agents", "*")):
+        ag = os.path.basename(d)
+        mp = os.path.join(d, "model.pt")
+        try:
+            same = _h.md5(open(mp, "rb").read()).hexdigest() == m0
+        except OSError:
+            same = False
+        m[ag] = "init" if same else m.get(ag, ag)
+    return m
+
+
+def _cell_opp_map(ts_path):
+    """格名 → 该格对手驾驶员（按测试集文件里的 agent 目录 + 注册表换算）。"""
+    A2D = _agent_to_driver()
+    out = {}
+    try:
+        for ln in open(ts_path, encoding="utf-8"):
+            if ln.startswith("#") or not ln.strip():
+                continue
+            f = ln.rstrip("\n").split("\t")
+            if f[0] == "tail_mix":
+                continue
+            ag = f[1].split("/")[-1]
+            out[f[0]] = A2D.get(ag, "init")
+    except OSError:
+        pass
+    return out
+
+
+SWITCH_TS = 1795107929.63   # decks/testset_meta_real_port.tsv 写入时刻 = 测试集从"端口对手"切到"强对手"的时刻
+
+
 def from_meta():
     """多种子先按 (base tag, 格) 池化"""
     acc = collections.defaultdict(lambda: [0.0, 0])   # (tag_base, cell) -> [wins, n]
@@ -170,19 +255,27 @@ def from_meta():
         if base not in TAG2CELL and base.endswith("_A"):
             base = base[:-2]
         if base not in TAG2CELL:
-            continue
+            auto = _auto_tag2cell(base)
+            if not auto:
+                continue
+            TAG2CELL[base] = auto
         for f in glob.glob(os.path.join(tag_dir, "vs_*.json")):
             o = json.load(open(f))["overall"]
-            c = cell_short(os.path.basename(f)[3:-5])
+            cell_full = os.path.basename(f)[3:-5]
+            c = cell_short(cell_full)
             if c not in REAL_CELL_OK:
                 continue          # 真实口径面板里的 out_*/unseen_* 新格不进网格
-            k = (base, c)
+            # ★ 2026-11-22：测试集在 SWITCH_TS 从"端口对手"换成"强对手"，
+            #   同一个 <候选>_real 目录下的文件要按 mtime 判断它当时用的是哪套对手，
+            #   否则强对强的结果会被错记成"打 init"（这正是新候选挤不进强口径矩阵的原因）。
+            opp_map = OPP_STRONG if os.path.getmtime(f) >= SWITCH_TS else OPP_PORT
+            k = (base, c, opp_map.get(cell_full, "init"))
             acc[k][0] += float(o["score"]) * int(o["n"])
             acc[k][1] += int(o["n"])
     out = []
-    for (base, c), (w, n) in acc.items():
+    for (base, c, opp_drv), (w, n) in acc.items():
         our, drv = TAG2CELL[base]
-        out.append((canon(our), c, drv, w / n, n, f"meta:{base}"))   # ★ 只 canon 我方一侧
+        out.append((canon(our), c, drv, w / n, n, f"meta:{base}", opp_drv))   # ★ 只 canon 我方一侧
     return out
 
 
@@ -290,8 +383,11 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry", action="store_true")
     a = ap.parse_args()
-    recs = ([r + ("init",) for r in from_meta() + from_panel7() + from_matrix()]
-            + from_strong_opp() + from_sym())
+    global OPP_PORT, OPP_STRONG
+    OPP_PORT = _cell_opp_map(os.path.join(ROOT, "decks", "testset_meta_real_port.tsv"))
+    OPP_STRONG = _cell_opp_map(os.path.join(ROOT, "decks", "testset_meta_real.tsv"))
+    recs = ([r + ("init",) for r in from_panel7() + from_matrix()]
+            + from_meta() + from_strong_opp() + from_sym())
 
     best = {}
     for our, opp, drv, wr, n, src, opp_drv in recs:
