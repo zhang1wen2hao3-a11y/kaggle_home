@@ -21,6 +21,8 @@ git add -f data/opp_matrix/*.json 2>/dev/null
 find logs/meta -maxdepth 2 -name summary.json -print0 2>/dev/null | xargs -0 -r git add -f
 find logs/meta -maxdepth 2 -name 'vs_*.json' -print0 2>/dev/null | xargs -0 -r git add -f
 git add -f LB记录.md docs/*.md 2>/dev/null
+# 牌表口径/队列这些小文本是决策依据，必须进仓库（train_queue 记录每副牌的训练状态）
+git add -f decks/*.txt decks/*.tsv 2>/dev/null
 
 if git diff --cached --quiet; then
   echo "（无变化，跳过提交）"

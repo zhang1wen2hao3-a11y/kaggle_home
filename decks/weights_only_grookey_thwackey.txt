@@ -1,0 +1,9 @@
+version 3
+default 0.0000
+grookey_thwackey__2617 0.333333
+grookey_thwackey__7d48 0.333333
+grookey_thwackey__b96f 0.333333
+teal_mask_ogerpon_ex_applin__5c8e 0.001000
+teal_mask_ogerpon_ex_applin__678a 0.001000
+teal_mask_ogerpon_ex_applin__7e39 0.001000
+teal_mask_ogerpon_ex_applin__e938 0.001000

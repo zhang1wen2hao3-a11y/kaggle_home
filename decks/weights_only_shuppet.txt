@@ -1,0 +1,9 @@
+version 3
+default 0.0000
+shuppet_banette__f2af 0.001187
+shuppet_dhelmise__0d86 0.499406
+shuppet_dhelmise__fe82 0.499406
+teal_mask_ogerpon_ex_applin__5c8e 0.001000
+teal_mask_ogerpon_ex_applin__678a 0.001000
+teal_mask_ogerpon_ex_applin__7e39 0.001000
+teal_mask_ogerpon_ex_applin__e938 0.001000

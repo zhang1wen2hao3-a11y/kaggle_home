@@ -9,9 +9,9 @@
 # ── 主队列（有外部高分 + 份额≥2.5%）────────────────────────────────────
 # 卡组 | 份额 | 天花板(玩家) | 状态
 dreepy_drakloak__3eaa                 | 18.3% | 1404 Dipam Chakraborty   | ✅ 已训 cand3EAAR1（28.8%→47.0%，+18.2pp 过闸门）
-z_ogerpon_toolbox_miwa__e1d7          | 12.9% | 1600 knshnb              | 🔄 训练中 e1d7_r3（起点 candE1D7R2 42.9%）
-beldum_metang__a47a                   | 10.8% | 1278 SeaGoat             | ⏭ 下一轮候选（注意：beldum 系列天梯用端口只 187 分、榜前队 37% 胜率，先验一轮看能否救活）
-z_dragapult_dreepy_petit__0904        |  3.6% | 1555 Petit Canard        | ⏭ 高优先（天花板第二高，我们只有端口权重）
+z_ogerpon_toolbox_miwa__e1d7          | 12.9% | 1600 knshnb              | ⏸ 平台期：r1 +1.6 / r2 +1.3 / r3 +0.5（38.7%），三连不过闸门 ⇒ 暂停同配方；要救只能"专精格"（bank 只留 9d6e 家族、拿掉 7e39）
+beldum_metang__a47a                   | 10.8% | 1278 SeaGoat             | ✅ 已训 candA47AR1（2026-11-22）：**LB 187.5 → 600.0（+412）**，弱起点规律成立；**待 17 格面板**
+z_dragapult_dreepy_petit__0904        |  3.6% | 1555 Petit Canard        | ✅ 已训 cand0904R1：面板 **54.4%**（17 格，镜像格 46.7% ≈ 与端口打平），LB 880.4 → **919.9**；只剩 7e39 一格烂（39.3% vs 真人 100%）
 dreepy-drakloak__8fe3                 |  4.1% | 1318 tyr1218              | ⏭ 高优先（BC 权重）
 tealmaskogerponex-forestofvitality__0b34 | 2.7% | 1334 ktr               | ⏭
 dreepy-drakloak__5b8f                 |  2.7% | 1311 RtoABC2             | ⏭

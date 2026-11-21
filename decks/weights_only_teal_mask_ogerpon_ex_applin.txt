@@ -1,0 +1,6 @@
+version 3
+default 0.0000
+teal_mask_ogerpon_ex_applin__5c8e 0.250000
+teal_mask_ogerpon_ex_applin__678a 0.250000
+teal_mask_ogerpon_ex_applin__7e39 0.250000
+teal_mask_ogerpon_ex_applin__e938 0.250000
