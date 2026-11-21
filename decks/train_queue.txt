@@ -1,0 +1,18 @@
+# 轮训队列（2026-11-22 定：每副牌都训一个驾驶员，bank 池滚动变强）
+# 格式: 卡组文件名 | 起点 | 备注
+# 排序依据：真实场份额（份额大的先训，因为它的强驾驶员会成为后面所有训练的 bank）
+dreepy_drakloak__3eaa                      | bc_3eaa            | 份额 18.3%，天花板 Dipam 1404，我们只有 BC 权重
+z_ogerpon_toolbox_miwa__e1d7               | candE1D7R2         | 份额 12.9%，天花板 knshnb 1600
+teal_mask_ogerpon_ex_applin__7e39          | cand7e39S          | 份额 9.3%，我们回放里占对手 48%
+z_dragapult_dreepy_petit__0904             | init_0904          | 份额 3.6%，天花板 Petit Canard 1555
+dreepy_drakloak__0b34_missing_use_0b34     | init_0b34          | 份额 2.7%，天花板 ktr 1334（占位行，实际牌名 tealmaskogerponex-forestofvitality__0b34）
+dreepy-drakloak__5b8f                      | bc_5b8f            | 份额 2.7%，天花板 RtoABC2 1311
+dreepy-drakloak__049c                      | bc_049c            | 份额 2.5%，天花板 1291
+unseen__91808263                           | init_9180          | 份额 2.8%，天花板 1284（结构性克我们，r4 已用它对练）
+mega_kangaskhan_ex_dwebble__0382           | init_0382          | 份额 1.2%（结构性克我们）
+beldum-metang__cb25                        | init_cb25          | 份额 2.6%，天花板 1285
+beldum_metang__f91d                        | init_f91d          | 份额 3.2%
+dreepy_drakloak__ea39                      | bc_ea39            | 份额 3.4%
+grookey_thwackey__2617                     | ph3_2617_v2        | 份额 1.5%，唯一压 9d6e 的牌
+slowpoke-academyatnight__71b2              | init_71b2          | 份额 1.1%
+dreepy-drakloak__1917                      | bc_1917            | 份额 0.9%
