@@ -114,19 +114,19 @@
 3eaa,049c,init,,,默认,无数据，默认 init
 3eaa,0904,init,,,默认,无数据，默认 init
 3eaa,0b34,init,,,默认,无数据，默认 init
-3eaa,0bf5,init,,,默认,无数据，默认 init
+3eaa,0bf5,bc_3eaa,0.3667,150,强对强,强口径实测：bc_3eaa 胜率 36.7%（n=150，对手亦为非 init）
 3eaa,0d86,init,,,默认,无数据，默认 init
 3eaa,1917,init,,,默认,无数据，默认 init
-3eaa,2617,init,,,默认,无数据，默认 init
-3eaa,26c6,init,,,默认,无数据，默认 init
-3eaa,3eaa,init,0.5000,0,内战,无 n≥150 的内战数据（该格候选全部样本不足）
+3eaa,2617,cand3EAAR1,0.8567,150,强对强,强口径实测：cand3EAAR1 胜率 85.7%（n=150，对手亦为非 init）
+3eaa,26c6,cand3EAAR1,0.7833,150,强对强,强口径实测：cand3EAAR1 胜率 78.3%（n=150，对手亦为非 init）
+3eaa,3eaa,cand3EAAR1,0.6600,150,强对强,强口径实测：cand3EAAR1 胜率 66.0%（n=150，对手亦为非 init）
 3eaa,5b8f,init,,,默认,无数据，默认 init
 3eaa,71b2,init,,,默认,无数据，默认 init
-3eaa,7e39,init,,,默认,无数据，默认 init
-3eaa,9d6e,bc_3eaa,0.2978,450,强对强,强口径实测：bc_3eaa 胜率 29.8%（n=450，对手亦为非 init）
+3eaa,7e39,cand3EAAR1,0.4667,150,强对强,强口径实测：cand3EAAR1 胜率 46.7%（n=150，对手亦为非 init）
+3eaa,9d6e,cand3EAAR1,0.3933,150,强对强,强口径实测：cand3EAAR1 胜率 39.3%（n=150，对手亦为非 init）
 3eaa,cb25,init,,,默认,无数据，默认 init
-3eaa,e1d7,init,,,默认,无数据，默认 init
-3eaa,f5f8,init,,,默认,无数据，默认 init
+3eaa,e1d7,cand3EAAR1,0.5400,150,强对强,强口径实测：cand3EAAR1 胜率 54.0%（n=150，对手亦为非 init）
+3eaa,f5f8,cand3EAAR1,0.6800,150,强对强,强口径实测：cand3EAAR1 胜率 68.0%（n=150，对手亦为非 init）
 5b8f,049c,init,,,默认,无数据，默认 init
 5b8f,0904,init,,,默认,无数据，默认 init
 5b8f,0b34,init,,,默认,无数据，默认 init
@@ -178,19 +178,19 @@
 9d6e,049c,init,,,默认,无数据，默认 init
 9d6e,0904,init,,,默认,无数据，默认 init
 9d6e,0b34,init,,,默认,无数据，默认 init
-9d6e,0bf5,ab9d6e_r2A,0.6244,450,强对强,强口径实测：ab9d6e_r2A 胜率 62.4%（n=450，对手亦为非 init）
+9d6e,0bf5,cand9D6ER4,0.6400,150,强对强,强口径实测：cand9D6ER4 胜率 64.0%（n=150，对手亦为非 init）
 9d6e,0d86,ab9d6e_r2A,0.0850,200,强对强,强口径实测：ab9d6e_r2A 胜率 8.5%（n=200，对手亦为非 init）
 9d6e,1917,init,,,默认,无数据，默认 init
 9d6e,2617,cand9D6ER3,0.7467,150,强对强,强口径实测：cand9D6ER3 胜率 74.7%（n=150，对手亦为非 init）
-9d6e,26c6,cand0bf5S,0.8067,150,强对强,强口径实测：cand0bf5S 胜率 80.7%（n=150，对手亦为非 init）
+9d6e,26c6,cand9D6ER3,0.7400,150,强对强,强口径实测：cand9D6ER3 胜率 74.0%（n=150，对手亦为非 init）
 9d6e,3eaa,cand9D6ER3,0.8133,150,强对强,强口径实测：cand9D6ER3 胜率 81.3%（n=150，对手亦为非 init）
 9d6e,5b8f,init,,,默认,无数据，默认 init
 9d6e,71b2,init,,,默认,无数据，默认 init
-9d6e,7e39,cand9D6ER3,0.8733,150,强对强,强口径实测：cand9D6ER3 胜率 87.3%（n=150，对手亦为非 init）
-9d6e,9d6e,cand9D6ER3,0.4867,150,强对强,强口径实测：cand9D6ER3 胜率 48.7%（n=150，对手亦为非 init）
+9d6e,7e39,cand9D6ER4,0.8867,150,强对强,强口径实测：cand9D6ER4 胜率 88.7%（n=150，对手亦为非 init）
+9d6e,9d6e,cand9D6ER4,0.4933,150,强对强,强口径实测：cand9D6ER4 胜率 49.3%（n=150，对手亦为非 init）
 9d6e,cb25,init,,,默认,无数据，默认 init
-9d6e,e1d7,cand9D6ER3,0.9067,150,强对强,强口径实测：cand9D6ER3 胜率 90.7%（n=150，对手亦为非 init）
-9d6e,f5f8,cand9D6ER3,0.8600,150,强对强,强口径实测：cand9D6ER3 胜率 86.0%（n=150，对手亦为非 init）
+9d6e,e1d7,cand9D6ER4,0.9133,150,强对强,强口径实测：cand9D6ER4 胜率 91.3%（n=150，对手亦为非 init）
+9d6e,f5f8,cand9D6ER4,0.9333,150,强对强,强口径实测：cand9D6ER4 胜率 93.3%（n=150，对手亦为非 init）
 cb25,049c,init,,,默认,无数据，默认 init
 cb25,0904,init,,,默认,无数据，默认 init
 cb25,0b34,init,,,默认,无数据，默认 init
@@ -230,7 +230,7 @@ f5f8,0bf5,init,,,默认,无数据，默认 init
 f5f8,0d86,candf5f8S,0.9200,600,强对强,强口径实测：candf5f8S 胜率 92.0%（n=600，对手亦为非 init）
 f5f8,1917,init,,,默认,无数据，默认 init
 f5f8,2617,init,,,默认,无数据，默认 init
-f5f8,26c6,candf5f8F,0.7867,150,强对强,强口径实测：candf5f8F 胜率 78.7%（n=150，对手亦为非 init）
+f5f8,26c6,candE1D7T,0.8500,150,强对强,强口径实测：candE1D7T 胜率 85.0%（n=150，对手亦为非 init）
 f5f8,3eaa,init,,,默认,无数据，默认 init
 f5f8,5b8f,init,,,默认,无数据，默认 init
 f5f8,71b2,init,,,默认,无数据，默认 init

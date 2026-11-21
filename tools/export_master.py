@@ -169,6 +169,16 @@ def _auto_tag2cell(base):
       新候选只要有 build/agents/<名字>/deck.csv 就能自动进母表。
     """
     cand = base[:-5] if base.endswith("_real") else base
+    # ★ 先查注册表（很多候选只在评估机上铺了 agent 目录，本地没有 ⇒ 靠 deck 字段反查）
+    sys.path.insert(0, os.path.join(ROOT, "tools"))
+    try:
+        import driver_registry as REG
+        info = REG.DRIVERS.get(cand) or {}
+        dk = str(info.get("deck") or "").lower()
+        if dk:
+            return (dk, cand)
+    except Exception:
+        pass
     d = os.path.join(ROOT, "build", "agents", cand, "deck.csv")
     try:
         ids = tuple(sorted(int(x) for x in open(d) if x.strip()))

@@ -198,21 +198,21 @@
 7e39,e8ee,init,0.3912,1200,实测,init（无已验证训练件领先 ≥5pp）
 7e39,f5f8,init,0.4000,300,实测,init（无已验证训练件领先 ≥5pp）
 9d6e,049c,init,0.9800,200,实测,init（无已验证训练件领先 ≥5pp）
-9d6e,0904,ab9d6e_r2A,0.4410,1050,实测,训练件 0.4410 vs init 0.2067（+23.4pp ≥5pp；n=1050；meta:ab9d6e_r2A）
+9d6e,0904,p9d6e,0.4800,400,实测,训练件 0.4800 vs init 0.2067（+27.3pp ≥5pp；n=400；meta:p9d6e_real）
 9d6e,0b34,init,0.8700,200,实测,init（无已验证训练件领先 ≥5pp）
 9d6e,0bf5,init,0.7833,600,实测,init（无已验证训练件领先 ≥5pp）
 9d6e,0d86,init,0.9917,600,实测,init（无已验证训练件领先 ≥5pp）
 9d6e,1917,init,0.8550,200,实测,init（无已验证训练件领先 ≥5pp）
 9d6e,2617,init,0.5350,600,实测,init（无已验证训练件领先 ≥5pp）
 9d6e,26c6,init,,,默认,无数据，默认 init
-9d6e,3eaa,ab9d6e_r2A,0.6181,1050,实测,训练件 0.6181 vs init 0.4283（+19.0pp ≥5pp；n=1050；meta:ab9d6e_r2A）
+9d6e,3eaa,p9d6e,0.6325,400,实测,训练件 0.6325 vs init 0.4283（+20.4pp ≥5pp；n=400；meta:p9d6e_real）
 9d6e,5b8f,init,0.8200,200,实测,init（无已验证训练件领先 ≥5pp）
 9d6e,71b2,init,0.8500,200,实测,init（无已验证训练件领先 ≥5pp）
-9d6e,7e39,ab9d6e_r1A,0.8900,600,实测,训练件 0.8900 vs init 0.8133（+7.7pp ≥5pp；n=600；meta:ab9d6e_r1A）
-9d6e,9d6e,g6_db04,0.5000,600,内战,"内战最强：g6_db04 0.7750（n=600，vs 对手端口）；矩阵记 0.5；候选 ['ab9d6e_r1A', 'ab9d6e_r2A', 'ab9d6e_r2B', 'g6_db04', 'init', 'ph3_9d6e_v2', 'r1A']"
+9d6e,7e39,p9d6e,0.9175,400,实测,训练件 0.9175 vs init 0.8133（+10.4pp ≥5pp；n=400；meta:p9d6e_real）
+9d6e,9d6e,g6_db04,0.5000,600,内战,"内战最强：g6_db04 0.7750（n=600，vs 对手端口）；矩阵记 0.5；候选 ['ab9d6e_r1A', 'ab9d6e_r2A', 'ab9d6e_r2B', 'g6_db04', 'init', 'p9d6e', 'ph3_9d6e_v2', 'r1A']"
 9d6e,cb25,init,1.0000,200,实测,init（无已验证训练件领先 ≥5pp）
 9d6e,db04,init,0.4967,600,实测,init（无已验证训练件领先 ≥5pp）
-9d6e,e1d7,ab9d6e_r2A,0.9283,600,实测,训练件 0.9283 vs init 0.8550（+7.3pp ≥5pp；n=600；meta:ab9d6e_r2A）
+9d6e,e1d7,p9d6e,0.9375,400,实测,训练件 0.9375 vs init 0.8550（+8.3pp ≥5pp；n=400；meta:p9d6e_real）
 9d6e,e8ee,g6_db04,0.7567,600,实测,训练件 0.7567 vs init 0.6900（+6.7pp ≥5pp；n=600；meta:meta_g6_db04）
 9d6e,f5f8,init,0.4733,300,实测,init（无已验证训练件领先 ≥5pp）
 cb25,049c,init,,,默认,无数据，默认 init
@@ -255,7 +255,7 @@ f5f8,049c,init,0.9200,200,实测,init（无已验证训练件领先 ≥5pp）
 f5f8,0904,init,0.1867,150,实测,init（无已验证训练件领先 ≥5pp）
 f5f8,0b34,init,0.5900,200,实测,init（无已验证训练件领先 ≥5pp）
 f5f8,0bf5,candf5f8E,0.6844,450,实测,训练件 0.6844 vs init 0.4800（+20.4pp ≥5pp；n=450；meta:candf5f8E_real）
-f5f8,0d86,candf5f8E,0.9555,450,实测,训练件 0.9555 vs init 0.0400（+91.5pp ≥5pp；n=450；meta:candf5f8E_real）
+f5f8,0d86,deck_f5f8_,1.0000,550,实测,训练件 1.0000 vs init 0.0400（+96.0pp ≥5pp；n=550；meta:deck_f5f8_）
 f5f8,1917,init,0.6500,200,实测,init（无已验证训练件领先 ≥5pp）
 f5f8,2617,init,0.5867,150,实测,init（无已验证训练件领先 ≥5pp）
 f5f8,26c6,init,,,默认,无数据，默认 init

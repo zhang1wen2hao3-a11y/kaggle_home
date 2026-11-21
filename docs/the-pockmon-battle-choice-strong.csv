@@ -6,11 +6,11 @@
 1917,init,init,init,init,init,init,init,bc_1917,init,init,init,init,init,init,init,bc_1917
 2617,init,init,init,init,init,init,init,ph3_2617_v1,init,init,init,ph3_2617_v2,init,init,init,ph3_2617_v2
 26c6,init,init,init,init,cand26c6S,init,init,cand26c6M,init,init,init,init,init,init,init,cand26c6M
-3eaa,init,init,init,init,init,init,init,init,init,init,init,init,bc_3eaa,init,init,init
+3eaa,init,init,init,bc_3eaa,init,init,cand3EAAR1,cand3EAAR1,cand3EAAR1,init,init,cand3EAAR1,cand3EAAR1,init,cand3EAAR1,cand3EAAR1
 5b8f,init,init,init,init,init,init,init,bc_5b8f,init,init,init,init,init,init,init,bc_5b8f
 71b2,init,init,init,init,init,init,init,init,init,init,init,init,init,init,init,init
 7e39,init,init,init,init,cand7e39S,init,cand7e39S,init,init,init,init,init,cand7e39S,init,cand7e39S,cand7e39S
-9d6e,init,init,init,ab9d6e_r2A,ab9d6e_r2A,init,cand9D6ER3,cand0bf5S,cand9D6ER3,init,init,cand9D6ER3,cand9D6ER3,init,cand9D6ER3,cand9D6ER3
+9d6e,init,init,init,cand9D6ER4,ab9d6e_r2A,init,cand9D6ER3,cand9D6ER3,cand9D6ER3,init,init,cand9D6ER4,cand9D6ER4,init,cand9D6ER4,cand9D6ER4
 cb25,init,init,init,init,init,init,init,init,init,init,init,init,init,init,init,init
 e1d7,init,init,init,init,init,init,init,candE1D7R2,init,init,init,candE1D7R2,candE1D7R2,init,init,candE1D7R2
-f5f8,init,init,init,init,candf5f8S,init,init,candf5f8F,init,init,init,init,init,init,init,candf5f8G
+f5f8,init,init,init,init,candf5f8S,init,init,candE1D7T,init,init,init,init,init,init,init,candf5f8G
