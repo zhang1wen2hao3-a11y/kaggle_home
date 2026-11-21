@@ -22,9 +22,9 @@ MATCHES="${2:-150}"
 REF="${REF:-p9d6e}"
 TS=decks/testset_meta_real.tsv
 WORKERS="${WORKERS:-24}"
-DEADLINE="${DEADLINE:-02:00}"
+DEADLINE="${DEADLINE:-}"   # 用户 2026-11-20：不要默认挂 02:00，等他给时间再挂
 
-bash tools/arm_deadline_shutdown.sh "$HOST" "$DEADLINE" >/dev/null 2>&1 || true
+[ -n "$DEADLINE" ] && bash tools/arm_deadline_shutdown.sh "$HOST" "$DEADLINE" >/dev/null 2>&1 || true
 
 CELLS=(); AGENTS=()
 while IFS=$'\t' read -r cell agent rest; do

@@ -44,13 +44,18 @@ done
 [ "${sz:-0}" = "$SIZEF" ] || { say "✗ 等不到 $FINAL（最后一次 ${sz:-0}B）"; exit 1; }
 
 mkdir -p "models/ppo/gpu_$RUN"
-# ★ 2026-11-22：`rsync -z` 在这台机器上会 io timeout（300 秒都传不完 18 MB）；
-#   改成 `ssh cat > 文件` 流式拉取 —— 实测 1.1 秒，且带 3 次重试。
+# ★ 2026-11-22 两版血泪：`rsync` 在某些机器上 300 秒传不完 18 MB 会超时；
+#   `ssh cat` 管道在这台 nmb2 上会把 18,205,408 B 截成 17.58 MB（md5 对不上）。
+#   ⇒ 优先用 scp（SCP_WRAP=<scp 包装脚本>），拉完**必须比 size + md5**。
 ok=0
 for try in 1 2 3; do
-  if rsh $GPU "cat $FINAL" > "models/ppo/gpu_$RUN/$RUN.bin" 2>/dev/null && \
-     [ "$(stat -c %s "models/ppo/gpu_$RUN/$RUN.bin" 2>/dev/null)" = "$SIZEF" ]; then ok=1; break; fi
-  say "  rsync/cat 第 $try 次失败，重试"; sleep 5
+  if [ -n "${SCP_WRAP:-}" ]; then
+    "$SCP_WRAP" "$RHOST:$FINAL" "models/ppo/gpu_$RUN/$RUN.bin" >/dev/null 2>&1
+  else
+    rsh $GPU "cat $FINAL" > "models/ppo/gpu_$RUN/$RUN.bin" 2>/dev/null
+  fi
+  if [ "$(stat -c %s "models/ppo/gpu_$RUN/$RUN.bin" 2>/dev/null)" = "$SIZEF" ]; then ok=1; break; fi
+  say "  第 $try 次拉取失败（大小不符），重试"; sleep 5
 done
 [ "$ok" = 1 ] || { say "✗ 拉 final 失败"; exit 1; }
 # 续训用的 state 也顺手拉（失败不影响主流程）

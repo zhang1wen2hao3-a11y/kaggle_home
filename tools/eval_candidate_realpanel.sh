@@ -14,11 +14,31 @@ CELLS="ogerpon_7e39 dunsparce_0bf5 grookey_2617 out_91808263 dreepy_3eaa champ_e
 SEED2_CELLS="${SEED2_CELLS:-out_ea39 out_07be dreepy_3eaa out_0382 out_77a5}"
 [ -s "models/ppo/$NAME.pt" ] || { echo "✗ 缺 models/ppo/$NAME.pt"; exit 1; }
 
+# ★ 2026-11-22 修 bug：牌表以前**写死 f5f8** ⇒ 给 e1d7/0904 的候选建 agent 时用的是 f5f8 的牌，
+#   权重是自己的、牌是别人的，整份面板是错的。现在按注册表 deck 字段反查池子文件名；DECK=... 可覆盖。
+if [ -z "${DECK:-}" ]; then
+  DECK=$(./tools/py - "$NAME" <<'PY'
+import glob, sys
+sys.path.insert(0, 'tools')
+try:
+    import driver_registry as d
+    short = d.deck_of(sys.argv[1]) or ''
+except Exception:
+    short = ''
+cands = (glob.glob(f'decks/pool_field/*__{short}.csv') if short else []) + \
+        (glob.glob(f'decks/*__{short}.csv') if short else [])
+print(cands[0] if cands else '')
+PY
+)
+fi
+[ -s "${DECK:-/nonexistent}" ] || { echo "✗ 推断不出 $NAME 的牌表（注册表 deck 字段 / decks/pool_field/*__<deck>.csv）—— 用 DECK=... 指定"; exit 1; }
+echo "== 牌表 $DECK"
+
 up=0
 for h in "${HOSTS[@]}"; do
   scp -q "models/ppo/$NAME.pt" "$h:/root/eval_cpu_kit/stage_$NAME.pt" || { echo "✗ 推 $h 失败（机器可能已被释放）"; continue; }
   scp -q tools/driver_registry.py "$h:/root/eval_cpu_kit/tools/"
-  timeout 150 ssh -o BatchMode=yes "$h" "cd /root/eval_cpu_kit && bash tools/make_agent_dir.sh build/agents/$NAME stage_$NAME.pt decks/pool_field/abra_kadabra__f5f8.csv 2>&1 | tail -1" | sed "s/^/  [$h] /"
+  timeout 150 ssh -o BatchMode=yes "$h" "cd /root/eval_cpu_kit && bash tools/make_agent_dir.sh build/agents/$NAME stage_$NAME.pt "$DECK" 2>&1 | tail -1" | sed "s/^/  [$h] /"
   up=$((up+1))
 done
 [ "$up" -gt 0 ] || { echo "✗ 没有任何机器可达，先把机器开起来再跑这条"; exit 1; }
