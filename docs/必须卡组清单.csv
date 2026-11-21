@@ -1,11 +1,11 @@
 ﻿4hex,8hex,卡组文件,原型,17格,榜前N队局数,榜前N队胜率,对手覆盖率,覆盖率(我方对局),回放口径天花板,回放口径最高分玩家,已训练驾驶员,现有驾驶员,建议
 3eaa,3eaaf117,dreepy_drakloak__3eaa,dreepy_drakloak,✓,206,58.7%,18.3%,2.9%,1404.0,Dipam Chakraborty,"bc_3eaa,cand3EAAR1","bc_3eaa,cand3EAAR1,opp_3eaa",
 e1d7,e1d754a7,z_ogerpon_toolbox_miwa__e1d7,z_ogerpon_toolbox_miwa,✓,144,66.0%,12.9%,2.5%,1600.4,knshnb,"candE1D7R2,candE1D7R3,candE1D7T","candE1D7R2,candE1D7R3,candE1D7T,port_e1d7",
-a47a,a47a7971,beldum_metang__a47a,beldum_metang,,124,31.5%,10.8%,0.8%,1277.9,SeaGoat,,init_a47a,仅 init/BC，优先排训练
+a47a,a47a7971,beldum_metang__a47a,beldum_metang,,124,31.5%,10.8%,0.8%,1277.9,SeaGoat,"cA47AR1,candA47AR1","cA47AR1,candA47AR1,init_a47a",
 7e39,7e398437,teal_mask_ogerpon_ex_applin__7e39,teal_mask_ogerpon_ex_applin,✓,25,40.0%,9.3%,34.9%,,,cand7e39S,"cand7e39S,p_7e39,port_7e39",
 8fe3,8fe3645a,dreepy-drakloak__8fe3,dreepy-drakloak,,48,52.1%,4.1%,0.0%,1318.5,tyr1218,bc_8fe3,bc_8fe3,
 0bf5,0bf5955c,dunsparce_abra__0bf5,dunsparce_abra,✓,14,28.6%,3.9%,12.9%,,,cand0bf5S,"cand0bf5S,opp_dunsparce_0bf5",
-0904,0904e46f,z_dragapult_dreepy_petit__0904,z_dragapult_dreepy_petit,✓,38,44.7%,3.6%,1.7%,1554.6,Petit Canard,cand0904R1,"cand0904R1,init_0904,port_0904",
+0904,0904e46f,z_dragapult_dreepy_petit__0904,z_dragapult_dreepy_petit,✓,38,44.7%,3.6%,1.7%,1554.6,Petit Canard,"c0904R1,cand0904R1","c0904R1,cand0904R1,init_0904,port_0904",
 ea39,ea39ccb1,dreepy_drakloak__ea39,dreepy_drakloak,✓,37,43.2%,3.4%,1.2%,,,bc_ea39,bc_ea39,
 f91d,f91d57e2,beldum_metang__f91d,beldum_metang,,37,43.2%,3.2%,0.0%,,,,init_f91d,仅 init/BC，优先排训练
 9180,91808263,unseen__91808263,unseen,✓,26,57.7%,2.8%,2.9%,1284.2,Swag Collectors,,"bc_9180,init_9180",仅 init/BC，优先排训练

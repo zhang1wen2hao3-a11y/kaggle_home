@@ -11,7 +11,8 @@ cd "$(dirname "$0")/.." || exit 1
 NAME="${1:?用法: bash tools/eval_candidate_realpanel.sh <候选名> [hosts...]}"; shift || true
 HOSTS=("$@"); [ ${#HOSTS[@]} -eq 0 ] && HOSTS=(root@113.44.216.143 root@1.92.97.36 root@113.44.139.218)
 CELLS="ogerpon_7e39 dunsparce_0bf5 grookey_2617 out_91808263 dreepy_3eaa champ_e1d7 out_07be out_3f45 out_77a5 champ_0904 abra_f5f8 out_ea39 out_9bc9d655 out_0382 dunsparce_9d6e abra_e8ee champ_26c6"
-SEED2_CELLS="${SEED2_CELLS:-out_ea39 out_07be dreepy_3eaa out_0382 out_77a5}"
+# ★ 用 `${VAR-默认}`（不是 :-）：显式传空串表示"不补第二种子"，否则空串也会被当成没设。
+SEED2_CELLS="${SEED2_CELLS-out_ea39 out_07be dreepy_3eaa out_0382 out_77a5}"
 [ -s "models/ppo/$NAME.pt" ] || { echo "✗ 缺 models/ppo/$NAME.pt"; exit 1; }
 
 # ★ 2026-11-22 修 bug：牌表以前**写死 f5f8** ⇒ 给 e1d7/0904 的候选建 agent 时用的是 f5f8 的牌，
