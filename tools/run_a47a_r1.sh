@@ -19,14 +19,14 @@ export PTCG_REPO=/root/ptcg_train_kit/port_repo PYTHON=/root/miniconda3/bin/pyth
 NEED="/root/cand9D6ER4.bin /root/cand9D6ER3.bin /root/cand3EAAR1.bin /root/candf5f8E.bin /root/ph3_2617_v2.bin /root/cand7e39S.bin"
 MISS=""
 for f in $NEED; do [ -s "$f" ] || MISS="$MISS $f"; done
-[ -s "${INIT:-/root/pt_model_field.bin}" ] || MISS="$MISS ${INIT:-/root/pt_model_field.bin}"
+[ -s "${INIT:-/root/ptcg_train_kit/port_repo/native/pt_model_field.bin}" ] || MISS="$MISS ${INIT:-/root/ptcg_train_kit/port_repo/native/pt_model_field.bin}"
 if [ -n "$MISS" ]; then
   echo "✗ 缺权重，先从本地 models/ppo 推上来：$MISS" >&2
   exit 1
 fi
 
 export ANCHOR=beldum_metang__a47a
-export INIT="${INIT:-/root/pt_model_field.bin}"          # 起点＝端口（初始化权重，等价 init_a47a）
+export INIT="${INIT:-/root/ptcg_train_kit/port_repo/native/pt_model_field.bin}"          # 起点＝端口（初始化权重，等价 init_a47a）
 export BANKS=/root/cand9D6ER4.bin,/root/cand9D6ER3.bin,/root/cand3EAAR1.bin,/root/candf5f8E.bin,/root/ph3_2617_v2.bin,/root/cand7e39S.bin
 export BANKDECKS=dunsparce_abra__9d6e,dunsparce_abra__9d6e,dreepy_drakloak__3eaa,abra_kadabra__f5f8,grookey_thwackey__2617,teal_mask_ogerpon_ex_applin__7e39
 export LEAGUE_PCT=0.08

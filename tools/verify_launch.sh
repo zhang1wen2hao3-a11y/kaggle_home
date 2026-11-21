@@ -13,6 +13,10 @@
 # 环境变量：INTERVAL=12（秒）、ROUNDS=6（默认最多 72 秒）、ALLOW_ZERO=0
 #   探针命令需输出一个**数字**（进程数 / 产物数）；0 视为"还没起来"，>0 视为成功。
 set -uo pipefail
+# ★ 2026-11-22 修 bug：探针用 `2>&1 | head -1` 取第一行，而新机器第一次连会先打印
+#   "Warning: Permanently added ... to the list of known hosts."（走 stderr，被 2>&1 并进 stdout）
+#   ⇒ 第一行是警告而不是进程数 ⇒ 被当成 0 ⇒ 明明在跑也判"没起来"，把还在跑的面板 kill 掉。
+#   现在：stderr 丢掉，只取纯数字行，并统一 LogLevel=ERROR。
 HOST="${1:?用法: bash tools/verify_launch.sh <host> <探针命令> [日志glob]}"
 PROBE="${2:?需要探针命令，输出一个数字}"
 LOGLOB="${3:-/root/*.log}"
@@ -22,17 +26,17 @@ ALLOW_ZERO="${ALLOW_ZERO:-0}"
 die() {
   echo "✗ 启动验证失败：$*"
   echo "--- 远端日志尾部（$LOGLOB）---"
-  timeout 20 ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=8 "$HOST" \
+  timeout 20 ssh -o BatchMode=yes -o LogLevel=ERROR -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=8 "$HOST" \
     "for f in $LOGLOB; do echo \"== \$f\"; tail -12 \"\$f\"; done" 2>&1 | tail -40
   exit 2
 }
 for i in $(seq 1 "$ROUNDS"); do
-  out=$(timeout 20 ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=8 "$HOST" "$PROBE" 2>&1 | head -1 | tr -d '[:space:]')
+  out=$(timeout 20 ssh -o BatchMode=yes -o LogLevel=ERROR -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=8 "$HOST" "$PROBE" 2>/dev/null | tr -d '[:space:]' | grep -oE '[0-9]+' | head -1)
   case "$out" in ''|*[!0-9]*) out=0;; esac
   echo "  探第 $i 次（每 ${INTERVAL}s）：$out"
   if [ "$out" -gt 0 ]; then echo "✓ 启动确认（$out）"; exit 0; fi
   # 顺手查致命错误关键字，有就直接失败（不用等满轮次）
-  err=$(timeout 20 ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=8 "$HOST" \
+  err=$(timeout 20 ssh -o BatchMode=yes -o LogLevel=ERROR -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=8 "$HOST" \
         "for f in $LOGLOB; do grep -lE 'Traceback|AssertionError|MISSING_AGENT|不存在' \"\$f\" 2>/dev/null; done" 2>/dev/null | head -1)
   [ -n "$err" ] && die "日志里已有致命错误：$err"
   sleep "$INTERVAL"

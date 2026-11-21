@@ -35,10 +35,27 @@ fi
 echo "== 牌表 $DECK"
 
 up=0
+SSHOPT="-o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=20"
+# ★ 2026-11-22：20 MB 的 .pt 推一次偶尔会 "lost connection"（网抖），原来没有重试 ⇒ 整条面板直接放弃。
+#   现在：① 远端 md5 已一致就跳过；② 失败重试 3 次；③ 推完必校验 md5。
+push_file() {  # $1=本地文件 $2=远端绝对路径
+  local lm rm t
+  lm=$(md5sum "$1" | cut -d' ' -f1)
+  rm=$(timeout 60 ssh $SSHOPT "$h" "md5sum '$2' 2>/dev/null | cut -d' ' -f1" | tr -d '[:space:]')
+  [ "$lm" = "$rm" ] && { echo "  已就位（md5 一致，跳过推送）"; return 0; }
+  for t in 1 2 3; do
+    scp -q $SSHOPT -o ServerAliveInterval=15 "$1" "$h:$2" 2>/dev/null
+    rm=$(timeout 60 ssh $SSHOPT "$h" "md5sum '$2' 2>/dev/null | cut -d' ' -f1" | tr -d '[:space:]')
+    [ "$lm" = "$rm" ] && return 0
+    echo "  第 $t 次推送失败/校验不符，重试"; sleep 5
+  done
+  return 1
+}
+
 for h in "${HOSTS[@]}"; do
-  scp -q "models/ppo/$NAME.pt" "$h:/root/eval_cpu_kit/stage_$NAME.pt" || { echo "✗ 推 $h 失败（机器可能已被释放）"; continue; }
-  scp -q tools/driver_registry.py "$h:/root/eval_cpu_kit/tools/"
-  timeout 150 ssh -o BatchMode=yes "$h" "cd /root/eval_cpu_kit && bash tools/make_agent_dir.sh build/agents/$NAME stage_$NAME.pt "$DECK" 2>&1 | tail -1" | sed "s/^/  [$h] /"
+  push_file "models/ppo/$NAME.pt" "/root/eval_cpu_kit/stage_$NAME.pt" || { echo "✗ 推 $h 失败（3 次重试后仍校验不符，机器可能已被释放）"; continue; }
+  scatter=$(scp -q $SSHOPT tools/driver_registry.py "$h:/root/eval_cpu_kit/tools/" 2>&1) || echo "  ⚠ registry 没推上去：$scatter"
+  timeout 150 ssh $SSHOPT "$h" "cd /root/eval_cpu_kit && bash tools/make_agent_dir.sh build/agents/$NAME stage_$NAME.pt \"$DECK\" 2>&1 | tail -1" | sed "s/^/  [$h] /"
   up=$((up+1))
 done
 [ "$up" -gt 0 ] || { echo "✗ 没有任何机器可达，先把机器开起来再跑这条"; exit 1; }
