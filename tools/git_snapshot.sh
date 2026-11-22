@@ -16,7 +16,7 @@ PUSH=0
 
 # 白名单（-f 是为了绕过 .gitignore 里的 logs/、data/）
 git add -f docs/*.csv tools/*.py tools/*.sh 2>/dev/null
-git add -f data/opp_matrix/*.json 2>/dev/null
+git add -f data/opp_matrix/*.json data/lb_readings.tsv data/lb_ours_by_deck.json 2>/dev/null
 # 只收证据文件：面板汇总 + 每格对位结果；per-cell logdir 不收
 find logs/meta -maxdepth 2 -name summary.json -print0 2>/dev/null | xargs -0 -r git add -f
 find logs/meta -maxdepth 2 -name 'vs_*.json' -print0 2>/dev/null | xargs -0 -r git add -f
