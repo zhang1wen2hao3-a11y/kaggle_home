@@ -37,6 +37,10 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # 每个驾驶员：agent = 评估机上的 build/agents/<agent>；weights = 本地权重；remote = GPU 机上的纯权重 .bin
 # deck = 该驾驶员是"针对哪副牌"训出来的（None = 跨牌能通用）；fidelity = docs/opponent_library.md 的 A 一致率
 DRIVERS = {
+    "cand9D6ED1": dict(agent="cand9D6ED1", weights="models/ppo/cand9D6ED1.pt",
+                       remote=None, deck="9d6e", fidelity=None,
+                       note="9d6e 蒸馏 D1（2026-11-23）：4 个专家格 BC 蒸馏（val 一致率 82.9% vs 端口 64.7%）"
+                            "→ PPO 2M 步微调，LR 5e-5，起点 /root/distill_9d6e.bin"),
     "candE1D7R5": dict(agent="candE1D7R5", weights="models/ppo/candE1D7R5.pt",
                        remote=None, deck="e1d7", fidelity=None,
                        note="e1d7 第 5 轮 = 形状奖励（偏置）实验：SHAPE_ATTACH=0.01/SHAPE_ATTACK=0.01/"

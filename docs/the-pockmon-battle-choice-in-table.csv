@@ -349,6 +349,7 @@
 9d6e,0904,ab9d6e_r2A,init,0.4410,1050,meta:ab9d6e_r2A
 9d6e,0904,ab9d6e_r2B,init,0.3583,600,meta:ab9d6e_r2B
 9d6e,0904,b9d6e,init,0.3933,150,meta:b9d6e_real
+9d6e,0904,cand9D6ED1,init,0.4467,150,meta:cand9D6ED1_v2
 9d6e,0904,cand9D6ER3,init,0.4000,150,meta:cand9D6ER3_v2
 9d6e,0904,cand9D6ER4,init,0.4533,150,meta:cand9D6ER4_v2
 9d6e,0904,g6_db04,init,0.2083,600,meta:meta_g6_db04
@@ -363,6 +364,7 @@
 9d6e,0bf5,ab9d6e_r2A,cand0bf5S,0.6244,450,sym:ab9d6e_r2A__vs__cand0bf5S
 9d6e,0bf5,ab9d6e_r2B,init,0.5467,600,meta:ab9d6e_r2B
 9d6e,0bf5,b9d6e,init,0.5933,150,meta:b9d6e_real
+9d6e,0bf5,cand9D6ED1,cand0bf5S,0.6133,150,meta:cand9D6ED1_v2
 9d6e,0bf5,cand9D6ER3,cand0bf5S,0.6600,150,meta:cand9D6ER3_v2
 9d6e,0bf5,cand9D6ER4,cand0bf5S,0.6333,150,meta:cand9D6ER4_v2
 9d6e,0bf5,g6_db04,init,0.7967,600,meta:meta_g6_db04
@@ -390,6 +392,7 @@
 9d6e,2617,ab9d6e_r2A,init,0.4095,1050,meta:ab9d6e_r2A
 9d6e,2617,ab9d6e_r2B,init,0.3850,600,meta:ab9d6e_r2B
 9d6e,2617,b9d6e,init,0.3867,150,meta:b9d6e_real
+9d6e,2617,cand9D6ED1,g6_db04_on_2617,0.6933,150,meta:cand9D6ED1_v2
 9d6e,2617,cand9D6ER3,g6_db04_on_2617,0.4333,150,meta:cand9D6ER3_v2
 9d6e,2617,cand9D6ER4,g6_db04_on_2617,0.7333,150,meta:cand9D6ER4_v2
 9d6e,2617,g6_db04,init,0.5333,600,meta:meta_g6_db04
@@ -404,6 +407,7 @@
 9d6e,26c6,ab9d6e_r2A,r1A_26c6,0.7214,1050,meta:ab9d6e_r2A
 9d6e,26c6,ab9d6e_r2B,r1A_26c6,0.6542,600,meta:ab9d6e_r2B
 9d6e,26c6,b9d6e,r1A_26c6,0.6933,150,meta:b9d6e_real
+9d6e,26c6,cand9D6ED1,r1A_26c6,0.6467,150,meta:cand9D6ED1_v2
 9d6e,26c6,cand9D6ER3,r1A_26c6,0.7133,150,meta:cand9D6ER3_v2
 9d6e,26c6,cand9D6ER4,r1A_26c6,0.7067,150,meta:cand9D6ER4_v2
 9d6e,26c6,g6_db04,r1A_26c6,0.6425,600,meta:meta_g6_db04
@@ -416,6 +420,7 @@
 9d6e,3eaa,ab9d6e_r2A,init,0.6181,1050,meta:ab9d6e_r2A
 9d6e,3eaa,ab9d6e_r2B,init,0.5567,600,meta:ab9d6e_r2B
 9d6e,3eaa,b9d6e,init,0.6467,150,meta:b9d6e_real
+9d6e,3eaa,cand9D6ED1,bc_3eaa,0.6933,150,meta:cand9D6ED1_v2
 9d6e,3eaa,cand9D6ER3,bc_3eaa,0.5800,150,meta:cand9D6ER3_v2
 9d6e,3eaa,cand9D6ER4,bc_3eaa,0.5600,150,meta:cand9D6ER4_v2
 9d6e,3eaa,g6_db04,init,0.3667,600,meta:meta_g6_db04
@@ -432,6 +437,7 @@
 9d6e,7e39,ab9d6e_r2A,init,0.8743,1050,meta:ab9d6e_r2A
 9d6e,7e39,ab9d6e_r2B,init,0.8717,600,meta:ab9d6e_r2B
 9d6e,7e39,b9d6e,init,0.9267,150,meta:b9d6e_real
+9d6e,7e39,cand9D6ED1,cand7e39S,0.9133,150,meta:cand9D6ED1_v2
 9d6e,7e39,cand9D6ER3,cand7e39S,0.8400,150,meta:cand9D6ER3_v2
 9d6e,7e39,cand9D6ER4,cand7e39S,0.8800,150,meta:cand9D6ER4_v2
 9d6e,7e39,g6_db04,init,0.8200,600,meta:meta_g6_db04
@@ -446,6 +452,7 @@
 9d6e,9d6e,ab9d6e_r2A,init,0.4781,1050,meta:ab9d6e_r2A
 9d6e,9d6e,ab9d6e_r2B,init,0.4733,600,meta:ab9d6e_r2B
 9d6e,9d6e,b9d6e,init,0.4800,150,meta:b9d6e_real
+9d6e,9d6e,cand9D6ED1,b9d6e,0.5333,150,meta:cand9D6ED1_v2
 9d6e,9d6e,cand9D6ER3,b9d6e,0.5733,150,meta:cand9D6ER3_v2
 9d6e,9d6e,cand9D6ER4,b9d6e,0.4933,150,meta:cand9D6ER4_v2
 9d6e,9d6e,g6_db04,init,0.7750,600,meta:meta_g6_db04
@@ -469,6 +476,7 @@
 9d6e,e1d7,ab9d6e_r2A,init,0.9283,600,meta:ab9d6e_r2A
 9d6e,e1d7,ab9d6e_r2B,init,0.9000,600,meta:ab9d6e_r2B
 9d6e,e1d7,b9d6e,init,0.9067,150,meta:b9d6e_real
+9d6e,e1d7,cand9D6ED1,candE1D7R2,0.8933,150,meta:cand9D6ED1_v2
 9d6e,e1d7,cand9D6ER3,candE1D7R2,0.8800,150,meta:cand9D6ER3_v2
 9d6e,e1d7,cand9D6ER4,candE1D7R2,0.8733,150,meta:cand9D6ER4_v2
 9d6e,e1d7,g6_db04,init,0.8500,600,meta:meta_g6_db04
@@ -481,6 +489,7 @@
 9d6e,e8ee,ab9d6e_r2A,init,0.6562,1050,meta:ab9d6e_r2A
 9d6e,e8ee,ab9d6e_r2B,init,0.5983,600,meta:ab9d6e_r2B
 9d6e,e8ee,b9d6e,init,0.5800,150,meta:b9d6e_real
+9d6e,e8ee,cand9D6ED1,init,0.7133,150,meta:cand9D6ED1_v2
 9d6e,e8ee,cand9D6ER3,init,0.6800,150,meta:cand9D6ER3_v2
 9d6e,e8ee,cand9D6ER4,init,0.7333,150,meta:cand9D6ER4_v2
 9d6e,e8ee,g6_db04,init,0.7567,600,meta:meta_g6_db04
@@ -494,6 +503,7 @@
 9d6e,f5f8,ab9d6e_r2B,candf5f8S,0.5600,600,meta:ab9d6e_r2B
 9d6e,f5f8,b9d6e,candf5f8S,0.5200,150,meta:b9d6e_real
 9d6e,f5f8,cand0bf5S,candf5f8E,0.4689,450,sym:cand0bf5S__vs__candf5f8E
+9d6e,f5f8,cand9D6ED1,deck_f5f8_,0.5800,150,meta:cand9D6ED1_v2
 9d6e,f5f8,cand9D6ER3,deck_f5f8_,0.4933,150,meta:cand9D6ER3_v2
 9d6e,f5f8,cand9D6ER4,deck_f5f8_,0.5733,150,meta:cand9D6ER4_v2
 9d6e,f5f8,g6_db04,candf5f8S,0.7300,600,meta:meta_g6_db04

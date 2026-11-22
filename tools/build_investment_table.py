@@ -121,11 +121,14 @@ def lb_maps():
 def real_panel_levels():
     """从 logs/meta/<cand>_real_s95*/vs_*.json 算真实口径 17 格加权分（若有）。
 
-    ★ 2026-11-22：v2 测试集（换更强的对手）优先 —— 某候选只要有 `<cand>_v2_s95*`，
-      就用 v2 的数、并且跳过它的 v1 目录，避免两种口径混着算。
+    ★ 2026-11-22 两个修正：
+      ① v2 测试集（换更强对手）优先 —— 有 `<cand>_v2_s95*` 就用 v2，跳过它的 v1 目录；
+      ② **按候选跨目录池化**（原来每个目录覆盖写一次，于是"只测了 10 格但恰好都是高分格"
+         的目录会把水平算高：p9d6e 的 s950001 单目录给出 76.6%，而 3 个目录池化后是 70.9%）。
+         现在 num/den 累加，覆盖度也按池化后的权重算。
     """
     import glob, json
-    out = {}
+    per = {}                       # cand -> [num, den, n_cells, cells]
     v2 = {os.path.basename(d).split("_v2_s95")[0]
           for d in glob.glob(os.path.join(ROOT, "logs", "meta", "*_v2_s95*"))}
     dirs = glob.glob(os.path.join(ROOT, "logs", "meta", "*_v2_s95*")) + \
@@ -134,7 +137,7 @@ def real_panel_levels():
     for tag in dirs:
         base = os.path.basename(tag)
         cand = base.split("_v2_s95")[0] if "_v2_s95" in base else base.split("_real_s95")[0]
-        num = den = 0.0
+        ent = per.setdefault(cand, [0.0, 0.0, set()])
         for p in glob.glob(os.path.join(tag, "vs_*.json")):
             try:
                 o = json.load(open(p))["overall"]
@@ -142,11 +145,15 @@ def real_panel_levels():
                 continue
             cell = os.path.basename(p)[3:-5].split("_")[-1]
             w = REALW.get(cell, 0.0)
-            if w:
-                num += w * o["score"] * o["n"]; den += w * o["n"]
-        # ★ 2026-11-22：只测了少数几格时不要算"水平"——一格的 100% 会被当成整行水平。
-        #   要求覆盖到 ≥70% 的真实场权重才算数（正在进行中的面板不会被误读）。
-        if den and den >= 0.7 * sum(REALW.values()):
+            if not w or cell in ent[2]:
+                continue            # 同一格多个种子：已经在池里就跳过（种子不同会重复计权）
+            ent[2].add(cell)
+            ent[0] += w * o["score"] * o["n"]
+            ent[1] += w * o["n"]
+    out = {}
+    for cand, (num, den, cells) in per.items():
+        # 只测了少数几格时不要算"水平"：要求覆盖 ≥70% 的真实场权重 **且** 至少 12 格
+        if den and den >= 0.7 * sum(REALW.values()) and len(cells) >= 12:
             out[cand] = (num / den * 100.0, den)
     return out
 
