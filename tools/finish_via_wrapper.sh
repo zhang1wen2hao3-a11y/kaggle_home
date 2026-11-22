@@ -25,13 +25,24 @@ rsh() { "$WRAP" "$@"; }
 #   （远程命令的 cmdline 里就含这个字符串）⇒ 训练早就退出了，计数仍恒为 1，
 #   我据此误判成"训练还在跑收尾 eval，挂了一小时"，实际训练写完 final 后立刻就退出了。
 #   必须写成中括号形式 `[n]ative/train_native`，让模式本身不匹配自己的命令行。
-say "等 $FINAL 落地（每 30s 探，最多 120 分钟）"
+# ★ 2026-11-23 踩到：**续训（同一个 RUN 目录再跑）时旧的 final.bin 还在**，
+#   本脚本只看"大小对 + 两次不变" ⇒ 会把**上一轮的旧权重**当成本轮产物拉回来并关机，
+#   把正在跑的训练杀掉（D1 的 4M 续训就这样被 07:25:06 关掉，只跑到 ~2.3M 步）。
+#   ⇒ 现在支持 SINCE=<epoch 秒>：只认 mtime ≥ SINCE 的 final.bin。
+SINCE="${SINCE:-0}"
+say "等 $FINAL 落地（每 30s 探，最多 120 分钟）${SINCE:+；只认 mtime ≥ $(date -d @$SINCE '+%m-%d %H:%M:%S') 的文件}"
 # ★ 2026-11-22 教训：原来要求"文件到位 **且** 训练进程退出"才收尾。
 #   实测训练写完 final.bin 后进程还会挂着做收尾 eval（整整挂了一小时）⇒ 条件永远不满足，
 #   白白多跑了 85 分钟的机器。现在改成：**文件大小对 + 连续两次探测大小不变** 就认为写完（进程爱挂多久挂多久）。
 stable=0; prev=-1
 for i in $(seq 1 240); do
-  sz=$(rsh $GPU "stat -c %s $FINAL 2>/dev/null" 2>/dev/null | tr -d '[:space:]')
+  if [ "$SINCE" != 0 ]; then
+    mt=$(rsh $GPU "stat -c %Y $FINAL 2>/dev/null" 2>/dev/null | tr -d '[:space:]')
+    case "${mt:-}" in ''|*[!0-9]*) mt=0;; esac
+    [ "$mt" -lt "$SINCE" ] && sz=0 || sz=$(rsh $GPU "stat -c %s $FINAL 2>/dev/null" 2>/dev/null | tr -d '[:space:]')
+  else
+    sz=$(rsh $GPU "stat -c %s $FINAL 2>/dev/null" 2>/dev/null | tr -d '[:space:]')
+  fi
   run=$(rsh $GPU 'pgrep -f "[n]ative/train_native" 2>/dev/null | wc -l' 2>/dev/null | tr -d '[:space:]')
   case "${sz:-}" in ''|*[!0-9]*) sz=0;; esac
   case "${run:-}" in ''|*[!0-9]*) run=-1;; esac        # -1 = 连不上（不等于训练结束）
