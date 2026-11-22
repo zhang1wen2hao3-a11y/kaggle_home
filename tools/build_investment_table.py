@@ -119,11 +119,21 @@ def lb_maps():
 
 
 def real_panel_levels():
-    """从 logs/meta/<cand>_real_s95*/vs_*.json 算真实口径 17 格加权分（若有）。"""
+    """从 logs/meta/<cand>_real_s95*/vs_*.json 算真实口径 17 格加权分（若有）。
+
+    ★ 2026-11-22：v2 测试集（换更强的对手）优先 —— 某候选只要有 `<cand>_v2_s95*`，
+      就用 v2 的数、并且跳过它的 v1 目录，避免两种口径混着算。
+    """
     import glob, json
     out = {}
-    for tag in glob.glob(os.path.join(ROOT, "logs", "meta", "*_real_s95*")):
-        cand = os.path.basename(tag).split("_real_s95")[0]
+    v2 = {os.path.basename(d).split("_v2_s95")[0]
+          for d in glob.glob(os.path.join(ROOT, "logs", "meta", "*_v2_s95*"))}
+    dirs = glob.glob(os.path.join(ROOT, "logs", "meta", "*_v2_s95*")) + \
+           [d for d in glob.glob(os.path.join(ROOT, "logs", "meta", "*_real_s95*"))
+            if os.path.basename(d).split("_real_s95")[0] not in v2]
+    for tag in dirs:
+        base = os.path.basename(tag)
+        cand = base.split("_v2_s95")[0] if "_v2_s95" in base else base.split("_real_s95")[0]
         num = den = 0.0
         for p in glob.glob(os.path.join(tag, "vs_*.json")):
             try:
@@ -134,7 +144,9 @@ def real_panel_levels():
             w = REALW.get(cell, 0.0)
             if w:
                 num += w * o["score"] * o["n"]; den += w * o["n"]
-        if den:
+        # ★ 2026-11-22：只测了少数几格时不要算"水平"——一格的 100% 会被当成整行水平。
+        #   要求覆盖到 ≥70% 的真实场权重才算数（正在进行中的面板不会被误读）。
+        if den and den >= 0.7 * sum(REALW.values()):
             out[cand] = (num / den * 100.0, den)
     return out
 
