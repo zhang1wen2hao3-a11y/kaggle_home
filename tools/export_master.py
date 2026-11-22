@@ -168,7 +168,11 @@ def _auto_tag2cell(base):
       跑完面板**全被静默丢弃**，表格里看不到任何新结果。现在改成"查不到就按 agent 目录反查"，
       新候选只要有 build/agents/<名字>/deck.csv 就能自动进母表。
     """
+    # ★ 2026-11-22：v2 测试集的面板 tag 形如 `<候选>_v2`（tag 隔离用），这里统一剥掉后缀，
+    #   让 v2 结果也按"同一个候选、同一副牌"进母表。
     cand = base[:-5] if base.endswith("_real") else base
+    while cand.endswith("_v2"):
+        cand = cand[:-3]
     # ★ 先查注册表（很多候选只在评估机上铺了 agent 目录，本地没有 ⇒ 靠 deck 字段反查）
     sys.path.insert(0, os.path.join(ROOT, "tools"))
     try:
@@ -256,8 +260,15 @@ SWITCH_TS = 1795107929.63   # decks/testset_meta_real_port.tsv 写入时刻 = �
 def from_meta():
     """多种子先按 (base tag, 格) 池化"""
     acc = collections.defaultdict(lambda: [0.0, 0])   # (tag_base, cell) -> [wins, n]
+    # ★ 2026-11-22：v2（换强对手）口径优先 —— 有 v2 面板的候选，就不再计入它的 v1 面板，
+    #   否则同一副牌会被测两遍、两种口径混在一行里。
+    _v2 = set()
+    for d in glob.glob(os.path.join(ROOT, "logs", "meta", "*_v2_s95*")):
+        _v2.add(os.path.basename(d).split("_v2_s95")[0])
     for tag_dir in glob.glob(os.path.join(ROOT, "logs", "meta", "*")):
         tag = os.path.basename(tag_dir)
+        if "_real_s95" in tag and tag.split("_real_s95")[0] in _v2:
+            continue
         base = tag.split("_s95000")[0] if "_s95000" in tag else tag
         # ★ 方案 A 面板的 tag 是 `<驾驶员>_A_s95000x`：先按基名找，找不到再脱掉 `_A`。
         #   漏了这一步会让**全部方案 A 证据**进不了母表（2026-11-15 发现：收尾期所有面板都跑在

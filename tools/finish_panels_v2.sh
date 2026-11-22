@@ -10,8 +10,15 @@ say(){ echo "[$(date +%H:%M:%S)] $*" | tee -a "$LOG"; }
 say "等 $DONE（最多 180 分钟）"
 for i in $(seq 1 360); do [ -f "$DONE" ] && { say "✓ 标记出现"; break; }; sleep 30; done
 say "拉取 $H 结果"
-timeout 300 rsync -az --include '*/' --include 'vs_*.json' --exclude '*' -e "ssh $SSHOPT" \
-  "$H:/root/eval_cpu_kit/logs/meta/" logs/meta/ || say "⚠️ 拉取失败"
+# ★ 2026-11-22：这次 113 就是被一次 rsync 抖动坑到不关机（数据在、拉不回来，守卫按纪律拒绝关机，
+#   结果机器空开着）。现在重试 3 次再把失败报出来。
+pulled=0
+for t in 1 2 3; do
+  if timeout 300 rsync -az --include '*/' --include 'vs_*.json' --exclude '*' -e "ssh $SSHOPT" \
+       "$H:/root/eval_cpu_kit/logs/meta/" logs/meta/; then pulled=1; break; fi
+  say "  第 $t 次拉取失败，5 秒后重试"; sleep 5
+done
+[ "$pulled" = 1 ] || say "⚠️ 三次拉取都失败（机器保持开机）"
 ok=1
 for c in ${CANDS//,/ }; do
   n=$(ls "logs/meta/${c}_${TAG}_s950000"/vs_*.json 2>/dev/null | wc -l)
