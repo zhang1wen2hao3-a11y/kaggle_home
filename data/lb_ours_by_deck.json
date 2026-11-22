@@ -1,8 +1,9 @@
 {
  "9d6e": {
-  "score": 1048.5,
-  "ref": 57586502,
-  "file": "ptcg_public_port_alakazam.tar.gz"
+  "score": 995.8,
+  "ref": 58638732,
+  "file": "ptcg_sub_m9d6e.tar.gz",
+  "note": "最新读数 2026-11-22 16:15:18（台账 data/lb_readings.tsv）"
  },
  "f5f8": {
   "score": 993.5,
@@ -25,15 +26,16 @@
   "file": "ptcg_port_db04.tar.gz"
  },
  "e1d7": {
-  "score": 875.5,
-  "ref": 58060023,
-  "file": "ptcg_sub_g14a_e1d7.tar.gz"
+  "score": 834.9,
+  "ref": 58703273,
+  "file": "ptcg_sub_cE1D7R4.tar.gz",
+  "note": "最新读数 2026-11-22 16:15:18（台账 data/lb_readings.tsv）"
  },
  "0904": {
-  "score": 1025.3,
+  "score": 976.0,
   "ref": 58690240,
   "file": "ptcg_sub_c0904R1.tar.gz",
-  "note": "cand0904R1 首训；同提交读数漂移 701.9(20min)→919.9(1h)→1025.3(2026-11-22 07:43)，仍在动 —— 只信最新读数"
+  "note": "最新读数 2026-11-22 16:15:18（台账 data/lb_readings.tsv）"
  },
  "2617": {
   "score": 1033.5,
@@ -41,9 +43,15 @@
   "file": "ptcg_port_grookey.tar.gz"
  },
  "a47a": {
-  "score": 518.6,
+  "score": 574.7,
   "ref": 58691121,
   "file": "ptcg_sub_cA47AR1.tar.gz",
-  "note": "candA47AR1 首训（端口同牌 187.5）；读数 600.0(初)→518.6(2026-11-22 07:43)，比端口高但远低于主力牌"
+  "note": "最新读数 2026-11-22 16:15:18（台账 data/lb_readings.tsv）"
+ },
+ "3eaa": {
+  "score": 900.1,
+  "ref": 58703329,
+  "file": "ptcg_sub_c3EAAR1.tar.gz",
+  "note": "最新读数 2026-11-22 16:15:18（台账 data/lb_readings.tsv）"
  }
 }

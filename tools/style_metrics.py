@@ -38,7 +38,8 @@ GATE = dict(attach=0.85, attack=0.90, retreat=1.30, evolve=0.80)
 
 
 def dh(ids) -> str:
-    return hashlib.sha256(",".join(sorted(map(str, ids))).encode()).hexdigest()[:8]
+    """★ 与流水线同口径（数值排序，见 framework/replay.py）"""
+    return hashlib.sha256(",".join(str(x) for x in sorted(map(int, ids))).encode()).hexdigest()[:8]
 
 
 def pool() -> dict:

@@ -42,7 +42,9 @@ OT = {0: "NUMBER", 1: "YES", 2: "NO", 3: "CARD", 4: "TOOL_CARD", 5: "ENERGY_CARD
 
 
 def deck_hash(ids) -> str:
-    return hashlib.sha256(",".join(sorted(map(str, ids))).encode()).hexdigest()[:8]
+    """★ 与流水线同口径（framework/replay.py / POOL_ID_MAP）：卡 id **按数值**排序后拼接。
+    2026-11-22 修：以前这里按字符串排序，算出的 hash（e40f33bb）和仓库里写的 4hex（e1d754a7）对不上。"""
+    return hashlib.sha256(",".join(str(x) for x in sorted(map(int, ids))).encode()).hexdigest()[:8]
 
 
 def load_pool() -> dict:

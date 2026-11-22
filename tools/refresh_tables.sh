@@ -60,6 +60,9 @@ $PY tools/required_decks.py --check-covered 2>&1 | tail -3 || die "投资分表�
 say "⑨ 淘汰机制（弱 + 无格压力 + 无覆盖率 ⇒ 淘汰；冠军卡组保护）"
 $PY tools/prune_decks.py --check 2>&1 | tail -2 || die "有卡组该淘汰却还留在维护表里（见 tools/prune_decks.py 输出）"
 
+say "⑪ 卡组宇宙表（the-pockmon-battle-cards.csv，取自投资分表，别再让它变旧）"
+$PY tools/update_battle_cards.py 2>&1 | tail -2 || die "update_battle_cards 失败"
+
 say "⑩ 方案A 测试集"
 $PY tools/make_testset_A.py 2>&1 | tail -2 || die "make_testset_A 失败"
 
