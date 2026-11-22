@@ -12,7 +12,7 @@ dreepy_drakloak__3eaa                 | 18.3% | 1404 Dipam Chakraborty   | ✅ �
 z_ogerpon_toolbox_miwa__e1d7          | 12.9% | 1600 knshnb              | ⏸ 平台期：r1 +1.6 / r2 +1.3 / r3 +0.5（38.7%），三连不过闸门 ⇒ 暂停同配方；要救只能"专精格"（bank 只留 9d6e 家族、拿掉 7e39）
 beldum_metang__a47a                   | 10.8% | 1278 SeaGoat             | ✅ 已训 candA47AR1（2026-11-22）：**LB 187.5 → 600.0（+412）**，弱起点规律成立；**待 17 格面板**
 z_dragapult_dreepy_petit__0904        |  3.6% | 1555 Petit Canard        | ✅ 已训 cand0904R1：面板 **54.4%**（17 格，镜像格 46.7% ≈ 与端口打平），LB 880.4 → **919.9**；只剩 7e39 一格烂（39.3% vs 真人 100%）
-dreepy-drakloak__8fe3                 |  4.1% | 1318 tyr1218              | ⏭ 高优先（BC 权重）
+dreepy-drakloak__8fe3                 |  4.1% | 1318 tyr1218              | ✅ 已训 cand8FE3R1：面板 51.3%（分栏 53.0%），首训即过 50% 线；明天探针候选
 tealmaskogerponex-forestofvitality__0b34 | 2.7% | 1334 ktr               | ⏭
 dreepy-drakloak__5b8f                 |  2.7% | 1311 RtoABC2             | ⏭
 unseen__91808263                      |  2.8% | 1284 Swag Collectors     | ⏭（Mist 墙；3eaa/cand3EAAR1 打它有 19%，说明可解）
