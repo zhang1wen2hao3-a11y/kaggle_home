@@ -78,9 +78,14 @@ if [ -n "$SEED2_CELLS" ]; then
   ./tools/py tools/dispatch_panel.py --cands "$NAME" --cells $SEED2_CELLS --seeds 950001 \
      --matches 150 --workers 24 --interval 20 --hosts "${HOSTS[@]}" 2>&1 | tail -3
 fi
+# ★ 2026-11-22 修 bug：这里的 rsync 少了 StrictHostKeyChecking=no 且把所有错误丢进 /dev/null，
+#   新机器（或 known_hosts 没预热）时 rsync 直接失败 ⇒ 聚合看到 0 个格子、打印一片 "缺"，
+#   真正把文件拉回来的是后面 finish_box 那一步。现在共用 SSHOPT，失败也不再静默。
 for h in "${HOSTS[@]}"; do
-  timeout 90 rsync -az -e "ssh -o BatchMode=yes" --include '*/' --include 'vs_*.json' --exclude '*' \
-    "$h:/root/eval_cpu_kit/logs/meta/" logs/meta/ 2>/dev/null
+  if ! timeout 120 rsync -az --include '*/' --include 'vs_*.json' --exclude '*' \
+      -e "ssh $SSHOPT" "$h:/root/eval_cpu_kit/logs/meta/" logs/meta/; then
+    echo "  ⚠️ 从 $h 拉结果失败（下面聚合可能不全）"
+  fi
 done
 ./tools/py tools/real_panel_agg.py "$NAME" 2>&1 | tail -25
 bash tools/git_snapshot.sh "$NAME 真实口径面板结果" 2>&1 | tail -1
