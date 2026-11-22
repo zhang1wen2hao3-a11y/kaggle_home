@@ -213,16 +213,16 @@ e1d7,0b34,init,,,默认,无数据，默认 init
 e1d7,0bf5,candE1D7R3,0.1133,150,强对强,强口径实测：candE1D7R3 胜率 11.3%（n=150，对手亦为非 init）
 e1d7,0d86,init,,,默认,无数据，默认 init
 e1d7,1917,init,,,默认,无数据，默认 init
-e1d7,2617,candE1D7R3,0.9100,150,强对强,强口径实测：candE1D7R3 胜率 91.0%（n=150，对手亦为非 init）
-e1d7,26c6,candE1D7R2,0.8900,150,强对强,强口径实测：candE1D7R2 胜率 89.0%（n=150，对手亦为非 init）
-e1d7,3eaa,candE1D7R3,0.6067,150,强对强,强口径实测：candE1D7R3 胜率 60.7%（n=150，对手亦为非 init）
+e1d7,2617,candE1D7R4,0.9200,150,强对强,强口径实测：candE1D7R4 胜率 92.0%（n=150，对手亦为非 init）
+e1d7,26c6,candE1D7R4,0.9167,150,强对强,强口径实测：candE1D7R4 胜率 91.7%（n=150，对手亦为非 init）
+e1d7,3eaa,candE1D7R4,0.6367,300,强对强,强口径实测：candE1D7R4 胜率 63.7%（n=300，对手亦为非 init）
 e1d7,5b8f,init,,,默认,无数据，默认 init
 e1d7,71b2,init,,,默认,无数据，默认 init
-e1d7,7e39,candE1D7R2,0.4289,450,强对强,强口径实测：candE1D7R2 胜率 42.9%（n=450，对手亦为非 init）
-e1d7,9d6e,candE1D7R3,0.1067,150,强对强,强口径实测：candE1D7R3 胜率 10.7%（n=150，对手亦为非 init）
+e1d7,7e39,candE1D7R4,0.4600,150,强对强,强口径实测：candE1D7R4 胜率 46.0%（n=150，对手亦为非 init）
+e1d7,9d6e,candE1D7R4,0.1133,150,强对强,强口径实测：candE1D7R4 胜率 11.3%（n=150，对手亦为非 init）
 e1d7,cb25,init,,,默认,无数据，默认 init
 e1d7,e1d7,candE1D7R3,0.4800,150,强对强,强口径实测：candE1D7R3 胜率 48.0%（n=150，对手亦为非 init）
-e1d7,f5f8,candE1D7R3,0.3133,150,强对强,强口径实测：candE1D7R3 胜率 31.3%（n=150，对手亦为非 init）
+e1d7,f5f8,candE1D7R4,0.3333,150,强对强,强口径实测：candE1D7R4 胜率 33.3%（n=150，对手亦为非 init）
 f5f8,049c,init,,,默认,无数据，默认 init
 f5f8,0904,init,,,默认,无数据，默认 init
 f5f8,0b34,init,,,默认,无数据，默认 init
