@@ -281,6 +281,16 @@
 7e39,f5f8,cand7e39S,deck_f5f8_,0.5975,400,vsopp:cand7e39S_vs_f5f8
 7e39,f5f8,init,candf5f8S,0.3717,1200,meta:port_7e39
 7e39,f5f8,init,init,0.4000,300,matrix_full
+8fe3,0904,cand8FE3R1,init,0.3467,150,meta:cand8FE3R1_real
+8fe3,0bf5,cand8FE3R1,cand0bf5S,0.5733,150,meta:cand8FE3R1_real
+8fe3,2617,cand8FE3R1,g6_db04_on_2617,0.5900,150,meta:cand8FE3R1_real
+8fe3,26c6,cand8FE3R1,r1A_26c6,0.5800,150,meta:cand8FE3R1_real
+8fe3,3eaa,cand8FE3R1,bc_3eaa,0.5566,300,meta:cand8FE3R1_real
+8fe3,7e39,cand8FE3R1,cand7e39S,0.4933,150,meta:cand8FE3R1_real
+8fe3,9d6e,cand8FE3R1,b9d6e,0.5267,150,meta:cand8FE3R1_real
+8fe3,e1d7,cand8FE3R1,candE1D7R2,0.6067,150,meta:cand8FE3R1_real
+8fe3,e8ee,cand8FE3R1,init,0.7400,150,meta:cand8FE3R1_real
+8fe3,f5f8,cand8FE3R1,deck_f5f8_,0.7867,150,meta:cand8FE3R1_real
 9d6e,049c,init,init,0.9800,200,meta:opp_dunsparce_0bf5_real
 9d6e,0904,ab9d6e_r1A,init,0.4067,600,meta:ab9d6e_r1A
 9d6e,0904,ab9d6e_r1B,init,0.4600,200,meta:ab9d6e_r1B
