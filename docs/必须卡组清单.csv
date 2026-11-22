@@ -8,11 +8,11 @@ a47a,a47a7971,beldum_metang__a47a,beldum_metang,,124,31.5%,10.8%,0.8%,1277.9,Sea
 0904,0904e46f,z_dragapult_dreepy_petit__0904,z_dragapult_dreepy_petit,✓,38,44.7%,3.6%,1.7%,1554.6,Petit Canard,"c0904R1,cand0904R1","c0904R1,cand0904R1,init_0904,port_0904",
 ea39,ea39ccb1,dreepy_drakloak__ea39,dreepy_drakloak,✓,37,43.2%,3.4%,1.2%,,,bc_ea39,bc_ea39,
 f91d,f91d57e2,beldum_metang__f91d,beldum_metang,,37,43.2%,3.2%,0.0%,,,,init_f91d,仅 init/BC，优先排训练
-9180,91808263,unseen__91808263,unseen,✓,26,57.7%,2.8%,2.9%,1284.2,Swag Collectors,,"bc_9180,init_9180,port_on_91808263",仅 init/BC，优先排训练
+9180,91808263,unseen__91808263,unseen,✓,26,57.7%,2.8%,2.9%,1284.2,Swag Collectors,cand9180R1,"bc_9180,cand9180R1,init_9180,port_on_91808263",
 5b8f,5b8f64c8,dreepy-drakloak__5b8f,dreepy-drakloak,,32,65.6%,2.7%,0.0%,1310.7,RtoABC2,"bc_5b8f,cand5B8FR1","bc_5b8f,cand5B8FR1",
 0b34,0b345ad1,tealmaskogerponex-forestofvitality__0b34,tealmaskogerponex-forestofvitality,,30,56.7%,2.7%,0.4%,1334.3,ktr,cand0B34R1,"cand0B34R1,init_0b34",
-cb25,cb250bae,beldum-metang__cb25,beldum-metang,,30,50.0%,2.6%,0.0%,1285.0,fufufukakaka,,init_cb25,仅 init/BC，优先排训练
-049c,049cb6e7,dreepy-drakloak__049c,dreepy-drakloak,,29,65.5%,2.5%,0.0%,1291.4,バーベナヘレナでコンボ決めたい連合,bc_049c,bc_049c,
+cb25,cb250bae,beldum-metang__cb25,beldum-metang,,30,50.0%,2.6%,0.0%,1285.0,fufufukakaka,candCB25R1,"candCB25R1,init_cb25",
+049c,049cb6e7,dreepy-drakloak__049c,dreepy-drakloak,,29,65.5%,2.5%,0.0%,1291.4,バーベナヘレナでコンボ決めたい連合,"bc_049c,cand049CR1","bc_049c,cand049CR1",
 2617,2617a1c6,grookey_thwackey__2617,grookey_thwackey,✓,7,42.9%,1.5%,4.1%,,,"g6_db04_on_2617,ph3_2617_v1,ph3_2617_v2","c_grookey,g6_db04_on_2617,ph3_2617_v1,ph3_2617_v2",
 71b2,71b2ac01,slowpoke-academyatnight__71b2,slowpoke-academyatnight,,13,46.2%,1.1%,0.0%,,,,init_71b2,仅 init/BC，优先排训练
 e8ee,e8eef8d8,abra_kadabra__e8ee,abra_kadabra,✓,9,44.4%,0.9%,0.8%,,,,"init_e8ee,port_e8ee",仅 init/BC，优先排训练

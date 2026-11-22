@@ -37,6 +37,17 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # 每个驾驶员：agent = 评估机上的 build/agents/<agent>；weights = 本地权重；remote = GPU 机上的纯权重 .bin
 # deck = 该驾驶员是"针对哪副牌"训出来的（None = 跨牌能通用）；fidelity = docs/opponent_library.md 的 A 一致率
 DRIVERS = {
+    "candCB25R1": dict(agent="candCB25R1", weights="models/ppo/candCB25R1.pt",
+                       remote=None, deck="cb25", fidelity=None,
+                       note="cb25（beldum-metang）轮训第 1 号（2026-11-22，nmb2 队列第 2 副）：起点=端口，4M 步"),
+    "cand049CR1": dict(agent="cand049CR1", weights="models/ppo/cand049CR1.pt",
+                       remote=None, deck="049c", fidelity=None,
+                       note="049c（dreepy-drakloak）轮训第 1 号（2026-11-22，nmb2 队列第 3 副）：起点=bc_049c，4M 步"),
+    "cand9180R1": dict(agent="cand9180R1", weights="models/ppo/cand9180R1.pt",
+                       remote=None, deck="9180", fidelity=None,
+                       note="9180（Mist 墙 unseen__91808263）轮训第 1 号（2026-11-22 完成）：起点=端口，"
+                            "bank=cand9D6ER4/cand3EAAR1/candf5f8E/ph3_2617_v2/cand7e39S/cand9D6ER3，4M 步；"
+                            "md5 58df1dec9c925641bb8e115465c5a8a2"),
     "cand5B8FR1": dict(agent="cand5B8FR1", weights="models/ppo/cand5B8FR1.pt",
                        remote=None, deck="5b8f", fidelity=None,
                        note="5b8f 轮训第 1 号（2026-11-22 完成）：起点=BC 权重（bc_5b8f），"

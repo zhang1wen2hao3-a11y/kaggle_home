@@ -1,5 +1,5 @@
 挑战者\被挑战者,049c,0904,0b34,0bf5,0d86,1917,2617,26c6,3eaa,5b8f,71b2,7e39,9d6e,cb25,e1d7,f5f8
-049c,init,init,init,init,init,init,init,bc_049c,init,init,init,init,init,init,init,bc_049c
+049c,init,init,init,cand049CR1,init,init,cand049CR1,cand049CR1,cand049CR1,init,init,cand049CR1,cand049CR1,init,cand049CR1,cand049CR1
 0904,init,init,init,cand0904R1,init,init,cand0904R1,cand0904R1,cand0904R1,init,init,cand0904R1,cand0904R1,init,cand0904R1,cand0904R1
 0b34,init,init,init,cand0B34R1,init,init,cand0B34R1,init,cand0B34R1,init,init,cand0B34R1,cand0B34R1,init,cand0B34R1,init
 0d86,init,init,init,init,init,init,init,g8_bc_parent,init,init,init,init,init,init,init,g8_bc_parent
@@ -11,6 +11,6 @@
 71b2,init,init,init,init,init,init,init,init,init,init,init,init,init,init,init,init
 7e39,init,init,init,init,cand7e39S,init,cand7e39S,init,init,init,init,init,cand7e39S,init,cand7e39S,cand7e39S
 9d6e,init,init,init,cand9D6ER3,ab9d6e_r2A,init,cand9D6ER4,ab9d6e_r2A,cand9D6ER3,init,init,cand9D6ER4,cand9D6ER3,init,cand9D6ER3,g6_db04
-cb25,init,init,init,init,init,init,init,init,init,init,init,init,init,init,init,init
+cb25,init,init,init,candCB25R1,init,init,candCB25R1,candCB25R1,candCB25R1,init,init,candCB25R1,candCB25R1,init,candCB25R1,candCB25R1
 e1d7,init,init,init,candE1D7R4,init,init,candE1D7R4,candE1D7R2,candE1D7R3,init,init,candE1D7R4,candE1D7R4,init,candE1D7R4,candE1D7R3
 f5f8,init,init,init,candf5f8E,candf5f8S,init,candf5f8E,candE1D7T,candf5f8E,init,init,candf5f8E,candf5f8E,init,candf5f8E,candf5f8G
