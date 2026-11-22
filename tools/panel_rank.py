@@ -42,10 +42,10 @@ def shares() -> dict:
     return out
 
 
-def cells(cand: str) -> dict:
-    """{格: (胜率, n)} —— 同一格多个种子合并。"""
+def cells(cand: str, tag: str = "real") -> dict:
+    """{格: (胜率, n)} —— 同一格多个种子合并。tag=real 是 v1 口径，v2 是新测试集。"""
     agg = collections.defaultdict(lambda: [0.0, 0])
-    for p in glob.glob(os.path.join(ROOT, "logs", "meta", f"{cand}_real_s95*", "vs_*.json")):
+    for p in glob.glob(os.path.join(ROOT, "logs", "meta", f"{cand}_{tag}_s95*", "vs_*.json")):
         cell = os.path.basename(p)[3:-5]
         try:
             o = json.load(open(p)).get("overall") or {}
@@ -74,6 +74,7 @@ def main() -> int:
     ap.add_argument("--cands", nargs="+", required=True)
     ap.add_argument("--exclude", default="ogerpon_7e39", help="逗号分隔的格名（默认排掉 7e39）")
     ap.add_argument("--lb", default="", help="候选=LB 的对照串，如 'cand9D6ER3=995.8'")
+    ap.add_argument("--tag", default="real", help="结果目录后缀：real=v1 口径，v2=新测试集")
     a = ap.parse_args()
     w = shares()
     skip = {x.strip() for x in a.exclude.split(",") if x.strip()}
@@ -90,7 +91,7 @@ def main() -> int:
     print(f"{'候选':14s}{'全格加权':>9s}{'剔除后':>9s}{'剔除格表现':>12s}{'格子数':>6s}{'LB':>8s}")
     rows = []
     for cand in a.cands:
-        c = cells(cand)
+        c = cells(cand, a.tag)
         if not c:
             print(f"{cand:14s}{'—':>9s}")
             continue

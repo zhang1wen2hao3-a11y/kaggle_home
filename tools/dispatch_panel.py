@@ -61,17 +61,24 @@ def remote_state(host):
 
 
 CELL_AGENTS: dict = {}
+# ★ 2026-11-22：测试集与标签都可覆盖 —— 换了对手口径（v2）时，结果要落到自己的 tag 里，
+#   不能和 v1 的面板混在同一个目录（否则分不出哪些格子是哪个对手测的）。
+TESTSET = os.path.join(ROOT, "decks", "testset_meta_real.tsv")
+TAGSUF = "real"
+
+def _testset_path():
+    return TESTSET
 
 
 def dispatch(host, cand, cell, seed, matches, workers):
-    tag = f"{cand}_real_s{seed}"
+    tag = f"{cand}_{TAGSUF}_s{seed}"
     # 先在本地把 agent 目录解析出来（--cell-agents 覆盖优先，其次查真实口径表），
     # 再把**确定的路径**发到远端——早先远端自己 awk 查表，导致 --cell-agents 指定的格
     # （champ_0d86 / dunsparce_db04）在远端永远 MISSING_AGENT。
     dirp = CELL_AGENTS.get(cell)
     if not dirp:
         try:
-            for ln in open(os.path.join(ROOT, "decks", "testset_meta_real.tsv")):
+            for ln in open(_testset_path()):
                 if ln.startswith("#") or not ln.strip():
                     continue
                 f = ln.rstrip("\n").split("\t")
@@ -107,10 +114,18 @@ def main():
     ap.add_argument("--cell-agents", default="",
                     help="补充 格子=agent目录 映射（逗号分隔），用于真实口径表里没有、但属于 12 格网格的格，"
                          "如 champ_0d86=build/agents/g8_bc_parent,dunsparce_db04=build/agents/port_db04")
+    ap.add_argument("--testset", default="",
+                    help="格→对手 agent 的映射表（默认 decks/testset_meta_real.tsv；换口径时给 v2 那张）")
+    ap.add_argument("--tag", default="real",
+                    help="结果目录后缀：logs/meta/<候选>_<tag>_s<seed>/（v2 口径用 v2，避免和旧面板混）")
     ap.add_argument("--local-after", type=int, default=3,
                     help="全部机器连不上连续 N 轮后改在本地跑（0=禁用）")
     a = ap.parse_args()
 
+    global TESTSET, TAGSUF
+    if a.testset:
+        TESTSET = a.testset if os.path.isabs(a.testset) else os.path.join(ROOT, a.testset)
+    TAGSUF = (a.tag or "real").strip()
     for pair in (a.cell_agents or "").split(","):
         if "=" in pair:
             k, v = pair.split("=", 1)
@@ -125,7 +140,7 @@ def main():
         for t in tasks:                                     # ① 结算
             if t.get("status") == "failed" and t.get("retries", 0) >= 3:
                 continue
-            key = f"{t['cand']}_real_s{t['seed']}/{t['cell']}"
+            key = f"{t['cand']}_{TAGSUF}_s{t['seed']}/{t['cell']}"
             if t["status"] != "done" and any(key in st[h][1] for h in a.hosts):
                 t.update(status="done")
             elif t["status"] == "running":
@@ -164,13 +179,13 @@ def main():
             pend = [t for t in tasks if t["status"] != "done"]
             print(f"⚠️ 连续 {dead_rounds} 轮所有机器都连不上 ⇒ 剩余 {len(pend)} 个任务改在**本地**跑", flush=True)
             for t in pend:
-                tag = f"{t['cand']}_real_s{t['seed']}"
+                tag = f"{t['cand']}_{TAGSUF}_s{t['seed']}"
                 out = os.path.join(ROOT, "logs", "meta", tag, f"vs_{t['cell']}.json")
                 os.makedirs(os.path.dirname(out), exist_ok=True)
                 if os.path.exists(out):
                     t["status"] = "done"; continue
                 dirp = CELL_AGENTS.get(t["cell"], "")
-                for ln in ([] if dirp else open(os.path.join(ROOT, "decks", "testset_meta_real.tsv"))):
+                for ln in ([] if dirp else open(_testset_path())):
                     if ln.startswith("#") or not ln.strip():
                         continue
                     f = ln.rstrip("\n").split("\t")
