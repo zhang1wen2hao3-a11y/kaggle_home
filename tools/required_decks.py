@@ -34,6 +34,43 @@ DECK_IDS: dict[str, tuple] = {}   # 4hex -> 排序后的 60 个卡号（用来�
 #                                   ★ 不要用 deck.csv 的 md5：同样的卡换个行序 md5 就变，会大面积误报"缺司机"）
 
 
+_CACHE_DIR = os.path.join(ROOT, "data", "cache")
+
+
+def _load_cache(name):
+    try:
+        return json.load(open(os.path.join(_CACHE_DIR, name)))
+    except (OSError, ValueError):
+        return None
+
+
+def _save_cache(name, obj):
+    os.makedirs(_CACHE_DIR, exist_ok=True)
+    tmp = os.path.join(_CACHE_DIR, name + ".tmp")
+    with open(tmp, "w") as f:
+        json.dump(obj, f)
+    os.replace(tmp, os.path.join(_CACHE_DIR, name))
+
+
+def _md5_cached(path, cache):
+    """按 (mtime, size) 命中缓存；miss 才真算 md5。agent 的 model.pt 都是 20 MB，
+    28 副牌 × 每个 agent 各算一遍就是几百 MB 的重复哈希 —— 这是 120 秒里的主要开销。"""
+    try:
+        st = os.stat(path)
+    except OSError:
+        return None
+    key = path
+    ent = cache.get(key)
+    if ent and ent[0] == st.st_mtime and ent[1] == st.st_size:
+        return ent[2]
+    try:
+        h = hashlib.md5(open(path, "rb").read()).hexdigest()
+    except OSError:
+        return None
+    cache[key] = [st.st_mtime, st.st_size, h]
+    return h
+
+
 def pool_index():
     """4hex/8hex → (池子文件名, 原型, 张数)"""
     idx = {}
@@ -115,41 +152,85 @@ def lb_by_player():
     return out
 
 
+def _team_usage_fingerprint(paths):
+    h = hashlib.sha256()
+    for p in paths:
+        try:
+            st = os.stat(p)
+        except OSError:
+            continue
+        h.update(f"{p}|{int(st.st_mtime)}|{st.st_size}\n".encode())
+    return h.hexdigest()[:20]
+
+
+def _one_episode(p):
+    """解析一个回放 → [(4hex, 玩家名, 是否该玩家赢)]；整个回放在函数内解析完就释放
+    （第一版把所有 ep 收进 list，700 个回放同时驻留 ⇒ OOM 被 Killed）。"""
+    import sys as _sys
+    _sys.path.insert(0, ROOT)
+    from framework.replay import decks_of
+    try:
+        ep = json.load(open(p))
+        dk = decks_of(ep.get("steps") or [])
+    except Exception:
+        return None
+    names = [(x.get("Name") or "").strip().strip('"')
+             for x in ((ep.get("info") or {}).get("Agents") or [])]
+    rw = ep.get("rewards") or []
+    w = None
+    if len(rw) >= 2 and rw[0] is not None and rw[0] != rw[1]:
+        w = 0 if rw[0] > rw[1] else 1
+    out = []
+    for i, d in dk.items():
+        if not d:
+            continue
+        h4 = hashlib.sha256(",".join(map(str, sorted(d))).encode()).hexdigest()[:4]
+        out.append((h4, names[i] if i < len(names) else "", w is not None and w == i))
+    return out
+
+
 def team_usage():
-    """榜前 N 队回放语料：{4hex: [局数, 胜场]}"""
+    """榜前 N 队回放语料：{4hex: [局数, 胜场]}
+
+    ★ 2026-11-22 性能：这里要解析 700+ 个回放 json（每局几百 KB~几 MB），原来整条
+      `refresh_tables.sh` 的 240 秒几乎全花在这一步（它被调用两次）。
+      现在：① 按"文件清单+mtime+size"的指纹做磁盘缓存，没变就直接读结果；
+            ② 变的时候用 8 线程并发解析。
+    """
     use = collections.Counter(); win = collections.Counter(); files = 0
     sys.path.insert(0, ROOT)
     try:
         from framework.replay import decks_of
     except Exception:
         return {}, {}, 0
-    for p in glob.glob(os.path.join(ROOT, "epsoide_top*", "*.json")):
-        try:
-            ep = json.load(open(p))
-        except Exception:
-            continue
-        dk = decks_of(ep.get("steps") or [])
-        names = [(x.get("Name") or "").strip().strip('"') for x in ((ep.get("info") or {}).get("Agents") or [])]
-        rw = ep.get("rewards") or []
-        w = None
-        if len(rw) >= 2 and rw[0] is not None and rw[0] != rw[1]:
-            w = 0 if rw[0] > rw[1] else 1
-        files += 1
-        for i, d in dk.items():
-            if not d:
+    paths = sorted(glob.glob(os.path.join(ROOT, "epsoide_top*", "*.json")))
+    sig = _team_usage_fingerprint(paths)
+    cached = _load_cache("team_usage.json")
+    if cached and cached.get("sig") == sig:
+        global _REPLAY_COV, _REPLAY_BY_PLAYER
+        _REPLAY_COV = dict(cached["cov"])
+        _REPLAY_BY_PLAYER = {tuple(k.split("\t", 1)): v for k, v in cached["by_player"].items()}
+        return (collections.Counter(cached["use"]), collections.Counter(cached["win"]),
+                int(cached["files"]))
+    from concurrent.futures import ProcessPoolExecutor
+    with ProcessPoolExecutor(max_workers=min(8, os.cpu_count() or 4)) as ex:
+        for rec in ex.map(_one_episode, paths, chunksize=4):
+            if not rec:
                 continue
-            h4 = hashlib.sha256(",".join(map(str, sorted(d))).encode()).hexdigest()[:4]
-            _REPLAY_COV[h4] = _REPLAY_COV.get(h4, 0) + 1
-            use[h4] += 1
-            nm = names[i] if i < len(names) else ""
-            if nm:
-                k = (h4, nm)
-                rec = _REPLAY_BY_PLAYER.setdefault(k, [0, 0])
-                rec[0] += 1
-                if w is not None and w == i:
-                    rec[1] += 1
-            if w is not None and w == i:
-                win[h4] += 1
+            files += 1
+            for h4, nm, won in rec:
+                _REPLAY_COV[h4] = _REPLAY_COV.get(h4, 0) + 1
+                use[h4] += 1
+                if nm:
+                    r = _REPLAY_BY_PLAYER.setdefault((h4, nm), [0, 0])
+                    r[0] += 1
+                    if won:
+                        r[1] += 1
+                if won:
+                    win[h4] += 1
+    _save_cache("team_usage.json", dict(
+        sig=sig, files=files, use=dict(use), win=dict(win), cov=dict(_REPLAY_COV),
+        by_player={f"{k[0]}\t{k[1]}": v for k, v in _REPLAY_BY_PLAYER.items()}))
     return use, win, files
 
 
@@ -167,29 +248,43 @@ def master_decks():
     return out
 
 
+_AGENT_INDEX = None
+
+
+def agent_index(port_md5):
+    """{卡表 ids: ([全部驾驶员], [训练过的驾驶员])} —— 只算一次，供 driver_for 查表。"""
+    global _AGENT_INDEX
+    if _AGENT_INDEX is not None:
+        return _AGENT_INDEX
+    cache = _load_cache("md5_agents.json") or {}
+    idx = {}
+    for d in sorted(glob.glob(os.path.join(ROOT, "build", "agents", "*", "deck.csv"))):
+        try:
+            ids = tuple(sorted(int(x) for x in open(d) if x.strip()))
+        except (OSError, ValueError):
+            continue
+        name = d.split(os.sep)[-2]
+        all_d, trained = idx.setdefault(ids, ([], []))
+        all_d.append(name)
+        md5 = _md5_cached(os.path.join(os.path.dirname(d), "model.pt"), cache)
+        if md5 and md5 != port_md5:
+            trained.append(name)
+    _save_cache("md5_agents.json", cache)
+    _AGENT_INDEX = idx
+    return idx
+
+
 def driver_for(h4, port_md5):
     """该卡组现在有哪些驾驶员 —— 直接按 **agent 目录里 deck.csv 的 md5** 认亲，
     不信注册表（注册表只登记了少数训练代，端口/BC 那一批从来没进去，用它判"缺司机"会大面积误报）。
 
     返回 (全部驾驶员, 有训练驾驶员的?)：model.pt 与 port_plain 同 md5 ⇒ 那是 init/端口，不算"训练过"。
     """
-    all_d, trained = [], []
-    for d in sorted(glob.glob(os.path.join(ROOT, "build", "agents", "*", "deck.csv"))):
-        try:
-            ids = tuple(sorted(int(x) for x in open(d) if x.strip()))
-        except (OSError, ValueError):
-            continue
-        if ids != DECK_IDS.get(h4):
-            continue
-        name = d.split(os.sep)[-2]
-        all_d.append(name)
-        m = os.path.join(os.path.dirname(d), "model.pt")
-        try:
-            if os.path.exists(m) and hashlib.md5(open(m, "rb").read()).hexdigest() != port_md5:
-                trained.append(name)
-        except OSError:
-            pass
-    return all_d, trained
+    ids = DECK_IDS.get(h4)
+    if not ids:
+        return [], []
+    all_d, trained = agent_index(port_md5).get(ids, ([], []))
+    return list(all_d), list(trained)
 
 
 def main():
