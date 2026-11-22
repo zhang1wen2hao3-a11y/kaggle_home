@@ -37,6 +37,13 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # 每个驾驶员：agent = 评估机上的 build/agents/<agent>；weights = 本地权重；remote = GPU 机上的纯权重 .bin
 # deck = 该驾驶员是"针对哪副牌"训出来的（None = 跨牌能通用）；fidelity = docs/opponent_library.md 的 A 一致率
 DRIVERS = {
+    "candE1D7R5": dict(agent="candE1D7R5", weights="models/ppo/candE1D7R5.pt",
+                       remote=None, deck="e1d7", fidelity=None,
+                       note="e1d7 第 5 轮 = 形状奖励（偏置）实验：SHAPE_ATTACH=0.01/SHAPE_ATTACK=0.01/"
+                            "SHAPE_RETREAT=-0.02，起点 candE1D7R4，4M 步；2026-11-22"),
+    "candE1D7R5C": dict(agent="candE1D7R5C", weights="models/ppo/candE1D7R5C.pt",
+                       remote=None, deck="e1d7", fidelity=None,
+                       note="e1d7_r5 的**对照**：同起点同配方同种子，SHAPE 全 0（普通训练）；2026-11-22"),
     "candCB25R1": dict(agent="candCB25R1", weights="models/ppo/candCB25R1.pt",
                        remote=None, deck="cb25", fidelity=None,
                        note="cb25（beldum-metang）轮训第 1 号（2026-11-22，nmb2 队列第 2 副）：起点=端口，4M 步"),

@@ -59,7 +59,12 @@ def main() -> int:
         out.append([h, deck_name, f"{share:.2f}", f"{int(games)}",
                     f"{ceil:.1f}" if ceil else "NA",
                     f"{ours:.1f}" if ours else "", who])
-    out.sort(key=lambda x: -fnum(x[2]))
+    # ★ 2026-11-22 用户指定排序：**最高LB 为第一排序键（降序）**；没有值(NA)排最后；
+    #   最高LB 相同则按 DeckID（ASCII 升序，数字在字母前）。
+    def sort_key(r):
+        lb = fnum(r[4], None) if str(r[4]).strip() not in ("NA", "") else None
+        return (0, -lb) if lb is not None else (1, 0.0), r[0]
+    out.sort(key=sort_key)
     with open(OUT, "w", newline="", encoding="gbk", errors="replace") as fh:
         w = csv.writer(fh)
         w.writerow(HDR)
