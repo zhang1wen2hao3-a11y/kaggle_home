@@ -102,7 +102,8 @@ def _run_batch(teacher, opp, mids, tdir, out_dir, logdir):
                                              "opp:" + os.path.basename(opp)],
                                        [1.0 if w == 0 else 0.0, 1.0 if w == 1 else 0.0])
                 args["steps"][2] = [{"action": tdeck}, {"action": odeck}]
-                json.dump(args, open(os.path.join(out_dir, f"replay-{t8}-{mid:03d}-{rnd}.json"), "w"))
+                tagpart = (a.tag + "-") if a.tag else ""
+                json.dump(args, open(os.path.join(out_dir, f"replay-{t8}-{tagpart}{mid:03d}-{rnd}.json"), "w"))
                 games += 1
                 dec += len(recs)
                 os.remove(tmp)
@@ -121,6 +122,7 @@ def main() -> int:
     ap.add_argument("--trace-dir", default="", help="trace 存放目录（默认 <out>/trace）")
     ap.add_argument("--workers", type=int, default=1, help="（已停用，见文件头注释）")
     ap.add_argument("--start", type=int, default=0, help="起始场次（配合 --step 做外部并发）")
+    ap.add_argument("--tag", default="", help="写进文件名，避免**不同格子同名覆盖**（强烈建议给）")
     ap.add_argument("--step", type=int, default=1, help="场次步长（配合 --start 做外部并发）")
     a = ap.parse_args()
 
@@ -173,7 +175,8 @@ def main() -> int:
                 tdeck = [int(x) for x in open(os.path.join(a.teacher, "deck.csv")) if x.strip()]
                 odeck = [int(x) for x in open(os.path.join(a.opp, "deck.csv")) if x.strip()]
                 rep["steps"][2] = [{"action": tdeck}, {"action": odeck}]
-                out = os.path.join(a.out, f"replay-{t8}-{mid:03d}-{rnd}.json")
+                tagpart = (a.tag + "-") if a.tag else ""
+                out = os.path.join(a.out, f"replay-{t8}-{tagpart}{mid:03d}-{rnd}.json")
                 json.dump(rep, open(out, "w", encoding="utf-8"))
                 nd = len(recs)
                 tot_games += 1
