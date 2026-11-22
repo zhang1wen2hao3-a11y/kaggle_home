@@ -7,6 +7,9 @@
 再往后 1025.3 → 971.9。如果只看第一个数，会得出"训练把牌训坏了"的错误结论。
 
 规则：
+0. **提交后至少 1 小时再记**（2026-11-22 用户明确要求："现在的出分先别记下来，目前还没稳定，再至少等 1 个小时"）。
+   publicScore 在头 1 小时内会剧烈变化（实测 600.0 → 700.2 → 901.4…），早记只会污染台账；
+   本工具默认 `--min-age-min 60`，不到 1 小时的提交直接跳过。
 1. 每次比较只用**同一批读数**（同一时间窗），且**至少读 3 次取中位**；
 2. 任何"某提交更好"的判断，必须写在台账里、附上可回溯的读数序列。
 
@@ -31,7 +34,17 @@ COMP = "the-pokemon-company-ptcg-ai-battle-challenge-playground"
 TSV = os.path.join(ROOT, "data", "lb_readings.tsv")
 
 
-def read_lb() -> list:
+def _age_min(date_s: str) -> float:
+    """提交时间（UTC）到现在多少分钟。解析不出来就当作"很旧"（放行）。"""
+    try:
+        d = datetime.datetime.strptime(date_s.strip()[:19], "%Y-%m-%d %H:%M:%S")
+    except ValueError:
+        return 1e9
+    now = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+    return (now - d).total_seconds() / 60.0
+
+
+def read_lb(min_age_min: float = 60.0) -> list:
     out = subprocess.run(["kaggle", "competitions", "submissions", "-c", COMP],
                          capture_output=True, text=True, timeout=180)
     rows = []
@@ -49,6 +62,9 @@ def read_lb() -> list:
                 continue
         if score is None:
             continue
+        dt = " ".join(f[2:4])
+        if _age_min(dt) < min_age_min:
+            continue                      # 太新，读数不可信
         rows.append((ref, fname, score))
     return rows
 
@@ -87,10 +103,12 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--show", action="store_true")
     ap.add_argument("--since", default="")
+    ap.add_argument("--min-age-min", type=float, default=60.0,
+                    help="提交多久之后的读数才记（默认 60 分钟；用户 2026-11-22 要求）")
     a = ap.parse_args()
     if a.show:
         return show(a.since)
-    rows = read_lb()
+    rows = read_lb(a.min_age_min)
     if not rows:
         print("✗ 读不到榜单（kaggle CLI 或网络）", file=sys.stderr)
         return 1
