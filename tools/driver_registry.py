@@ -37,6 +37,11 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # 每个驾驶员：agent = 评估机上的 build/agents/<agent>；weights = 本地权重；remote = GPU 机上的纯权重 .bin
 # deck = 该驾驶员是"针对哪副牌"训出来的（None = 跨牌能通用）；fidelity = docs/opponent_library.md 的 A 一致率
 DRIVERS = {
+    "cand8FE3R1": dict(agent="cand8FE3R1", weights="models/ppo/cand8FE3R1.pt",
+                       remote=None, deck="8fe3", fidelity=None,
+                       note="8fe3 轮训第 1 号（2026-11-22 完成）：起点=BC 权重（bc_8fe3），"
+                            "bank=cand9D6ER4/cand3EAAR1/candf5f8E/ph3_2617_v2/cand7e39S/candE1D7R4，4M 步；"
+                            "md5 d266c25d1f409e9514b8287b99eaf684"),
     "candE1D7R4": dict(agent="candE1D7R4", weights="models/ppo/candE1D7R4.pt",
                        remote=None, deck="e1d7", fidelity=None,
                        note="e1d7 第 4 轮 = 7e39 专精试验（2026-11-22）：bank 里 7e39 占 3 槽 "
