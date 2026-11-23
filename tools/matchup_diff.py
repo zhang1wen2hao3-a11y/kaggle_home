@@ -41,6 +41,21 @@ OT = {0: "NUMBER", 1: "YES", 2: "NO", 3: "CARD", 4: "TOOL_CARD", 5: "ENERGY_CARD
       13: "ATTACK", 14: "END", 15: "SKILL", 16: "SPECIAL_CONDITION"}
 
 
+def _decks_anywhere(d):
+    """取双方 60 张卡表。**真实回放在 steps[1]，我们自己合成的回放在 steps[2]**
+    （合成时 steps[1] 是"交卡组请求"、steps[2] 才是 action）⇒ 前 4 步里找第一个
+    两边都是 60 张的那一行，找不到再退回 steps[1]。"""
+    steps = d.get("steps") or []
+    for row in steps[:4]:
+        acts = [(e or {}).get("action") or [] for e in (row or [])]
+        if len(acts) == 2 and all(isinstance(a, list) and len(a) == 60 for a in acts):
+            return [[str(x) for x in a] for a in acts]
+    try:
+        return [[str(x) for x in (s.get("action") or [])] for s in steps[1]]
+    except (IndexError, KeyError, TypeError):
+        return []
+
+
 def deck_hash(ids) -> str:
     """★ 与流水线同口径（framework/replay.py / POOL_ID_MAP）：卡 id **按数值**排序后拼接。
     2026-11-22 修：以前这里按字符串排序，算出的 hash（e40f33bb）和仓库里写的 4hex（e1d754a7）对不上。"""
@@ -97,8 +112,7 @@ def scan_game(path, my_hash, opp_hash, player=None):
     except (OSError, ValueError):
         return None
     try:
-        st = d["steps"][1]
-        decks = [[str(x) for x in (s.get("action") or [])] for s in st]
+        decks = _decks_anywhere(d)
     except (KeyError, TypeError):
         return None
     if len(decks) != 2 or any(len(x) != 60 for x in decks):

@@ -37,6 +37,21 @@ OT = {7: "PLAY", 8: "ATTACH", 9: "EVOLVE", 10: "ABILITY", 12: "RETREAT", 13: "AT
 GATE = dict(attach=0.85, attack=0.90, retreat=1.30, evolve=0.80)
 
 
+def _decks_anywhere(d):
+    """取双方 60 张卡表。**真实回放在 steps[1]，我们自己合成的回放在 steps[2]**
+    （合成时 steps[1] 是"交卡组请求"、steps[2] 才是 action）⇒ 前 4 步里找第一个
+    两边都是 60 张的那一行，找不到再退回 steps[1]。"""
+    steps = d.get("steps") or []
+    for row in steps[:4]:
+        acts = [(e or {}).get("action") or [] for e in (row or [])]
+        if len(acts) == 2 and all(isinstance(a, list) and len(a) == 60 for a in acts):
+            return [[str(x) for x in a] for a in acts]
+    try:
+        return [[str(x) for x in (s.get("action") or [])] for s in steps[1]]
+    except (IndexError, KeyError, TypeError):
+        return []
+
+
 def dh(ids) -> str:
     """★ 与流水线同口径（数值排序，见 framework/replay.py）"""
     return hashlib.sha256(",".join(str(x) for x in sorted(map(int, ids))).encode()).hexdigest()[:8]
@@ -53,7 +68,7 @@ def pool() -> dict:
 def scan(path, my_h, opp_h, player=None):
     try:
         d = json.load(open(path))
-        decks = [[str(x) for x in (s.get("action") or [])] for s in d["steps"][1]]
+        decks = _decks_anywhere(d)
     except Exception:
         return None
     if len(decks) != 2 or any(len(x) != 60 for x in decks):

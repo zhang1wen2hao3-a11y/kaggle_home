@@ -1,0 +1,10 @@
+# 真实场口径 **v2（2026-11-22）**：5 格换成后来训出来的更强驾驶员（v1 见 testset_meta_real_v1_2026-11-20.tsv）：每格用该牌实测最硬的对手驾驶员；出场概率权重见第 5 列；旧端口口径见 testset_meta_real_port.tsv
+dunsparce_0bf5	build/agents/cand0bf5S	dunsparce_abra__0bf5	old	12.8631	init
+out_91808263	build/agents/port_on_91808263	unseen__91808263	new	2.9046	init
+champ_e1d7	build/agents/candE1D7R4	z_ogerpon_toolbox_miwa__e1d7	old	2.4896	init
+out_3f45	build/agents/init_3f45	abra_kadabra__3f45	new	2.0747	init
+champ_0904	build/agents/cand0904R1	z_dragapult_dreepy_petit__0904	old	1.6598	init
+out_ea39	build/agents/bc_ea39	dreepy_drakloak__ea39	new	1.2448	init
+out_0382	build/agents/init_0382	mega_kangaskhan_ex_dwebble__0382	new	1.2448	init
+abra_e8ee	build/agents/init_e8ee	abra_kadabra__e8ee	old	0.8299	init
+tail_mix	-	-	tail	24.4813	init

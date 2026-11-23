@@ -47,9 +47,18 @@ import style_metrics as SM          # noqa: E402  复用同一套扫描口径
 
 # 判定阈值：训练后应达到"人类水平的百分比"（撤退是上限）
 GATE = dict(attach=0.85, attack=0.90, evolve=0.80, retreat=1.30)
-METRICS = [("attach", "贴能/局", "high"), ("attack", "攻击/局", "high"),
-           ("retreat", "撤退/局", "low"), ("evolve", "进化/局", "high"),
-           ("first_attack", "首攻回合", "low"), ("play", "出牌/局", "info")]
+# ★ 2026-11-23：**一律用"每回合"速率**，不用"每局次数"。
+#   原因：我们自己录的回放（本地引擎）与 Kaggle 回放**局长不同**（实测本地约 130 个动作/局、
+#   Kaggle 约 467 个），按"每局"比会系统性偏低。按"每我方回合"归一后两边可比。
+def _rate(g, key):
+    ot = g.get("own_turns") or 0
+    v = g.get(key)
+    return (v / ot) if (ot and v is not None) else None
+
+
+METRICS = [("attach", "贴能/回合", "high"), ("attack", "攻击/回合", "high"),
+           ("retreat", "撤退/回合", "low"), ("evolve", "进化/回合", "high"),
+           ("play", "出牌/回合", "info")]
 
 
 def main() -> int:
@@ -87,8 +96,9 @@ def main() -> int:
     print(f"{'指标':12s}{'人类':>9s}{'训练前':>9s}{'训练后':>9s}{'绝对变化':>10s}{'补上缺口':>10s}{'相对人类':>10s}{'方向':>7s}")
     rows = []
     ok = True
+    print(f"{'（每我方回合速率；首攻回合单列）':40s}")
     for key, label, kind in METRICS:
-        h, b, n = H.get(key), B.get(key), N.get(key)
+        h, b, n = _rate(H, key), _rate(B, key), _rate(N, key)
         if h is None or b is None or n is None or (kind != "info" and h == 0):
             continue
         gap = h - b
@@ -107,6 +117,16 @@ def main() -> int:
         rows.append([label, f"{h:.2f}", f"{b:.2f}", f"{n:.2f}", f"{n-b:+.2f}",
                      f"{closed*100:.0f}%", f"{ratio*100:.0f}%", trend])
 
+    # 首攻回合（越低越好）单独一行
+    h, b, n = H.get("first_attack"), B.get("first_attack"), N.get("first_attack")
+    if None not in (h, b, n):
+        gap = h - b
+        closed = (n - b) / gap if abs(gap) > 1e-9 else float("nan")
+        ratio = n / h if h else float("nan")
+        trend = "✅" if n < b else ("➖" if abs(n - b) < 1e-9 else "❌")
+        print(f"{'首攻回合':12s}{h:9.2f}{b:9.2f}{n:9.2f}{n-b:+10.2f}{closed*100:9.0f}%{ratio*100:9.0f}%{trend:>7s}")
+        rows.append(["首攻回合", f"{h:.2f}", f"{b:.2f}", f"{n:.2f}", f"{n-b:+.2f}",
+                     f"{closed*100:.0f}%", f"{ratio*100:.0f}%", trend])
     win_b = B["wins"] / B["n"] if B["n"] else 0.0
     win_n = N["wins"] / N["n"] if N["n"] else 0.0
     print(f"{'胜率':12s}{H['wins']/H['n']*100:8.0f}%{win_b*100:8.0f}%{win_n*100:8.0f}%"

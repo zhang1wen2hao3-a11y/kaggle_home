@@ -58,12 +58,13 @@ def trace_to_replay(trace_path: str, names, rewards) -> dict:
             continue
         p = int(r["player"])
         obs, act = r.get("observation"), r.get("action")
+        # ★ 2026-11-23：改成**Kaggle 同款布局**（obs 与它对这一帧的 action 放同一行）——
+        #   style_metrics / style_gap 就是按这个口径数动作的。
+        #   注意：这会让 framework.replay.iter_decisions 的 obs@t-1↔action@t 配对错开一帧，
+        #   所以**合成回放不再用于 BC 蒸馏**（蒸馏路线 2026-11-23 已关闭）。
         row = [{}, {}]
-        row[p] = {"observation": obs}
+        row[p] = {"observation": obs, "action": act}
         steps.append(row)
-        row2 = [{}, {}]
-        row2[p] = {"action": act}
-        steps.append(row2)
     return {"steps": steps, "info": {"Agents": [{"Name": names[0]}, {"Name": names[1]}]},
             "rewards": rewards}
 

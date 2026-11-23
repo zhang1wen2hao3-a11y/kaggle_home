@@ -37,6 +37,15 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # 每个驾驶员：agent = 评估机上的 build/agents/<agent>；weights = 本地权重；remote = GPU 机上的纯权重 .bin
 # deck = 该驾驶员是"针对哪副牌"训出来的（None = 跨牌能通用）；fidelity = docs/opponent_library.md 的 A 一致率
 DRIVERS = {
+    "candE1D7S0": dict(agent="candE1D7S0", weights="models/ppo/candE1D7S0.pt",
+                       remote=None, deck="e1d7", fidelity=None,
+                       note="S0：GAE λ=1.0（2M 步，起点 candE1D7R4；唯一变量=λ）；2026-11-23"),
+    "candE1D7S1": dict(agent="candE1D7S1", weights="models/ppo/candE1D7S1.pt",
+                       remote=None, deck="e1d7", fidelity=None,
+                       note="S1：奖品稠密奖励 REWARD_WIN=0（2M 步，起点 candE1D7R4）；2026-11-23"),
+    "candE1D7S2": dict(agent="candE1D7S2", weights="models/ppo/candE1D7S2.pt",
+                       remote=None, deck="e1d7", fidelity=None,
+                       note="S2：势函数型奖励塑形 PBRS（奖励卡0.10/能量0.02/血量0.0005，2M 步，起点 candE1D7R4）；2026-11-23"),
     "cand9D6ED1B": dict(agent="cand9D6ED1B", weights="models/ppo/cand9D6ED1B.pt",
                        remote=None, deck="9d6e", fidelity=None,
                        note="9d6e 蒸馏 D1 的 4M 版（2026-11-23）：蒸馏初始化 → PPO 2M → 续训到 4M，"
