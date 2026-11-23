@@ -221,6 +221,7 @@ PYTHONUNBUFFERED=1 PYTHONPATH=data:.:native PTCG_TABLES=native/ptcg_tables_field
   ${BANKS:+--league-ckpts "$BANKS" --league-pct "$LEAGUE_PCT"} \
   ${BANKDECKS:+--bank-decks "$BANKDECKS"} \
   ${GAE_LAMBDA:+--gae-lambda "$GAE_LAMBDA"} \
+  ${ENT_COEF:+--ent-coef "$ENT_COEF"} \
   2>&1 | tee "logs/$RUN.log" | grep -E "anchor decks resolved|bank decks|deck weights|REJECTED|epoch 5 |epoch 10 |final"
 # ↑ 原来末尾还有 `| head -8`：攒够 8 条匹配后 head 退出 → tee/python 收到 SIGPIPE → 训练被静默杀掉。已去掉。
 
