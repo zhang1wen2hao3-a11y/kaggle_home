@@ -1,19 +1,25 @@
 # PTCG AI Battle Challenge 实验工程
 
 Kaggle 比赛 [The Pokémon Company - PTCG AI Battle Challenge Playground](https://www.kaggle.com/competitions/the-pokemon-company-ptcg-ai-battle-challenge-playground)
-的智能体开发工程。
+的智能体开发工程。队伍 `zhang1wen2hao3`。
 
-- **任务**：写一个 agent，让宝可梦集换式卡牌对战（Pokémon TCG）的三局两胜（Bo3）对局胜率最大化
-- **提交形式**：`.tar.gz` 包（`main.py` + `deck.csv` + `cg/`，`-f <file>` 上传，必须带 `-m` 留言）
-  —— 提交的是**代码**，不是预测结果
-- **指标**：`cabt_bo3`（三局两胜）
-- **截止**：2027-01-08
-- **限制**：每天 5 次提交，**总共 2 次计分提交**；队伍上限 5 人
+| 项 | 值 |
+|---|---|
+| **任务** | 写一个 agent 打宝可梦集换式卡牌，最大化三局两胜（Bo3）胜率 |
+| **提交形式** | `.tar.gz`（`main.py` + `deck.csv` + `cg/` + 权重），`-f` 上传、必须带 `-m` |
+| **指标** | `cabt_bo3`（Elo 式，**会漂，见下文**） |
+| **截止** | 2027-01-08 |
+| **限制** | 每天 5 次提交，**总共 2 个计分位**（最近两份在池子里被拉去配对） |
+| **队分** | **1082.1**（`57871935` `ptcg_sub_g6_db04` = db04 卡组 + PPO 训练权重）；另一臂 port@db04 1028.2 |
+
+> **提交策略（用户定，2026-11-19）：两个计分位全部当探针，不留锚。**
+> 原文："不需要守的那格，一开始分数高没什么用，就怎么能方便我们训练就怎么提交就行。"
+> 依据：同一份提交读数一天内摆动 ±250 分（`LB记录.md` 被这条规律修正过三次）。
+> 因此**任何跨时刻的 LB 差值一律作废**，只在"同一快照、同一状态"下读。
 
 ## ⚠️ 数据授权
 
-`data/` 下是比赛官方数据（卡牌数据库 + C++ 引擎），**已在 `.gitignore` 中排除，不会进入仓库**。
-首次使用请先执行：
+`data/`、`cg/`、`deck.csv` 是比赛方数据（引擎 + 卡牌库），**已在 `.gitignore` 中排除**。首次使用：
 
 ```bash
 bash fetch_data.sh
@@ -21,455 +27,249 @@ bash fetch_data.sh
 
 ## 当前状态（TL;DR）
 
-### 提交物：**前向搜索 rollout + 官方样例卡组**（LB ~460，榜 276/439）
+**agent = 神经策略（4.55M 参数 PPO）+ 卡组。规则 greedy 只作为对照与兜底。**
 
 | 项 | 值 |
 |---|---|
-| **在窗口里的 2 份** | `dist/ptcg_rollout_sample.tar.gz`（**460.5，仍在下降**）+ `dist/ptcg_greedy.tar.gz`（346.4） |
-| **LB** | **460.5** · 榜中位 664.3 · **排名 276/439** · 榜首 1368 |
+| 队分 | **1082.1**（G6 = db04 卡组 + 训练权重） |
+| 面板读数 | 全格最高 `cand9D6ER4` **72.2%**（靠 7e39 格 88% 拉高）；剔除 7e39 后 `cand0904R1` **61.8%** 最高 |
+| 已确认的真收益 | ① 训练配方本身（G4-B 0.5337 [0.5093,0.5581] vs port，首次显著）② **每个训练块做 SWA** ③ db04 换牌（+53.9 队分） |
+| 已归零的方向 | 对位特化（specialist）4 条线全零 · 奖励塑形 S0–S4 · 开局 BC · 蒸馏 D1 · 决策重排 · LR/批次/调度 A2–A4 · 跨 run 权重平均 |
+| 唯一未闭环线索 | **KL 锚 0.005 + 块内 SWA**（单种子单格领先，摆幅 13.3→4.7pp，待 3 种子×17 格） |
 
-> ⚠️ **LB 读数是会向下漂的。** 同一份提交 2 小时前读到 562.9，现在 460.5。
-> **只有同一时刻、同一状态（都活跃 / 都冻结）的读数才能相减。**
-> 详见 [`LB记录.md`](LB记录.md) —— 这份文档已经因为违反这条被修正过三次。
-| 规则基线（`main.py`） | **0.815 ± 0.019 vs random_baseline**（n=400），本地最强且零依赖 |
-| 等价性 | `main.py` vs `agents/greedy.py` = **0.510**（n=300）→ 同一策略 |
+### v2 面板读数（17 格 × 150 局 / 种子，`logs/meta/<cand>_v2_s950000/`）
 
-> **卡组 × 策略有强交互，不能当成两个可加的杠杆。**
-> 2×2 同快照实测（见 [`LB记录.md`](LB记录.md)）：
->
-> | | 规则 greedy | rollout | 加搜索的收益 |
-> |---|---:|---:|---:|
-> | `sample_official` | 346.4 | **460.5** | **+114.1** |
-> | `grass_heracross` | 395.5（冻结） | 388.9（冻结） | **−6.6** |
->
-> 加搜索在官方样例卡组上值 **+114**（不是之前说的 +205 —— 那个数是拿还在下降的
-> 早期读数算的）。`grass_heracross` 那两行都是**冻结值**，可比；但它和
-> `sample_official` 的**活跃值**不能比，所以"换卡组值多少"这个问题**目前还没有答案**。
+| 驾驶员 | 卡组 | 全格加权 | 剔除 7e39 | 格子数 |
+|---|---|---:|---:|---:|
+| `cand9D6ER4` | dunsparce_abra | **72.2%** | 58.6% | 17 |
+| `cand0904R1` | dreepy_drakloak | 53.2% | **61.8%** | 17 |
+| `cand3EAAR1` | dreepy_drakloak | 45.5% | 50.1% | 17 |
+| `candE1D7R4` | z_ogerpon_toolbox_miwa | 42.1% | 37.9% | 17 |
+| `lrsweep_a2_*_SWA` | e1d7 | 43.3% | — | 17 |
+| `cand9D6E_SWA4` | dunsparce_abra | 78.1% | 56.7% | **2（不完整，不可比）** |
 
-> `main.py` 因提交要求必须自包含（不能 import `agents/`），与 `agents/greedy.py`
-> 是同一策略的两份实现 —— **改动时两边都要改**，并用
-> `./run.sh evaluate.py --agent main.py --opponent agents/greedy.py` 回归（应≈0.5）。
+> ⚠️ **7e39 格单独读**：那是卡组结构问题（同驾驶员的端口版本也只有 35~41%，
+> 9d6e/2617/f5f8 打它 60~89%），而且**我们的 7e39 比真人强**（真人天梯胜率 33%），
+> 面板在这一格会过度惩罚我们 ⇒ 排强度看"剔除 7e39"列（与 LB 的 Spearman = +1.00）。
 
-> ★ **窗口里现在有一个免费实验槽**：下一份提交会顶掉最老的 `greedy`（357.6），
-> 而队伍分取 max 已经是 460.5 —— **新提交再差也不会让分数掉**。用它去试最贵的那个假设。
+## 我们的 agent 现在是什么
 
-### 已建成的组件
+三层，全部在 `port_repo/`：
 
-| 组件 | 状态 | 结论 |
+| 层 | 位置 | 说明 |
 |---|---|---|
-| 规则策略（greedy） | ✅ | 本地最强，零依赖，留在窗口里兜底 |
-| 对局/评估框架 | ✅ | 座位+reverse 双交替、崩溃检测、按局 CV |
-| 特征体系 | ✅ | 局面 **63 维**（48 静态 + 15 记忆）+ 选项 **40 维** |
-| 卡组池（25 套 archetype） | ✅ | 25 套、600 种 matchup 全覆盖 |
-| **确定性填充器（determinization）** | ✅ 修好 BUG-001 | 剩余张数 93.3% / 99.3% 精确重建 |
-| **前向搜索 rollout（规则策略续弈）** | ✅ **真的赢** | 同卡组同快照 LB **+114.1**（`sample_official`，还在收敛） |
-| V（价值模型 LightGBM） | ✅ 训出来了 | AUC **0.78 ± 0.04**，❌ 但不能选动作 |
-| P（策略先验 LTR） | ✅ 训出来了 | 模仿 greedy **top1 = 0.9994**（天花板 = greedy） |
-| **Q(s,a)（反事实 GBDT）** | ✅ 训出来了 | 选项重要性 **34.79%**，❌ 但选动作 **0.465**（Gate 3 失败） |
-| MCTS 搜索闭环（V + P） | ✅ 工程跑通 | ❌ **打不过 greedy** |
-| GA 卡组选择器 | ⚠️ 可跑 | ❌ 产出的卡组**更差** |
-| 对手推断模型 | ❌ 未开始 | 缺 oracle 数据 |
+| 引擎 | `cg/`（比赛方 `libcg.so`）+ `tools/` ctypes 封装 | 官方 C++ 引擎，`libcg.so` 用 `std::random_device`，不可播种 |
+| 环境 | `port_repo/native/ptcg/`（C） | 观测/编码/追踪/卡组池全部重写成 C，与 Python 版逐位一致（`make -C native parity`） |
+| 模型 + 训练 | `port_repo/native/model/`（CUDA）+ `src/`（PufferLib `c5d3c63` + 本地补丁） | **训练循环里没有 PyTorch** |
 
-### 有效 vs 无效（全部经过统计检验）
+### 模型规格
 
-**有效：**
-- ATTACK 排第一位是灾难（0.17 vs 0.85），必须"先铺场后攻击"
-- 开局铺满后备（否则主力倒下空场判负）
-- **前向搜索 rollout 是真收益，但只在"规则打法次优"的卡组上**：
-  `sample_official` 上同快照 LB **+114.1**（Gate 1，本地配对 0.5817，n=600，z=+4.06）
-- **LB 读数是会向下漂的 Elo**：同一份提交 2 小时内从 562.9 掉到 460.5。跨时刻的差值一律作废
-- **不能把"卡组收益"和"策略收益"相加外推** —— 那次预测 678，实测 460 且仍在下降
-- **卡组多样性显著提升 V**：单对手 AUC 0.722 → 多样卡组池 0.766（控制记录数后仍 +0.044）
-- 修复 `st_turn` 伪特征（回合奇偶编码了"谁在行动"）——它曾导致搜索 96% 选 END
-- 修复 BUG-001（填充器把 GameMemory 的日志计数当剩余张数）——99.5% 的局面 determinization 失真
-
-**无效 / 已证伪：**
-| 尝试 | 结果 |
+| 项 | 值 |
 |---|---|
-| MCTS 搜索（V + 搜索） | **0.39 vs greedy 0.5** ❌ |
-| + P 先验裁剪 top_k=3 | **0.3725**（400 局，低 5.2σ）❌ |
-| 1-ply（纯 V 选动作） | **0.20** ❌ |
-| 启发式 V | **0.25** ❌ |
-| 加深搜索（150 sims / depth 10） | **更差**（0.225）❌ |
-| **Q(s,a) 反事实 GBDT 选动作** | **0.4650 vs 规则**（n=600，z=**−1.72**）❌ **比规则还差** |
-| Q 换 margin 再试 | 0.35 / 0.445 / 0.415 / 0.425（margin 0/0.05/0.1/0.2）❌ 全部 <0.47 |
-| GA 优化卡组 | 产出**构造更差**的卡组（无用能量 + 单张填充）❌ |
-| `retreat_late` 配置 | 头对头赢但**绝对强度更差**（0.760 vs 0.815）❌ |
-| **rollout worlds 10 → 40** | **0.4833**（n=300，SE 0.029，z=−0.58）❌ 纯噪声 |
-| **rollout MODE attack → all** | **0.4867**（n=300，SE 0.029，z=−0.46）❌ 纯噪声 |
-| **determinization 用真实构筑** | **0.5033**（n=300，z=+0.11）❌ 隐藏信息猜对了也**一分不赚** |
-| **margin 扫描 0.5 → 2.5** | 两端显著更差（−2.42σ / −2.66σ），中间 0.75~2.0 是**平台** ❌ 当前值已在平台上 |
-| **子决策目标选择（`smart_sub`）** | **0.5100**（n=300，z=+0.35）❌ 噪声 |
-| **续弈（playout）策略换 develop_first** | **0.4833**（n=300，z=−0.58）❌ 噪声 |
-| **续弈策略换 evolve_first** | 初筛 0.5533（z=+1.85）→ **复测 n=2000 = 0.5035**（z=+0.31）❌ 赢家诅咒 |
-| **续弈策略换 attack_first（正对照）** | 0.4567（z=−1.50）方向对但不显著 |
-| **depth-2（对手回应取最坏）** | **0.5133**（n=600，z=+0.65）❌ 噪声；成本 0.61→1.20 s/局 |
-| **换卡组（24 套挑战 rollout+sample）** | 22 套明显更弱；**前 2 名复测后落回 0.5** ❌ 见下 |
+| 参数量 | 4.55 M |
+| 结构 | `PT_D=256`、`PT_H=8`、`PT_FFN=512`、`PT_LAYERS=4`、horizon 64 |
+| 权重格式 | `.bin` = `PT_PARAMS` 顺序的扁平 fp32，**18,205,408 B**（长度不对就是坏文件） |
+| 转换 | `PYTHONPATH=build/port_plain:. ./tools/py tools/native_weights.py import\|export` |
+| 训练驱动 | `port_repo/native/train_native.py`，常用入口 `tools/db04_line.sh` |
 
-> ⚠️ 最后两行是**修复 BUG-002 之后**重测的。修复前的同一组 A/B 是 0.08 s/局、
-> 两个算量差 4 倍的配置耗时完全相同 —— 那是 bug 把 rollout 静默降级成规则了。
-> **rollout 的配置旋钮（世界数 / 覆盖面 / determinization 精度）已经全部饱和**，
-> 不要再调。连"把隐藏卡猜对"都是 0 —— 详见下面的 `CompositionOracleFiller` 实验。
+### 训练循环的关键机制（都是踩坑换来的）
 
-> **为什么 V 不能选动作**：V 预测的是「这个局面的胜率」，但选动作需要
-> 「这个动作造成的胜率变化」。后者量级 ~0.02，远小于 V 的误差 ~0.05。
-> **AUC 0.83 的价值函数，在选动作上可以完全没用。** 详见 `framework/README.md`。
+- **league / 冻结 bank**：`BANKS` 里的 `.bin` 作为冻结对手，`frozen_bank_pct = LEAGUE_PCT`，
+  每个 bank 拿 `floor(agents×pct)` 个 env；约束 `league_pct × n_banks ≤ 1`，`PT_MAX_BANKS=16`。
+- **加权靠重复**：想让某个对手占 40% 权重，就是把它在 `BANKS`/`SLOTS` 里重复写 4 次。
+  没有"权重"参数，只有位置。
+- **bank 的卡组**由 `BANKDECKS` 钉死；未标注的行是自博弈（`MIX_SELF`），其对手卡组从池里按
+  `--deck-weights-file` 抽。
+- **SWA**：每个训练块结束存快照 `experiments/native-<RUN>/<step:016d>.bin`，
+  `tools/swa_avg.py` 做等权平均。这是目前**唯一可复现**的正收益旋钮，见下。
 
-> **那直接学 Q(s,a) 呢？也不行，这条路我们走到了尽头。**
-> 用 2,400 局反事实 rollout 标了 69,042 个动作标签（`data/cf_q_final.jsonl`），
-> 把选项特征重要性从 **0.59% 拉到 34.79%**（Gate 2 通过）——
-> 但**选动作胜率只有 0.4650**，比纯规则还低，换 margin 也救不回来。
-> 特征提取能力已经到位，差的是**36% 的 argmax 错误率**（63.60% vs 随机 42.19%）：
-> 决策点上一个错误就直接抵消掉全部收益，而终局 playout 近似无偏，
-> 所以 95 维的 GBDT 打不过一次真实的 rollout。
-> **结论：PIMC / 学习型 Q 到此为止，不要再投入。** 详见 `framework/README.md`。
+## 评估体系：判据先于实验
 
-### 日志：`evaluate.py` 每次跑完都会落盘
+### 面板 v2（唯一的强度口径）
 
-`logs/ab_log.tsv` 是一行一次的汇总（时间 / agent / 对手 / 卡组 / 方案 / 正负 / 胜率 / 耗时），
-**无条件追加**，不需要 `| tee`，也不怕后台任务里丢掉。
-
-> 为什么要这样：以前结果只留在终端，后台跑的扫描跑完就没了（`logs/` 还是 gitignore 的）。
-> 实验记录不能依赖调用者的自觉。
-
-两个地方的分工：
-
-| 位置 | 内容 | 进仓库 |
-|---|---|---|
-| `logs/ab_log.tsv` | **所有**评估的原始汇总，防丢 | ❌ gitignore |
-| `experiments.csv` | 事后挑出**有意义**的那些，结构化记录 | ✅ 唯一事实来源 |
+`decks/testset_meta_real_v2.tsv`：**17 格 × 150 局**，每格 = 一个"对手卡组 + 最强驾驶员"，
+种子基 950000（逐局种子 950000/950002/…，所以**同种子可逐局配对**）。
 
 ```bash
-# 跑完把它提升成正式记录（否则只是个临时数字）
-./run.sh -c "from exp_log import log_experiment; log_experiment(
-    name='xxx', agent='agents/a', eval_scheme='vs-b-n300', win_rate=0.51, n_games=300)"
+# 本地跑一个候选的整张面板
+bash tools/local_panel_v2.sh cand9D6ER4 6
+
+# 配对检验（新候选 vs 对照，同种子逐局）
+PYTHONPATH=build/port_plain:. ./tools/py tools/panel_paired.py --a cand9D6ER4 --b candE1D7R4 --tag v2
+
+# 排名（自动剔除 7e39）
+PYTHONPATH=build/port_plain:. ./tools/py tools/panel_rank.py --cands cand9D6ER4 cand0904R1 --tag v2
 ```
 
-### 三条评估纪律（都踩过坑才总结出来）
+### 四条评估纪律（每条都付过代价）
 
-1. **必须用按局 K 折 CV** —— 单次切分的 AUC 标准差达 0.041，而特征改进只有 0.005 量级
-2. **头对头赢 ≠ 更强** —— 非传递性是常态，任何改动都要同时看对统一基准的绝对胜率
-3. **样本量要够** —— 检测 0.05 的差异需要 ~1600 局；80 局的结论全是噪声
+1. **≥3 个种子（450 局配对）才能当真。** 单种子 150 局的"赢家"平均虚高 ~1.5σ。
+   本项目的失败模式统一叫**胜者诅咒**：4 块里挑最好的一块，好块的好是噪声。
+2. **"从 N 个候选里取最大"不是选拔，只是淘汰。** k=4 时最大值期望 `+1.6σ`，k=24 时 `+1.9σ`。
+   扫描只能用来扔掉底部的，第一名必须独立大样本复测。
+3. **头对头赢 ≠ 更强。** 非传递性是常态，任何改动都要看对统一基准的绝对胜率。
+4. **面板有偏，LB 有漂**：面板过惩罚 7e39；LB 单次读数 ±250 分。
+   任何"LB 涨了 X"必须同快照双读数，或改用回放统计。
 
-### ⚠️ 卡组挑战赛：24 套自造卡组 vs `sample_official`（rollout 两侧镜像外战）
+## 分数地图（按卡组）
 
-每套 160 局（SE≈0.040），**全部 24 套完成**：
-
-| 排名 | 卡组 | n=160 | 复测 n=600 | 结论 |
-|---:|---|---:|---:|---|
-| 1 | `grass_heracross` | 0.5875 (z=+2.21) | **0.5050 (z=+0.24)** | 无差别 |
-| 2 | `lightning_zeraora` | 0.5563 (z=+1.42) | **0.4867 (z=−0.65)** | 无差别 |
-| 3 | `metal_mawile` | 0.4562 (z=−1.11) | — | 无差别 |
-| 4~6 | `dragon_latias` / `metal_zacian` / `water_abomasnow` | 0.3250~0.3937 | — | 明显更弱 |
-| 7~24 | 其余 18 套 | 0.1250~0.3063 | — | 明显更弱（z 至 −9.5） |
-
-**结论：`sample_official` 就是我们卡组池里最好的卡组，卡组这条线在本池内已经榨干。**
-
-### ⚠️ 教训：挑最大值 = 挑中了噪声（今天犯了三次）
-
-同一个错误今天出现了三次，形状完全一样 —— **小样本里跑出一个 +2σ 的「赢家」，换成正确样本量后落回 0.5**：
-
-| 实验 | 初筛 | 复测 |
-|---|---|---|
-| 卡组挑战赛 · `grass_heracross` | n=160 → **0.5875**（z=+2.21） | n=600 → **0.5050**（z=+0.24） |
-| 卡组挑战赛 · `lightning_zeraora` | n=160 → **0.5563**（z=+1.42） | n=600 → **0.4867**（z=−0.65） |
-| 续弈策略 · `playout_evolve` | n=300 → **0.5533**（z=+1.85） | n=2000 → **0.5035**（z=+0.31） |
-
-**规律：在一组候选里取最大值，最大值天然偏高。** k 个候选、每个 n 局、真值都是 0.5 时，
-最大值的期望约为 `0.5 + z_k × SE`，k=4 时 z≈1.6，k=24 时 z≈1.9。
-
-⇒ **任何"从 N 个配置里挑最好"的扫描，第一名都必须用独立的大样本复测才能当真。**
-扫描只配用来**淘汰**（底部那些离 0.5 有 5~9σ 的是真的差），不配用来**选拔**。
-
-### ⚠️ 卡组挑战赛：从 24 个候选里挑最大值 = 挑中了噪声
-
-24 个候选、每个 n=160、**真值都是 0.5** 时，最大值的期望约为
-`0.5 + 1.9 × 0.040 = 0.576` —— 而观测到的是 **0.5875**。
-**挑战赛的第一名完全可以由纯噪声解释**，复测后立刻落回 0.5050。
-
-同样是 24 选 1，但**底部是真的**：0.30 / 0.20 / 0.125 这些离 0.5 有 5~9.5 个标准误，
-不可能是噪声。所以正确的读法是——
-
-> **"这批卡组里有一大部分明显更差"是可证的；"其中某几套更好"是不可证的。**
-
-用 n=160 的排名去选卡组，只能用来**淘汰**，不能用来**选拔**。要选拔，就得对被选中的
-那 1~2 个候选重新用 n=600 复测（成本 24 分钟），而且**必须**这么做 —— 不做就等于把
-噪声当结论。
-
-### 下一步（按价值排序）
-
-| 优先 | 做什么 | 理由 |
-|---|---|---|
-| 1 | **子决策策略**：那 18% 从来没被决策过的选择 | `ATTACH_TO`（平均 **6.55** 个选项、93.5% 需要抉择）等 context 现在由**引擎枚举顺序**决定，`_POKEMON_TARGET_CTX` 甚至没覆盖 `ATTACH_TO`。子决策的对手是"任意"，门槛极低 |
-| 2 | **margin 自适应 + 重扫** | 代码注释自己说候选 k 从 3 增到 12 时阈值应提到 ~2.0+，但实现里固定 1.5，而我们在平均 11.8 个候选上用它；且**所有历史调参都在 BUG-002 修复前做的**，已作废 |
-| 3 | playout 策略（评估器偏差） | 判断"哪个动作更好"靠 playout，而 playout 用的是和兜底相同的 `safe_v1` —— 同一个策略既当选手又当裁判 |
-| ~~—~~ | ~~在我们的 25 套卡组里换一套更好的~~ | ❌ 24 套挑战赛：22 套明显更弱，前 2 名复测落回 0.5。`sample_official` 是池内最优 |
-| ~~—~~ | ~~调 rollout 的世界数 / 覆盖面 / determinization~~ | ❌ 全部证伪：worlds 10→40、MODE attack→all、连"用真实构筑造世界"都是噪声 |
-| ~~—~~ | ~~卡组与策略分开调、收益可加~~ | ❌ 已证伪：那次外推的 678 实测只有 460 |
-| ~~—~~ | ~~Q(s,a) / PIMC / AlphaZero 式自弈~~ | ❌ **改进算子断了**：Q 选动作 0.4650（比规则还差）。详见 `framework/README.md` |
-
-## 历史基线记录
-
-| 实验 | Agent | 本地胜率 | 对局数 | 对手 |
-|---|---|---|---|---|
-| exp01_random_selfplay | random_baseline | 0.4475 | 400 | random_baseline（框架自检） |
-| exp02_greedy_vs_random | greedy | 0.850 | 200 | random_baseline |
-| exp03_main_vs_random | main.py | 0.805 | 200 | random_baseline |
-| exp04_main_vs_greedy | main.py | 0.5067 | 300 | greedy（等价性验证） |
-
-> ⚠️ EXP-0002 与 EXP-0003 是**同一策略**的两次测量，0.850 与 0.805 的差异属抽样噪声。
->
-> ⚠️ `random_baseline` 作为基准**已无区分度**：所有合理配置都能赢它 80%+。
-> 需要更强的基准对手才能区分策略优劣。
-
-## 关键发现
-
-以下数字均为**修正后**的实测结果，指标统一为 `vs random_baseline`，且框架已通过
-`random vs random ≈ 0.5` 自检（见 `experiments.csv` / `实验记录.md`）。
-
-### 1. 决策顺序是决定性的：ATTACK 绝不能排第一
-
-PTCG 的**攻击会结束回合**。把 ATTACK 排在优先级首位，agent 就退化成"每回合只平A、
-从不铺场/进化/充能"。n=200：
-
-| 配置（go_first=True, bench_full=True） | vs random_baseline |
-|---|---|
-| `attack_first`（错误示范） | **0.170** |
-| `attack_last_only` | 0.780 |
-| `attach_first` | 0.790 |
-| `no_retreat` | 0.830 |
-| **`develop_first`（定稿）** | **0.845** |
-
-正确顺序：`PLAY → EVOLVE → ABILITY → ATTACH → RETREAT → DISCARD → ATTACK → END`
-
-### 2. 开局必须铺满后备
-
-`SETUP_BENCH_POKEMON` 取满 `maxCount`。只上 1 只后备时，主力被击倒后 Active 空场
-直接判负（败因 3）。对照实验（n=60，vs random_baseline）：
-
-| 配置 | bench_full=False | bench_full=True |
-|---|---|---|
-| `attack_first` | 0.100 | **0.167** |
-| `develop_first` | 0.733 | **0.867** |
-
-### 3. 顺序里只有一件事重要：**ATTACK 不能被 RETREAT/DISCARD 挤到后面**
-
-2026-10-20 用 n=600（SE 2.0pp）把优先级表重测了一遍——之前那批是 n=200、且
-在 BUG-002 修复前，测不出 2~4pp 的差异：
-
-| 优先级表 | 胜率 | z | 结论 |
-|---|---:|---:|---|
-| `safe_v1`（当前）：ATTACH→EVOLVE→PLAY→ABILITY→**ATTACK**→END→DISCARD→RETREAT | 基线 | 0 | — |
-| `evolve_first`：EVOLVE→PLAY→ABILITY→ATTACH→**ATTACK**→RETREAT→DISCARD→END | 0.4983 | −0.08 | 噪声 |
-| `play_first`：PLAY→EVOLVE→ABILITY→ATTACH→**ATTACK**→END→DISCARD→RETREAT | 0.4883 | −0.57 | 噪声 |
-| `play_before_evolve`：ATTACH→PLAY→EVOLVE→ABILITY→**ATTACK**→END→DISCARD→RETREAT | 0.4733 | −1.31 | 噪声 |
-| `develop_first`：PLAY→EVOLVE→ABILITY→ATTACH→**RETREAT→DISCARD→ATTACK**→END | **0.4167** | **−4.08** | ❌ **显著更差** |
-
-关键在读表：前四行**ATTACK 都在 RETREAT/DISCARD 之前**，彼此全是噪声；
-唯一崩掉的那行恰恰是 **RETREAT→DISCARD 插在 ATTACK 前面**。
-
-⇒ **"先抽牌还是先贴能量"完全不重要**（这是直觉上最想问的那个问题，答案是不重要）。
-真正致命的只有一条：**别让撤退/弃牌挡在攻击前面**——那正是 2026-10-07 那个让
-8 套卡组平均 0.2725 的 bug。当前 `safe_v1` 在这条上是正确的，也不需要再调。
-
-### 3b.（历史记录）修好前两条之后，剩下的顺序差异基本是噪声
-
-两两对决 n=200，四个"合理"配置互有胜负、全部落在 0.4～0.55：
-
-| 对局 | A 胜率 |
-|---|---|
-| `develop_first` vs `attach_first` | 0.500 |
-| `no_retreat` vs `attack_last_only` | 0.540 |
-| `develop_first` vs `no_retreat` | 0.440 |
-| `develop_first` vs `attack_last_only` | 0.480 |
-
-**结论：不要在这些顺序上继续调参** —— 收益已在噪声内。要提升必须换更强的机制
-（见下方"内置前向搜索"）。
-
-### 4. 评估框架本身踩过的坑（比策略更重要）
-
-- **`agents/random.py` 遮蔽了标准库 `random`**。加了 `sys.path.insert(0, agents/)` 后，
-  该文件里的 `import random` 导入了它自己 → 对手开局即崩。而 `play_match` 当时把崩溃
-  **静默记成"输"**，导致所有配置都被记成 100% 胜率。
-  修复：改名 `random_baseline.py` + `sys.path` 改用 `append` + 崩溃显式标记 `crashed` 并单独统计。
-- **0 号位有结构优势**：`battle_start(reverse_player=False)` 时"选先后手"
-  （`SelectContext.IS_FIRST`）只发给 0 号位。只交替座位时 random 自对弈会跑出 0.62 而非 0.5。
-  修复：座位与 `reverse` 双重交替，`play_match(..., reverse=...)`。
-- **教训**：胜率数字在框架自检通过之前一律不可信。先跑 `random vs random ≈ 0.5`，
-  再解读任何策略对比。`evaluate.py` 现在会在出现崩溃时红字警告并把它排除在胜率之外。
-
-### 5. 当前基线
-
-`agents/greedy.py` 与提交入口 `main.py` 同为 `develop_first + 先手 + 铺满后备`。
-直接评估 `main.py`（n=200）：**0.840**，与 `greedy.py` 一致 —— 提交入口可用。
-
-## 内置前向搜索
-
-`cg.api` 提供 `search_begin` / `search_step`，可把对手手牌/牌库/奖赏卡做 **determinization**
-后向前推演 —— 这是打不完美信息卡牌的关键工具，也是下一步的主要方向。
-
-⚠️ **读源码得出的机制**（`Api.h:105` / `State.h:302` / `Search.h:109`）：
-引擎在序列化 `search_begin_input` 前会调用 `erasePlayerData()`，
-把隐藏卡清成 `cardId = 0`；`Search::start` 再专门找这些空槽位，
-用**你传入的预测值**填回去。
-
-> 被抹掉的：我方牌库+奖赏、对手牌库+手牌+奖赏、里侧 Active
-> 保留的　：弃牌堆、场面、我方手牌、各项数量
-
-**所以没有填充器就无法搜索** —— 这不是可选组件。见 `framework/filler.py`。
-
-## 训练框架
-
-见 [`framework/README.md`](framework/README.md)。核心是**模型无关**。
-
-### ⚠️ 一律用 `./run.sh`，别直接 `python`
-
-本机有两个解释器，训练必须用依赖齐全的那个（装了 numpy/lightgbm/torch）：
-
-| 环境 | 依赖 | 能做什么 |
-|---|---|---|
-| `base` (3.14.6) | 零依赖 | 只能跑评估/对局 |
-| **`py310` (3.10.21)** | 齐全 | ✅ 训练、评估、对局全都行 |
-
-`./run.sh` 会自动挑到合适的解释器，所以所有命令统一写成：
-
-```bash
-./run.sh --check                              # 环境诊断（选了哪个解释器、有哪些依赖）
-./run.sh evaluate.py --agent main.py --opponent agents/random_baseline.py --games 200
-
-# 生成自对弈数据（--oracle 可额外记录真实隐藏信息）
-./run.sh gen_data.py --games 300 --opponent agents/random_baseline.py --out data/sp_vs_random.jsonl
-
-# 训练价值模型 V（--model 可换 lightgbm / linear）
-# 训练前会自动把 JSONL 转成 parquet 缓存（加载快 36x、省内存 3x）
-./run.sh train_value.py --data data/pool_v4_v.jsonl --model lightgbm
-
-# 手动预建/查看缓存（可选，训练时也会自动建）
-./run.sh -m framework.cache data/pool_v4_v.jsonl --kind value --show
-
-# GameMemory 跨局污染回归测试
-./run.sh tests/test_memory.py
-```
-
-需要指定别的解释器时：`PTCG_PYTHON=/path/to/python ./run.sh ...`
-
-（`make` 目标也都已经走 `./run.sh`：`make check / eval / gen / train / test`）
-
-### ⚠️ 训练框架的第一个实测结论：对手强度混合会毁掉 V
-
-600 局自对弈、53 维状态特征、线性模型：
-
-| 训练数据 | 验证 AUC | 验证 log_loss | 常数基线 |
+| 我方 | 最强对手卡组 | 缺口类型 | 证据 |
 |---|---|---|---|
-| 只对 `random_baseline` | **0.7202** | 0.6125 | 0.6701 |
-| 只对 `greedy` | **0.6968** | 0.6157 | 0.6820 |
-| **两者混合** | **0.6336** | **0.6830** | 0.6823 |
+| 0904（dreepy） | 7e39 | 34.9% × 权重 56.7% = 优先级 #1 | 真人 n=11 |
+| e1d7（ogerpon） | 7e39 | 34.9% × 46.5% = #2 | n=22 |
+| 3eaa（dreepy） | 7e39 | 34.9% × 20.0% = #3 | n=6 |
+| 9d6e（dunsparce） | — | 全格 72.2% 最高，但 7e39 格 88% 是主要来源；剔除后 58.6% | 面板 17 格 |
 
-混合后 **log_loss 比"永远预测平均值"还差**。同一局面在不同对手下胜率天差地别，
-而特征不足以刻画对手强度 → 混合数据对 V 就是纯噪声。
+逐格缺口明细在 `docs/我方vs高分选手_逐格缺口_*.csv`、`docs/格子差距诊断_*.csv`。
 
-**这直接约束对手池设计**：训练 V 时对手强度要相对集中，或必须补上对手强度特征。
+## ✅ 有效（经过统计检验）
 
-> 📌 **必读的文档**：
-> - [`高分段架构清单.md`](高分段架构清单.md) —— **已知能打到高分的四种架构**（含证据强度、许可证、凭什么高）
-> - [`教训-为什么我们停在规则模型.md`](教训-为什么我们停在规则模型.md) —— **两周复盘**：为什么没做那个 1000 分的策略（信息缺口/分期触发器/算力轴/表征/尺子），以及下次开局的检查表
-> - [`1000分复现手册.md`](1000分复现手册.md) —— **公开榜 1000+ 的完整构建方法**，以及我们逐字节复现的校验结果
-> - [`下一步.md`](下一步.md) —— 状态快照、明天的任务与判据、免费提交槽的使用规则
-> - [`别再试.md`](别再试.md) —— 已证伪的方向 + 方法论陷阱 + 已验证正确 + 未试方向
-> - [`公开方案综述.md`](公开方案综述.md) —— 30 份公开 notebook 的综合与"最该抽什么"的清单
-> - [`公开强策略移植.md`](公开强策略移植.md) —— 移植包来源/许可/验证/卡组筛选
-> - [`引擎字段清单.md`](引擎字段清单.md) —— 118 个引擎字段（含**隐含语义**）、我们用了几次、哪些从没用过
+| 手段 | 效果 |
+|---|---|
+| **训练配方本身**（PPO + league + 真实野区卡组分布） | G4-B **0.5337 [0.5093,0.5581]** vs 端口权重（首次显著）；实盘队分 G6 1082.1 vs port@db04 1028.2（+53.9） |
+| **每个训练块做 SWA** | 块间摆幅 **13.3pp → 4.7pp**；LR 扫描里 A2 配方 **36.4% → 43.3%**（CI [+1.3,+12.2]）；17th place 同法 +4.3pp |
+| **换牌：db04** | 真实胜率 0.642 vs 7e39 0.568；队分 +53.9（同配方同 seed，只换牌） |
+| 规则 greedy（`agents/greedy.py`） | 仍是零依赖兜底与对照基线，`main.py` 与其等价（0.510, n=300） |
+
+## ❌ 已证伪（不要再试）
+
+| 方向 | 结果 |
+|---|---|
+| **对位特化 p1/p2/p3/p4** | 权重位移仅 **0.0007%~0.0016%**（正常一轮 PPO 是 0.014%~0.05%），17 格 × 3 种子后**全部归零**；详见下节 |
+| 奖励塑形 S0/S1/S2/S3B/S3C | λ=1 无效(+0.5pp)；奖品稠密奖励 **−8.6pp**（reward hacking）；PBRS 无优势(−4.2pp)；可攻击性进 Φ 无效 |
+| 开局 BC（B1/B1b） | 前 3 回合冻结骨干微调，**改不动行为** |
+| 蒸馏 D1（含 4M 版） | +1.4pp 在噪声内，目标格没保住 |
+| 熵系数 S4 | 无收益 |
+| 决策重排（branch probe） | **−6.8pp，z=−6.0** |
+| LR / 批次 / 调度 A2–A4 | 14th 的配方（1e-5 + cosine + 4×batch）在本项目**一分不赚**；A2_SWA 3 种子 = **+0.0pp** |
+| 跨 run 权重平均 | 无效（`tools/swa_avg.py` 仍在，但只用于块内） |
+| 旧规则线的 MCTS / Q(s,a) / PIMC / 24 套卡组挑战 / rollout 旋钮 | 全部封死，见 `别再试.md`（30 项） |
+
+## 对位特化（specialist）：为什么归零，以及唯一还活着的线索
+
+**规格（用户定）**：先用 Bayesian 后验预测对手卡组，若 `P(最高) − P(当前) > 10%` 则切到该卡组
+的对位最佳 agent；多个 agent 合并要求特攻胜率差 ≥5pp，否则用非特攻；主 agent 取
+`覆盖率 × 胜率差` 最高的综合 agent。
+
+**实测**（`docs/对位特化记录.csv`、`专项训练诊断_2026-11-27.md`）：
+
+| 线 | 单种子/单格 | 3 种子 / 17 格 | 终判 |
+|---|---|---|---|
+| p1 0904→7e39 | +5.3pp (n=150) | +1.6pp（n.s.） | 零 |
+| p2 e1d7→7e39 | +3.9pp，CI [−0.8,+8.6] | 3 种子 +3.1 / +0.6 / −2.8 → **+0.3pp** | 零 |
+| p3 3eaa→7e39 | — | −1.6pp | 零 |
+| p4 0904→7e39 + KL 锚 | raw 50.0/46.7/36.7/44.7（极差 13.3pp） | 未做 3 种子 | **未闭环** |
+
+**根因（决定性证据）**：专项臂与起点的全局相对 L2 位移只有 **0.0007%~0.0016%**，
+而历史上"能测出东西"的一轮是 0.014%~0.05% —— 位移小 10~70 倍。
+`LR=2e-5` + 锚到起点 + 每块 500k 步 = **优化压力不足**，块间差异是采样噪声，不是策略震荡。
+外部同赛道真实量级也只有 **+3~5pp/格**（Petit Canard 12 个 matchup specialist 平均 +3.5pp）；
+拿 6th 的 +12~14pp 当目标是量级搞错（那是"切专家 vs 自己的泛用策略"，不是 specialist 训练收益）。
+
+**唯一线索**：KL 锚 `KL_COEF=0.005` + 块内 SWA，四块 `48.7 / 44.0 / 47.3 / 48.0%`（baseline 43.3%），
+摆幅压到 4.7pp、四块全在基线之上 —— **单种子、单格**，需要 3 种子 × 17 格才能判。
+实现：`LOSS_ANCHOR_KL=7`（`port_repo/native/src/pufferlib.cu`），
+`--kl-anchor-bin/--kl-anchor-coef`（`train_native.py`），`KL_ANCHOR=` 环境变量（`tools/db04_line.sh`）。
+
+> 我们的实现与 14th place 有差异：**固定初值锚**（不是 last-best ratchet）、
+> **采样 KL** `E[logπ_cur − logπ_ref]`（不是精确 KL）、门控 = 7e39 格 150 局 > 3pp。
+> 若这条线索走通，下一步才是换 last-best + 精确 KL。
+
+## 卡组资产
+
+| 路径 | 内容 |
+|---|---|
+| `decks/pool_field/` | **196 套真实野区卡组**（60 个 archetype 名；**36 个名字只有 1 套**） |
+| `decks/pool_final/` | **211 套**训练池 = 每 archetype ≤10 变种 + Kaggle 近邻补充（`tools/build_pool_final.py`） |
+| `decks/weights_pool_final.txt` | 抽样权重（v3 格式）：一族内 champion **0.70** / 其余共 0.30；单套一族给 **1.0**；未列出的默认 1e-4 |
+| `decks/testset_meta_real_v2.tsv` | 面板 v2 的 17 格 + 权重（强度口径的**唯一**定义） |
+| `data/deck_corpus_local.csv` | 6258 局本地回放抽出的 342 套真实卡组（外部语料） |
+
+> 卡组 id = `decks/pool_final` 下排序后的位置（`native/tools/export_tables.py <out> --pool decks/pool_final`）。
+> 池子里 champion 是"字母序第一"，不是我们实际用的那套 —— 需要 `main=` 覆盖。
+
+## 机器与运维纪律
+
+- **1 台 GPU**（RTX 4090 24G，`/root/ptcg_train_kit/port_repo`）+ **CPU 评估机**（`/root/eval_cpu_kit`，32 核 / 14 worker）。
+- **任务一跑完立刻关机**（GPU 按小时计费），并且**永远再挂一个固定时点的兜底关机**
+  （`tools/force_finish_deadline.sh`）—— 主链的 watcher 死过两次。
+- 关机前**必须先拉回产物并校验尺寸**：`.bin` 必须是 **18,205,408 B**；
+  `vs_*.json` 每候选必须 **17 个**。校验不过不关机。
+- 产物不许放 `/tmp`（会消失，一次丢过 4 个权重）；`/tmp` 也不许当 askpass 唯一来源。
+- 后台任务用 `setsid nohup` + `pgrep -c -f` 自检；**杀进程用字面 PID，不要 `pkill -f` 脚本名**（会杀掉自己的 shell）。
+- 详见 `docs/机器与环境搭建清单.md`、`AGENTS.md`。
 
 ## 目录结构
 
 ```
-# ── 提交物（这个 + deck.csv + cg/ 就是全部；打成 tar.gz 上传）──
-├── main.py                # ★ 提交入口（自包含，规则 greedy）
-├── main_rollout.py        # ★ 提交入口（前向搜索版，另需 framework/）
-├── deck.csv               # ★ 提交卡组（gitignore：比赛方数据）
-├── cg/                    # ★ 官方引擎（gitignore，比赛方授权）
-├── make_submission.py     # 打包 + 静态/动态自检（exec 模拟，Kaggle 没有 __file__）
+├── main.py                  # 提交入口（自包含；出包用 make_submission.py）
+├── deck.csv  cg/            # 比赛方数据（gitignore）
 │
-├── run.sh                 # ★ 统一解释器入口（务必用它跑脚本）
+├── port_repo/               # ★ 主线：神经策略
+│   ├── native/
+│   │   ├── ptcg/            #   C 版引擎环境（与 Python 逐位一致）
+│   │   ├── model/           #   CUDA 模型（4.55M）
+│   │   ├── src/             #   PufferLib 补丁版（含 KL 锚 loss）
+│   │   ├── train_native.py  #   训练驱动
+│   │   └── tools/           #   export_tables / native_weights / model_parity
+│   └── puffer_ptcg/         #   编译产物 _C*.so
 │
-# ── 对局与评估 ──
-├── local_match.py         # 本地对局框架（座位+reverse 双交替、崩溃检测）
-├── evaluate.py            # 批量胜率评估（--workers 走 spawn）
-├── sweep.py               # 策略配置扫描
-├── exp_log.py             # 实验记录工具
-├── experiments.csv        # 实验记录表（唯一事实来源）
-├── 实验记录.md            # 实验记录的 markdown 版（exp_log.py md 生成）
-├── LB记录.md              # ★ 排行榜读数与"计分窗口"机制（只有 2 次计分提交）
+├── agents/                  # 规则基线（greedy / rollout_agent / random_baseline…）
+├── framework/               # 旧规则线框架（搜索 / 填充器 / 特征），已封存
+├── build/agents/            # ★ 候选权重（<name>/model.pt + .bin）
+├── decks/                   # 卡组资产（见上表）
+├── logs/meta/               # 面板结果 logs/meta/<cand>_v2_s<seed>/vs_<cell>.json（gitignore）
 │
-# ── 数据生成 ──
-├── gen_data.py            # 单对手自对弈数据生成
-├── gen_pool_data.py       # 跨卡组池轮转采数据（25 套 / 600 matchup）
-├── gen_counterfactual.py  # ★ 反事实 Q 数据：同一局面分叉多个动作 + rollout 打标签
-├── make_decks.py          # 按 archetype 构造卡组
+├── tools/                   # ★ 主力工具（100+）
+│   ├── db04_line.sh         #   训练入口（env 透传 INIT/T/LR/LEAGUE_PCT/KL_ANCHOR…）
+│   ├── local_panel_v2.sh    #   本地跑整张 v2 面板
+│   ├── panel_paired.py      #   同种子逐局配对检验
+│   ├── panel_rank.py        #   候选排名（剔除 7e39）
+│   ├── bo3_eval.py          #   单格 Bo3 评估（生产 ABI）
+│   ├── swa_avg.py           #   权重平均（tool）
+│   ├── build_pool_final.py  #   训练卡池构建
+│   ├── driver_registry.py   #   驾驶员注册表（check = 0 error，禁止手改表）
+│   └── force_finish_deadline.sh  # 兜底关机
 │
-# ── 训练 ──
-├── train_value.py         # 训练 V（价值模型），支持 --cv-folds 按局 CV
-├── train_policy.py        # 训练 P（策略先验，LTR / LambdaMART）
-├── train_cf_q.py          # 训练 Q(s,a)（反事实），报告选项重要性 / argmax 一致率
-├── alpha_loop.py          # 迭代自对弈循环（AlphaZero 式）
-├── ga_deck.py             # GA 卡组选择器（实测效果不好，保留作记录）
-│
-# ── 框架 ──
-├── framework/             # 见 framework/README.md
-│   ├── features.py        #   特征提取（局面 63 维 + 选项 40 维）
-│   ├── memory.py          #   GameMemory（增量日志累积、防跨局污染）
-│   ├── filler.py          #   determinization 填充器（BUG-001 已修）
-│   ├── rollout.py         # ★ 前向搜索 rollout（规则续弈 + CRN + 离散 margin）
-│   ├── search.py          #   MCTS（UCB / 回传 / 先验裁剪）—— 已证伪
-│   ├── deck.py            #   卡组表示 / 合法性 / 遗传算子
-│   ├── cache.py           #   自动 parquet 缓存
-│   ├── dataset.py         #   数据集读写与按局切分
-│   └── models/            #   模型抽象接口 + linear / lightgbm 后端
-│
-├── agents/                # agent 实现
-│   ├── rulebase.py        #   参数化规则策略（8 种 order 配置）
-│   ├── greedy.py          #   ★ 当前基线
-│   ├── rollout_agent.py   #   ★ 前向搜索 agent（env 可调：mode/worlds/margin/cands）
-│   ├── q_agent.py         #   Q 推理 agent（实测打不过规则，保留作记录）
-│   ├── random_baseline.py #   基准对手（已无区分度）
-│   └── search_agent.py    #   搜索 agent（MCTS + P + V，实测打不过 greedy）
-│
-├── tools/                 # 诊断工具（做实验前先过一遍）
-│   ├── check_agent.py     #   agent 自检：真 rollout 次数 / 被吞掉的异常 / 配置是否真生效
-│   ├── inspect_subdecisions.py  # 子决策盘点：占比、选择空间、是否退化、选项解析成具体牌
-│   ├── audit_decisions.py #   **真实回放行为审计**：在 317 局线上对局里数"可判定型错误"，
-│   │                      #   并按胜局/败局每千决策归一化 —— 找 bug 的第一站
-│   ├── bc_critic_gate.py  #   偏离门控离线标定（BC 那条线的收尾诊断，结论见 别再试.md D13）
-│   ├── gen_field_doc.py   #   从 cg/api.py 自动生成 引擎字段清单.md
-│   └── measure_cost.py    #   单局耗时 / 预算是否被打穿 / 还剩多少算力余量
-│
-├── decks/                 # 25 套 archetype 卡组
-├── tests/                 # 回归测试（优先级表同步、rollout 差分测试、内存污染）
-│
-├── data/                  # 比赛数据 + 数据集 + parquet 缓存（gitignore）
-└── models/                # 训练产物（gitignore，可用脚本重建）
+└── docs/                    # 结论与记录（见下）
 ```
+
+## 文档索引（读这几份就够）
+
+| 文档 | 内容 |
+|---|---|
+| `docs/训练路线结论_2026-11-19.md` | **主线结论全集**（§1–§28）：每轮实验的判据、读数、口径修正 |
+| `专项训练诊断_2026-11-27.md` | specialist 为什么归零 + 外部 9 份方案对照 + 补足顺序 |
+| `AGENTS.md` | 常用流程索引、命名规范、统计纪律、机器纪律（**开工先读**） |
+| `docs/机器与环境搭建清单.md` | GPU/CPU 环境搭建、10 类坑 |
+| `docs/驾驶员与覆盖规则.md` | 驾驶员表的覆盖规则与固定评测流程（禁止手改表） |
+| `LB记录.md` | LB 读数机制（会漂、会冻结）与三次翻车复盘 |
+| `别再试.md` | 30 项已关闭方向 + 方法论陷阱（**动手前先看**） |
+| `训练手册.md` | 训练/评估的完整操作手册 |
+| `高分段架构清单.md` | 公开榜高分方案的可复现架构清单 |
 
 ## 使用
 
 ```bash
-python exp_log.py list                      # 按胜率降序列出实验
-python exp_log.py add --name v1 --agent random --win 0.42 --games 200
-python exp_log.py lb --exp EXP-0001 --score 350.0
-python exp_log.py md                        # 生成 实验记录.md
+bash fetch_data.sh                    # 拉比赛方数据（首次）
+make -C port_repo/native test         # 环境不变量测试（不需要 GPU）
+bash port_repo/native/build_native.sh # 编译 CUDA 扩展（需要 nvcc，1~2 分钟）
+
+# 训练（GPU 机器上）
+bash tools/db04_line.sh               # 默认配方 400k 步
+INIT=/root/cand0904R1.bin T=2000000 KL_ANCHOR=/root/cand0904R1.bin KL_COEF=0.005 \
+  bash tools/db04_line.sh             # KL 锚实验
+
+# 评估（CPU 机器上，或本地）
+bash tools/local_panel_v2.sh <候选> 6
+PYTHONPATH=build/port_plain:. ./tools/py tools/panel_paired.py --a <新> --b <对照> --tag v2
 ```
 
-在评估脚本里自动记录：
+## 下一个动作（按价值排序）
 
-```python
-from exp_log import log_experiment
-log_experiment(name="v1_rulebase", agent="rulebase", win_rate=0.42, n_games=200,
-               eval_scheme="vs-random-bo3", changes="最小可跑 agent")
-```
-
-## 本地自对弈
-
-```bash
-pip install kaggle-environments
-python -c "from kaggle_environments import make; e=make('cabt'); e.run(['agents/random.py','agents/random.py'])"
-```
+| 优先 | 做什么 | 判据 |
+|---|---|---|
+| 1 | **KL 锚（0.005 + 每块 SWA）3 种子 × 17 格** | n=450，配对差 ≥ +3pp 且 CI 下界 > 0 |
+| 2 | **卡组后验路由**（Bayesian 对手卡组预测 + 10% 切换阈值） | 先离线验证后验 top-1 准确率（6th 报 99% by turn 2），再上推理 |
+| 3 | 补权重位移基线：每轮报 `rel_L2` | 任何"训练了但没变强"先查位移是否 <0.01% |
+| 4 | last-best ratchet + 精确 KL（仅在 1 通过后） | 同 1 的判据 |
