@@ -102,6 +102,10 @@ def cfg():
     ap.add_argument("--eval-seed", type=int, default=int(os.environ.get("EVAL_SEED", 960000)))
     ap.add_argument("--local-workers", type=int, default=int(os.environ.get("LOCAL_W", 8)))
     ap.add_argument("--panel-workers", type=int, default=int(os.environ.get("PANEL_W", 12)))
+    ap.add_argument("--bank-lo", type=float, default=float(os.environ.get("BANK_LO", 0.1)),
+                    help="A vs bank 胜率低于此 ⇒ bank 太强，踢出训练对手")
+    ap.add_argument("--bank-hi", type=float, default=float(os.environ.get("BANK_HI", 0.8)),
+                    help="A vs bank 胜率高于此 ⇒ bank 太弱，踢出训练对手")
     ap.add_argument("--max-per-lineage", type=int, default=int(os.environ.get("MAX_PER_LINEAGE", 2)),
                     help="同一族最多几个候选能晋级（防 4 个 SWA 全来自一族）")
     ap.add_argument("--panel-gate", type=int, default=int(os.environ.get("PANEL_GATE", 0)),
@@ -221,6 +225,58 @@ def eval_bank(cand_dir, opp_dirs, name, n=None, seed=None):
     return float(v) * 100.0
 
 
+def audit_banks(rnd, lineages):
+    """A vs 每个 bank 分别 450 局；胜率落在 (BANK_LO, BANK_HI) 之外的 bank 不能当训练对手。"""
+    banks = bank_agents(DECK_CSV)
+    names = _bank_names()
+    allowed, rows = {}, []
+    log(f"bank 强度体检：{len(lineages)} 族 × {len(banks)} bank（n={BANK_N}，合格带 "
+        f"({BANK_LO*100:.0f}%, {BANK_HI*100:.0f}%)）")
+    for i, (name, _w, _b, _x) in enumerate(lineages):
+        oks = []
+        for bd, bk in zip(names, banks):
+            wr = eval_bank(stage_deck_agent(name), [bk], f"audit_r{rnd}_L{i}_{bd}")
+            if DP:
+                wr = 55.0
+            frac = wr / 100.0
+            ok = BANK_LO < frac < BANK_HI
+            tag = "✅" if ok else ("❌太弱" if frac >= BANK_HI else "❌太强")
+            log(f"    {name:22s} × {bd:8s} = {wr:6.2f}%  {tag}")
+            rows.append(dict(round=rnd, lineage=name, bank=bd, wr=wr, ok=ok, tag=tag))
+            if ok:
+                oks.append(bd)
+        allowed[i] = oks
+        if not oks:
+            log(f"    ⚠️ 族 {name} 没有任何合格 bank ⇒ 本轮该族不用 league bank（退化为自博弈+加权抽样）")
+        else:
+            log(f"    族 {name} 可用 bank：{', '.join(oks)}")
+    os.makedirs("logs/evo", exist_ok=True)
+    json.dump(rows, open(f"logs/evo/round{rnd}_bank_audit.json", "w", encoding="utf-8"),
+              ensure_ascii=False, indent=1)
+    return allowed, rows
+
+
+def parse_lgw(log_text):
+    """从训练日志取最后的 lgw 与逐 bank 在线胜率（[i:w/n ...]，w 就是 vs bank_i 的胜率）。"""
+    m = re.findall(r"lgw\s+([\d.]+)\s+\[([^\]]*)\]", log_text or "")
+    if not m:
+        return None, "", []
+    lgw, block = float(m[-1][0]), m[-1][1]
+    per = [(int(i), float(w), float(n)) for i, w, n in
+           re.findall(r"(\d+):([\d.]+)/([\d.]+)", block)]
+    return lgw, block, per
+
+
+def pull_train_log(run):
+    if DP:
+        return ""
+    loc = f"logs/evo/{run}.log"
+    os.makedirs("logs/evo", exist_ok=True)
+    subprocess.run(f"scp -q {ssh_opts(True)} {GPU}:{PTCG_REMOTE}/logs/{run}.log {loc}",
+                   shell=True, env=ENV, check=False)
+    return open(loc, encoding="utf-8", errors="ignore").read() if os.path.exists(loc) else ""
+
+
 def swa(bins, name):
     out = f"models/ppo/{name}.bin"
     if DP:
@@ -239,7 +295,7 @@ def ckpt_interval_epochs():
     return max(1, int(round(want)))
 
 
-def train_lineage(rnd, i, init_bin, init_name):
+def train_lineage(rnd, i, init_bin, init_name, banks_str=None):
     run = f"evo_r{rnd}_L{i}"
     out_dir = f"/root/evo_r{rnd}_L{i}"
     remote_init = f"/root/evo_r{rnd}_L{i}_init.bin"
@@ -262,8 +318,8 @@ def train_lineage(rnd, i, init_bin, init_name):
         f"ANCHOR={DECK} TRACK={DECK} INIT={remote_init} "
         f"OUT={out_dir} RUN={run} T={STEPS} LR={LR} AG={AG} SEED={SEED_BASE + rnd * 10 + i} "
         f"CHECKPOINT_INTERVAL={ckpt_interval_epochs()} ANNEAL_LR=1 MIN_LR_RATIO=0.1 WARMUP_EPOCHS=1 "
-        f"BANKS={BANKS} LEAGUE_PCT={LEAGUE_PCT} "
-        f'KL_ANCHOR={remote_init} KL_COEF={KL_COEF} '
+        f"BANKS={banks_str if banks_str is not None else BANKS} LEAGUE_PCT={LEAGUE_PCT} "
+        f"KL_ANCHOR={remote_init} KL_COEF={KL_COEF} "
         f"bash tools/db04_line.sh"
     )
     gpu_sh(env_prefix + cmd)
@@ -331,9 +387,24 @@ def pick_initial(lineages):
 
 def round_select(rnd, lineages, state):
     """训练 → 候选 → 闸门 → 选 4 个；返回 (promoted, stop)。"""
+    allowed, _rows = audit_banks(rnd, lineages)
     cands = []  # (kind, lineage_idx, name, bin)
     for i, (name, base_w, init_bin, bps) in enumerate(lineages):
-        run, final_bin, bp_bins = train_lineage(rnd, i, init_bin, name)
+        banks_str = ",".join(b for b in BANKS.split(",")
+                             if "bank_" + os.path.basename(b).split(".")[0].split("_")[-1] in allowed[i])
+        run, final_bin, bp_bins = train_lineage(rnd, i, init_bin, name, banks_str)
+        lgw, dist, per = parse_lgw(pull_train_log(run))
+        if lgw is not None:
+            log(f"    族 {i} 训练日志 lgw={lgw:.3f}  逐bank={dist}")
+            for b, w, n in per:
+                if BANK_LO < w < BANK_HI:
+                    continue
+                log(f"    ⚠️ 族 {i} × bank_{b} 在线胜率 {w:.2f}（份额≈{n:.2f}）不在 "
+                    f"({BANK_LO*100:.0f}%, {BANK_HI*100:.0f}%) 带内 ⇒ 下轮体检应剔除该 bank")
+            STATE.setdefault("lgw", []).append(
+                dict(round=rnd, lineage=name, lgw=lgw, dist=dist,
+                     per_bank=[dict(bank=b, wr=w, n=n) for b, w, n in per]))
+            save_state()
         for k, b in enumerate(bp_bins):
             cands.append(dict(kind="bp", i=i, name=f"{run}_bp{k}", bin=b, parent_w=base_w))
         swa_bin = swa(bp_bins, f"{run}_swa")
@@ -395,6 +466,7 @@ def main():
     global DECK, DECK_CSV, ROUNDS, LINEAGES, STEPS, BREAKPOINTS, GATE_PP, BANK_N, PANEL_SEEDS
     global PANEL_MATCHES, LR, KL_COEF, LEAGUE_PCT, AG, EVAL_SEED, LOCAL_W, PANEL_W, MAX_TOTAL_STEPS
     global GPU, EVAL_HOST, PTCG_REMOTE, BANKS, LOG, DP, STATE, SEED_BASE, MAX_PER_LINEAGE, PANEL_GATE
+    global BANK_LO, BANK_HI
 
     a = cfg()
     DP = a.dry_run
@@ -408,6 +480,7 @@ def main():
     EVAL_SEED, LOCAL_W, PANEL_W = a.eval_seed, a.local_workers, a.panel_workers
     MAX_TOTAL_STEPS, SEED_BASE = a.max_total_steps, a.seed_base
     MAX_PER_LINEAGE, PANEL_GATE = a.max_per_lineage, a.panel_gate
+    BANK_LO, BANK_HI = a.bank_lo, a.bank_hi
     GPU = os.environ.get("GPU", "")
     EVAL_HOST = os.environ.get("EVAL_HOST", "")
     PTCG_REMOTE = os.environ.get("PTCG_REMOTE", "/root/ptcg_train_kit/port_repo")

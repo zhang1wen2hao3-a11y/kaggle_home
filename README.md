@@ -175,6 +175,35 @@ PYTHONPATH=build/port_plain:. ./tools/py tools/panel_rank.py --cands cand9D6ER4 
 > **采样 KL** `E[logπ_cur − logπ_ref]`（不是精确 KL）、门控 = 7e39 格 150 局 > 3pp。
 > 若这条线索走通，下一步才是换 last-best + 精确 KL。
 
+## 训练对手强度体检（`lgw` 口径，2026-11-27 用户规则）
+
+> "如果 A 对战 bank B 的胜率高于 0.8 或者低于 0.1，都需要关注对手强度是否在线，
+> 不符合的需要筛选掉，不能作为训练对手。"
+
+| 胜率 | 含义 | 处理 |
+|---|---|---|
+| **> 0.8** | bank 是沙包，梯度信号"白捡" | 踢出训练对手，换更强的 bank |
+| **0.1 ~ 0.8** | 健康 | 保留（`lgw` 落在 **0.4–0.7** 最好） |
+| **< 0.1** | bank 太强，learner 拿不到可用梯度 | 踢出，或先降低对手强度再训 |
+
+**离线体检**（训练前，独立工具）：
+
+```bash
+./tools/py tools/bank_audit.py \
+    --agents cand9D6ER4 cand9D6E_SWA4 ab9d6e_r2A \
+    --banks /root/league_g0003/bank_0.bin /root/league_g0003/bank_1.bin \
+    --gpu root@connect.nmb2.seetacloud.com --n 450 --emit-ok
+# 输出每个候选可用的 BANKS= 列表；有任何不合格 → 退出码 1
+```
+
+**在线体检**（训练中）：训练日志里 `lgw 0.456 [0:0.58/0.07 1:0.27/0.06 …]` 的方括号是**逐 bank
+在线胜率**（`league_w_<b>/league_n_<b>`），evo loop 每轮训练完会把最后一段解析出来，
+任何 bank 落出 (0.1, 0.8) 就告警，并在下一轮体检时剔除。
+
+**在 evo loop 里的落地**：每轮训练前对「族首 × 每个 bank」各跑 450 局，
+**逐族**生成可用 bank 列表（某个 bank 对某族太强/太弱就只对该族剔除），
+再拿这份列表去跑该族的训练；如果一个都不剩，该族退化为自博弈 + 加权抽样并告警。
+
 ## 卡组资产
 
 | 路径 | 内容 |
