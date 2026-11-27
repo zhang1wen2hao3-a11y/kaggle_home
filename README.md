@@ -229,6 +229,7 @@ PYTHONPATH=build/port_plain:. ./tools/py tools/panel_rank.py --cands cand9D6ER4 
 │   ├── swa_avg.py           #   权重平均（tool）
 │   ├── build_pool_final.py  #   训练卡池构建
 │   ├── driver_registry.py   #   驾驶员注册表（check = 0 error，禁止手改表）
+│   ├── evo_loop.py          #   ★ 进化式选育循环（20 候选/轮，bank 闸门 +1.5pp）
 │   └── force_finish_deadline.sh  # 兜底关机
 │
 └── docs/                    # 结论与记录（见下）
@@ -265,11 +266,41 @@ bash tools/local_panel_v2.sh <候选> 6
 PYTHONPATH=build/port_plain:. ./tools/py tools/panel_paired.py --a <新> --b <对照> --tag v2
 ```
 
-## 下一个动作（按价值排序）
+## 下一个动作：进化式选育循环（2026-11-27 定稿）
+
+对位特化单线训练已经证伪（位移 0.0007%~0.0016%），改成**多族并行 + 选育**：
+
+**一轮 = 4 个族 × 4M 步**，每族产出 **4 个 breakpoint + 1 个族内 SWA** = 5 个候选，4 族共 **20 个**。
+训练配方统一带 **KL 锚 0.005（锚到本族族首）+ cosine 退火 + warm-up**。
+
+**晋级闸门（对冻结 bank 的 450 局平均胜率）**：
+
+| 候选类型 | 晋级线（用户原话） |
+|---|---|
+| breakpoint（族 A1 的第 k 个快照） | `w(bp) ≥ w(族首 A1) + 1.5pp` —— 原话："A1 对 bank B 平均胜率 50，那你至少得有 51.5" |
+| 族内 SWA | `w(swa) ≥ max_k w(bp_k) + 1.5pp` —— 原话："A1 50, A2 51，那 r1Aswa 至少需要 52.5" |
+
+过线者按 w 排序取前 4 个作为下一轮族首（每族最多 2 个，防 4 个 SWA 全来自一族）；
+**一个都不过就停止**；最多 5 轮 = 80M 步。
+
+**起始池**：不限于最强 agent —— 把**同牌表**的 15 个 agent（`cand9D6ER4`/`SWA3`/`SWA4`/
+`ab9d6e_r2A`… 含特化产物、strong 矩阵上的驾驶员）各跑 450 局对 bank，取前 4 个当族首，
+所以"特化后没涨但也没掉"的模型天然有位置。
+
+```bash
+./tools/py tools/evo_loop.py --dry-run        # 只打印选育逻辑，不占机器
+GPU=root@<gpu> GPU_PORT=38237 EVAL_HOST=root@113.44.139.218 \
+  ./tools/py tools/evo_loop.py                # 真跑（断点续跑：logs/evo_state.json）
+```
+
+成本估算（SPS≈1600）：80M 步 ≈ **14 h GPU**；每轮 bank 评测 20 候选 × 450 局 ≈ 15 min，
+面板复核 3 种子 × 17 格 ≈ 30 min/model。⇐ 开机前先挂 `tools/force_finish_deadline.sh` 兜底。
+
+后续（按价值排序）：
 
 | 优先 | 做什么 | 判据 |
 |---|---|---|
-| 1 | **KL 锚（0.005 + 每块 SWA）3 种子 × 17 格** | n=450，配对差 ≥ +3pp 且 CI 下界 > 0 |
-| 2 | **卡组后验路由**（Bayesian 对手卡组预测 + 10% 切换阈值） | 先离线验证后验 top-1 准确率（6th 报 99% by turn 2），再上推理 |
-| 3 | 补权重位移基线：每轮报 `rel_L2` | 任何"训练了但没变强"先查位移是否 <0.01% |
-| 4 | last-best ratchet + 精确 KL（仅在 1 通过后） | 同 1 的判据 |
+| 1 | **跑通上面这条 evo loop（9d6e 起手）** | 至少一轮有候选过 +1.5pp 闸门；否则说明配方/步数还不够 |
+| 2 | **卡组后验路由**（Bayesian 对手卡组预测 + 10% 切换阈值） | 先离线验证后验 top-1 准确率（6th 报 99% by turn 2） |
+| 3 | 每轮报 `rel_L2` 位移 | 位移 <0.01% 就别指望能测出胜率差 |
+| 4 | last-best ratchet + 精确 KL（仅在 1 有正信号后） | 同 1 |

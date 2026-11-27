@@ -62,7 +62,7 @@ PY
 timeout 150 ssh $SSHOPT "$H" "cd $KIT && bash tools/make_agent_dir.sh build/agents/$NAME stage_$NAME.pt \"$DECK\" 2>&1 | tail -1" | sed 's/^/  /'
 
 # ③ 跑（tag 隔离，不覆盖 v1 结果）
-./tools/py tools/dispatch_panel.py --cands "$NAME" --cells $CELLS --seeds 950000 \
+./tools/py tools/dispatch_panel.py --cands "$NAME" --cells $CELLS --seeds ${PANEL_SEEDS:-950000} \
   --matches 150 --workers "$W" --interval 20 --hosts "$H" --testset "$TS" --tag "$TAG" \
   > "logs/dispatch_${NAME}_${TAG}.log" 2>&1
 tail -2 "logs/dispatch_${NAME}_${TAG}.log"
@@ -70,7 +70,7 @@ tail -2 "logs/dispatch_${NAME}_${TAG}.log"
 # ④ 拉回
 timeout 180 rsync -az --include '*/' --include 'vs_*.json' --exclude '*' -e "ssh $SSHOPT" \
   "$H:$KIT/logs/meta/" logs/meta/ || echo "  ⚠️ 拉取失败"
-n=$(ls "logs/meta/${NAME}_${TAG}_s950000"/vs_*.json 2>/dev/null | wc -l)
+n=$(ls "logs/meta/${NAME}_${TAG}_s"*/vs_*.json 2>/dev/null | wc -l)
 echo "[$(date +%H:%M:%S)] $NAME 结果 $n/$(echo $CELLS | wc -w) 格"
 # ⑤ 汇总
 ./tools/py tools/panel_rank.py --cands "$NAME" --tag "$TAG" 2>/dev/null | tail -3 || true
