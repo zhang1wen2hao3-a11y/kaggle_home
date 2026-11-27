@@ -36,6 +36,7 @@ bash fetch_data.sh
 | 已确认的真收益 | ① 训练配方本身（G4-B 0.5337 [0.5093,0.5581] vs port，首次显著）② **每个训练块做 SWA** ③ db04 换牌（+53.9 队分） |
 | 已归零的方向 | 对位特化（specialist）4 条线全零 · 奖励塑形 S0–S4 · 开局 BC · 蒸馏 D1 · 决策重排 · LR/批次/调度 A2–A4 · 跨 run 权重平均 |
 | 唯一未闭环线索 | **KL 锚 0.005 + 块内 SWA**（单种子单格领先，摆幅 13.3→4.7pp，待 3 种子×17 格） |
+| 当前方案 | **进化式选育循环（evo loop）**：4 族 × 4M 步 → 20 候选 → bank 闸门 +1.5pp → 选 4 晋级，最多 5 轮 / 80M 步；KL 锚追"最新的自己"（见文末专节） |
 
 ### v2 面板读数（17 格 × 150 局 / 种子，`logs/meta/<cand>_v2_s950000/`）
 
@@ -259,7 +260,8 @@ PYTHONPATH=build/port_plain:. ./tools/py tools/panel_rank.py --cands cand9D6ER4 
 │   ├── swa_avg.py           #   权重平均（tool）
 │   ├── build_pool_final.py  #   训练卡池构建
 │   ├── driver_registry.py   #   驾驶员注册表（check = 0 error，禁止手改表）
-│   ├── evo_loop.py          #   ★ 进化式选育循环（20 候选/轮，bank 闸门 +1.5pp）
+│   ├── evo_loop.py          #   ★ 进化式选育循环（20 候选/轮，bank 闸门 +1.5pp，KL 锚棘轮）
+│   ├── bank_audit.py        #   bank 强度体检（A vs bank 胜率 >0.8 或 <0.1 判不合格）
 │   └── force_finish_deadline.sh  # 兜底关机
 │
 └── docs/                    # 结论与记录（见下）
@@ -296,46 +298,94 @@ bash tools/local_panel_v2.sh <候选> 6
 PYTHONPATH=build/port_plain:. ./tools/py tools/panel_paired.py --a <新> --b <对照> --tag v2
 ```
 
-## 下一个动作：进化式选育循环（2026-11-27 定稿）
+## 当前方案：进化式选育循环（evo loop，2026-11-27 定稿）
 
-对位特化单线训练已经证伪（位移 0.0007%~0.0016%），改成**多族并行 + 选育**：
+单线对位特化已证伪（权重位移只有 0.0007%~0.0016%），改成**多族并行训练 + 逐轮选育**。
+工具：`tools/evo_loop.py`（本地驱动）+ `tools/bank_audit.py`（对手体检），面板仍走
+`tools/panel_on_host.sh` / `dispatch_panel.py`。
 
-**一轮 = 4 个族 × 4M 步**，每族拆 **4 块 × 1M 步**，产出 **4 个块输出 + 1 个族内 SWA** = 5 个候选，
-4 族共 **20 个**。训练配方统一带 **KL 锚 0.005 + cosine 退火**。
+### 一轮的完整流程
 
-> **KL 锚锚的是「最新的自己」（last-best 棘轮），不是族首/genesis。**
-> 每块训完立刻跑 450 局 vs 冻结 bank：只要这块不比当前锚差超过 `ANCHOR_SLACK_PP`（默认 1pp），
-> 就把下一块的 `KL_ANCHOR` 切到这块；否则保持上一个最好的。
-> 块间这 450 局的胜率同时用于选育（省一次重复评测），SWA 也在这 4 块上做。
-
-**晋级闸门（对冻结 bank 的 450 局平均胜率）**：
-
-| 候选类型 | 晋级线（用户原话） |
-|---|---|
-| 块输出（族 A1 的第 k 块） | `w(块) ≥ w(族首 A1) + 1.5pp` —— 原话："A1 对 bank B 平均胜率 50，那你至少得有 51.5" |
-| 族内 SWA | `w(swa) ≥ max_k w(bp_k) + 1.5pp` —— 原话："A1 50, A2 51，那 r1Aswa 至少需要 52.5" |
-
-过线者按 w 排序取前 4 个作为下一轮族首（每族最多 2 个，防 4 个 SWA 全来自一族）；
-**一个都不过就停止**；最多 5 轮 = 80M 步。
-
-**起始池**：不限于最强 agent —— 把**同牌表**的 15 个 agent（`cand9D6ER4`/`SWA3`/`SWA4`/
-`ab9d6e_r2A`… 含特化产物、strong 矩阵上的驾驶员）各跑 450 局对 bank，取前 4 个当族首，
-所以"特化后没涨但也没掉"的模型天然有位置。
-
-```bash
-./tools/py tools/evo_loop.py --dry-run        # 只打印选育逻辑，不占机器
-GPU=root@<gpu> GPU_PORT=38237 EVAL_HOST=root@113.44.139.218 \
-  ./tools/py tools/evo_loop.py                # 真跑（断点续跑：logs/evo_state.json）
+```
+第 r 轮
+ ├─ 0. 族首 = 上一轮晋级的模型（第 1 轮：同牌全部 agent 里取最强 4 个，见下"起始池"）
+ ├─ 1. bank 体检：族首 × 每个冻结 bank 各 450 局 → 逐族得到"可用 bank 列表"（剔除太强/太弱的）
+ ├─ 2. 每族训练 4 块 × 1M 步（共 4M）：
+ │      块 k 的 INIT   = 上一块的输出（最新的自己）
+ │      块 k 的 KL_ANCHOR = last-best 棘轮锚（见下），KL_COEF=0.005
+ │      配方：LR=1e-4 + 块内 cosine 退火（MIN_LR_RATIO=0.1）；块间热启动故不做 warm-up
+ │      块 k 训完 → 450 局 vs 可用 bank → w_k（同时用于"要不要换锚"和"候选评分"）
+ ├─ 3. 候选 = 4 族 × (4 个块输出 + 1 个族内 SWA) = 20 个
+ ├─ 4. 晋级闸门（下面表）→ 过线者按 w 排序取前 4（每族最多 2 个）
+ ├─ 5. 面板复核：晋级第一 vs 本轮族首最强，3 种子 × 17 格 × 150 局配对（只报告，默认不阻断）
+ └─ 6. 一个都不过闸门 → 停止训练、拉回产物；否则进入下一轮（最多 5 轮 = 80M 步）
 ```
 
-成本估算（SPS≈1600）：80M 步 ≈ **14 h GPU**；每轮 bank 评测 20 候选 × 450 局 ≈ 15 min，
-面板复核 3 种子 × 17 格 ≈ 30 min/model。⇐ 开机前先挂 `tools/force_finish_deadline.sh` 兜底。
+### KL 锚：追「最新的自己」（last-best 棘轮）
 
-后续（按价值排序）：
+锚**不是**族首、更不是 genesis。每块训完立刻用 450 局判定：
+
+| 判定 | 动作 |
+|---|---|
+| `w(块) ≥ w(当前锚) − ANCHOR_SLACK_PP`（默认 1pp） | 下一块的 `KL_ANCHOR` 切到这块，`best_w = max(best_w, w)` |
+| 差得更多 | 保持上一个最好的锚（防止锚到噪声块） |
+
+训练里打的 `akl` 就是这项约束的实际值；跨轮时下一轮族首 = 本轮晋级模型 ⇒ 锚链自然延续。
+
+### 晋级闸门（对冻结 bank 的 450 局平均胜率）
+
+| 候选 | 晋级线 |
+|---|---|
+| 块输出（族 A1 的第 k 块） | `w(块) ≥ w(族首 A1) + 1.5pp`（原话："A1 对 bank B 平均胜率 50，那你至少得有 51.5"） |
+| 族内 SWA | `w(swa) ≥ max_k w(块_k) + 1.5pp`（原话："A1 50, A2 51，那 r1Aswa 至少需要 52.5"） |
+
+族级限流 `MAX_PER_LINEAGE=2`，防止 4 个 SWA 全来自同一族（下一轮退化成 4 个近似相同模型）。
+
+### 起始池（第 1 轮）
+
+不限于"最强 agent"：把**同牌表**的全部 agent 都拉进来 —— 当前 9d6e 有 **15 个**
+（`cand9D6ER3/R4`、`cand9D6E_SWA3/SWA4`、`ab9d6e_r1A/r1B/r2A`、`b9d6e`、`p9d6e`、`m9d6e`、
+`ph3_9d6e_v2`、`port_on_9d6e`、`cand9D6ED1/D1B` …），各跑 450 局对 bank，取前 4 当族首。
+所以"特化后没涨但也没掉"的模型、strong 矩阵上的驾驶员天然有位置。
+
+### 对手强度（bank）体检 —— 详见上一节
+
+训练前离线体检（`tools/bank_audit.py`）+ 训练中在线 `lgw` 逐 bank 胜率告警；
+胜率落在 **(0.1, 0.8)** 之外 ⇒ 该 bank 不得作为这台 learner 的训练对手，逐族剔除。
+
+### 参数与产物
+
+| 参数 | 默认 | 说明 |
+|---|---|---|
+| `ROUNDS` / `LINEAGES` | 5 / 4 | 轮数 / 每轮族数（每模型 4M 步 ⇒ 总 80M） |
+| `STEPS` / `BREAKPOINTS` | 4e6 / 4 | 每块 1M 步 |
+| `GATE_PP` | 1.5 | 晋级所需 pp |
+| `ANCHOR_SLACK_PP` | 1.0 | 棘轮容差 |
+| `BANK_N` | 450 | 候选/体检的 bank 局数 |
+| `BANK_LO` / `BANK_HI` | 0.1 / 0.8 | 对手强度合格带 |
+| `PANEL_SEEDS` | 950000,950001,950002 | 面板复核种子 |
+| `LR` / `KL_COEF` / `LEAGUE_PCT` | 1e-4 / 0.005 / 0.08 | 训练配方 |
+| `MAX_PER_LINEAGE` | 2 | 族级限流 |
+| `PANEL_GATE` | 0 | 置 1 则面板配对差也要 ≥ +1.5pp 才放行 |
+
+产物：`models/ppo/evo_r<r>_L<i>_c<k>.bin`（块）、`*_swa.bin`、`logs/evo/round<r>_bank_audit.json`、
+`logs/evo_state.json`（断点续跑）、`logs/meta/<候选>_v2_s<seed>/`。
+
+```bash
+./tools/py tools/evo_loop.py --dry-run            # 只打印逻辑，不占机器
+GPU=root@<gpu> GPU_PORT=38237 EVAL_HOST=root@113.44.139.218 \
+  ./tools/py tools/evo_loop.py                    # 真跑；断了从 state 续
+```
+
+**成本**（SPS≈1600）：80M 步 ≈ 14 h GPU；每轮 bank 评测（块内 16 + SWA 4）约 20 min，
+面板复核 3 种子 × 17 格约 30 min/model。开机前先挂 `tools/force_finish_deadline.sh` 兜底，
+跑完拉回 + 校验（`.bin` = 18,205,408 B、面板每候选 17 格）再关机。
+
+### 还没做的（按价值排序）
 
 | 优先 | 做什么 | 判据 |
 |---|---|---|
-| 1 | **跑通上面这条 evo loop（9d6e 起手）** | 至少一轮有候选过 +1.5pp 闸门；否则说明配方/步数还不够 |
-| 2 | **卡组后验路由**（Bayesian 对手卡组预测 + 10% 切换阈值） | 先离线验证后验 top-1 准确率（6th 报 99% by turn 2） |
-| 3 | 每轮报 `rel_L2` 位移 | 位移 <0.01% 就别指望能测出胜率差 |
-| 4 | last-best ratchet + 精确 KL（仅在 1 有正信号后） | 同 1 |
+| 1 | 跑通 evo loop（9d6e 起手） | 至少一轮有候选过 +1.5pp 闸门 |
+| 2 | **卡组后验路由**（Bayesian 对手卡组预测 + 10% 切换阈值） | 先离线验后验 top-1 准确率（6th 报 99% by turn 2） |
+| 3 | 每轮报 `rel_L2` 位移 | <0.01% 就别指望测出胜率差 |
+| 4 | **精确 KL**（把锚的 logits 搬进 loss kernel） | 只在 1 有正信号后再做 |
