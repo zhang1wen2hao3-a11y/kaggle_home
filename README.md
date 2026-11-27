@@ -171,9 +171,10 @@ PYTHONPATH=build/port_plain:. ./tools/py tools/panel_rank.py --cands cand9D6ER4 
 实现：`LOSS_ANCHOR_KL=7`（`port_repo/native/src/pufferlib.cu`），
 `--kl-anchor-bin/--kl-anchor-coef`（`train_native.py`），`KL_ANCHOR=` 环境变量（`tools/db04_line.sh`）。
 
-> 我们的实现与 14th place 有差异：**固定初值锚**（不是 last-best ratchet）、
-> **采样 KL** `E[logπ_cur − logπ_ref]`（不是精确 KL）、门控 = 7e39 格 150 局 > 3pp。
-> 若这条线索走通，下一步才是换 last-best + 精确 KL。
+> **训练器层面的实现**：`LOSS_ANCHOR_KL=7` 用**采样 KL** `E[logπ_cur − logπ_ref]`（不是精确 KL），
+> 锚 = 传入的 `--kl-anchor-bin`。**锚到哪由上层决定**：旧的对位特化脚本锚的是固定起点，
+> evo loop 已改成**每块追最新自己（last-best 棘轮，`ANCHOR_SLACK_PP` 容差）**。
+> 尚未做的是"精确 KL"（需要把锚的 logits 搬进 loss kernel）。
 
 ## 训练对手强度体检（`lgw` 口径，2026-11-27 用户规则）
 
@@ -299,14 +300,19 @@ PYTHONPATH=build/port_plain:. ./tools/py tools/panel_paired.py --a <新> --b <�
 
 对位特化单线训练已经证伪（位移 0.0007%~0.0016%），改成**多族并行 + 选育**：
 
-**一轮 = 4 个族 × 4M 步**，每族产出 **4 个 breakpoint + 1 个族内 SWA** = 5 个候选，4 族共 **20 个**。
-训练配方统一带 **KL 锚 0.005（锚到本族族首）+ cosine 退火 + warm-up**。
+**一轮 = 4 个族 × 4M 步**，每族拆 **4 块 × 1M 步**，产出 **4 个块输出 + 1 个族内 SWA** = 5 个候选，
+4 族共 **20 个**。训练配方统一带 **KL 锚 0.005 + cosine 退火**。
+
+> **KL 锚锚的是「最新的自己」（last-best 棘轮），不是族首/genesis。**
+> 每块训完立刻跑 450 局 vs 冻结 bank：只要这块不比当前锚差超过 `ANCHOR_SLACK_PP`（默认 1pp），
+> 就把下一块的 `KL_ANCHOR` 切到这块；否则保持上一个最好的。
+> 块间这 450 局的胜率同时用于选育（省一次重复评测），SWA 也在这 4 块上做。
 
 **晋级闸门（对冻结 bank 的 450 局平均胜率）**：
 
 | 候选类型 | 晋级线（用户原话） |
 |---|---|
-| breakpoint（族 A1 的第 k 个快照） | `w(bp) ≥ w(族首 A1) + 1.5pp` —— 原话："A1 对 bank B 平均胜率 50，那你至少得有 51.5" |
+| 块输出（族 A1 的第 k 块） | `w(块) ≥ w(族首 A1) + 1.5pp` —— 原话："A1 对 bank B 平均胜率 50，那你至少得有 51.5" |
 | 族内 SWA | `w(swa) ≥ max_k w(bp_k) + 1.5pp` —— 原话："A1 50, A2 51，那 r1Aswa 至少需要 52.5" |
 
 过线者按 w 排序取前 4 个作为下一轮族首（每族最多 2 个，防 4 个 SWA 全来自一族）；

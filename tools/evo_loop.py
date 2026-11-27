@@ -102,6 +102,9 @@ def cfg():
     ap.add_argument("--eval-seed", type=int, default=int(os.environ.get("EVAL_SEED", 960000)))
     ap.add_argument("--local-workers", type=int, default=int(os.environ.get("LOCAL_W", 8)))
     ap.add_argument("--panel-workers", type=int, default=int(os.environ.get("PANEL_W", 12)))
+    ap.add_argument("--anchor-slack-pp", type=float,
+                    default=float(os.environ.get("ANCHOR_SLACK_PP", 1.0)),
+                    help="last-best 棘轮容差：块胜率不低于当前最好 - slack 才把 KL 锚切到这一块")
     ap.add_argument("--bank-lo", type=float, default=float(os.environ.get("BANK_LO", 0.1)),
                     help="A vs bank 胜率低于此 ⇒ bank 太强，踢出训练对手")
     ap.add_argument("--bank-hi", type=float, default=float(os.environ.get("BANK_HI", 0.8)),
@@ -295,50 +298,83 @@ def ckpt_interval_epochs():
     return max(1, int(round(want)))
 
 
-def train_lineage(rnd, i, init_bin, init_name, banks_str=None):
+def train_lineage(rnd, i, init_bin, init_name, banks_str=None, banks=None):
+    """分块训练一族：**KL 锚 = 最新的自己（last-best 棘轮）**，不是整轮钉在起点。
+
+    每块 STEPS/BREAKPOINTS 步；块 k 的 INIT = 上一块的输出，KL_ANCHOR = 到目前最好的那块
+    （由块间 450 局 vs bank 决定；一块比当前最好差超过 ANCHOR_SLACK_PP 就不上棘轮）。
+    块输出即"breakpoint"，同时是 SWA 的原料与候选。
+    """
     run = f"evo_r{rnd}_L{i}"
-    out_dir = f"/root/evo_r{rnd}_L{i}"
-    remote_init = f"/root/evo_r{rnd}_L{i}_init.bin"
+    chunk_t = int(STEPS / max(1, BREAKPOINTS))
     local_bin = f"models/ppo/{run}.bin"
-    if os.path.exists(local_bin):
-        log(f"  族 {i}: {local_bin} 已在本地，跳过训练")
-        return run, local_bin
+    chunk_bins = [f"models/ppo/{run}_c{k}.bin" for k in range(BREAKPOINTS)]
+    if os.path.exists(local_bin) and all(os.path.exists(b) for b in chunk_bins):
+        log(f"  族 {i}: 分块产物已在本地，跳过训练")
+        return run, local_bin, chunk_bins, None
     if DP:
-        log(f"  [dry] 训练 族{i}: INIT={init_name} T={STEPS} ckpt_every={ckpt_interval_epochs()}ep "
-            f"KL_ANCHOR=自身({KL_COEF}) → {out_dir}")
-        return run, local_bin, [f"models/ppo/{run}_bp{k}.bin" for k in range(BREAKPOINTS)]
-    subprocess.run(f"scp -q {ssh_opts(True)} {init_bin} {GPU}:{remote_init}",
-                   shell=True, env=ENV, check=True)
+        log(f"  [dry] 训练 族{i}（{BREAKPOINTS} 块 × {chunk_t/1e6:.2f}M 步）：INIT={init_name} "
+            f"锚=最新自己(last-best, slack={ANCHOR_SLACK_PP}pp) → {chunk_bins[0]} …")
+        return run, local_bin, chunk_bins, None
+
     env_prefix = (
         "export PATH=/root/miniconda3/bin:/usr/local/cuda/bin:$PATH; "
         "export PYTHON=/root/miniconda3/bin/python3; "
         f"cd {PTCG_REMOTE} && "
     )
-    cmd = (
-        f"ANCHOR={DECK} TRACK={DECK} INIT={remote_init} "
-        f"OUT={out_dir} RUN={run} T={STEPS} LR={LR} AG={AG} SEED={SEED_BASE + rnd * 10 + i} "
-        f"CHECKPOINT_INTERVAL={ckpt_interval_epochs()} ANNEAL_LR=1 MIN_LR_RATIO=0.1 WARMUP_EPOCHS=1 "
-        f"BANKS={banks_str if banks_str is not None else BANKS} LEAGUE_PCT={LEAGUE_PCT} "
-        f"KL_ANCHOR={remote_init} KL_COEF={KL_COEF} "
-        f"bash tools/db04_line.sh"
-    )
-    gpu_sh(env_prefix + cmd)
-    # 拉回 final + breakpoints
-    ls = gpu_sh(f"ls -1 {PTCG_REMOTE}/experiments/native-{run}/ 2>/dev/null", capture=True)
-    files = [f for f in (ls.stdout or "").split() if f.endswith(".bin")]
-    snaps = sorted(f for f in files if re.fullmatch(r"\d{16}\.bin", f))
-    gpu_pull(f"{PTCG_REMOTE}/experiments/native-{run}/final.bin", local_bin)
-    picked = snaps[-BREAKPOINTS:] if len(snaps) >= BREAKPOINTS else snaps
-    bps = []
-    for s in picked:
-        loc = f"models/ppo/{run}_bp_{s[:-4]}.bin"
-        gpu_pull(f"{PTCG_REMOTE}/experiments/native-{run}/{s}", loc)
+    banks_use = banks_str if banks_str is not None else BANKS
+    cur = init_bin
+    anchor_local = init_bin          # 棘轮锚（本地 .bin）
+    best_w = None                    # 当前锚的 bank 胜率
+    chunk_ws = []
+    for k in range(BREAKPOINTS):
+        ck_run = f"{run}_c{k}"
+        remote_init = f"/root/{ck_run}_init.bin"
+        remote_anchor = f"/root/{ck_run}_anchor.bin"
+        subprocess.run(f"scp -q {ssh_opts(True)} {cur} {GPU}:{remote_init}",
+                       shell=True, env=ENV, check=True)
+        if anchor_local != cur:
+            subprocess.run(f"scp -q {ssh_opts(True)} {anchor_local} {GPU}:{remote_anchor}",
+                           shell=True, env=ENV, check=True)
+        else:
+            remote_anchor = remote_init
+        cmd = (
+            f"ANCHOR={DECK} TRACK={DECK} INIT={remote_init} "
+            f"OUT=/root/{ck_run} RUN={ck_run} T={chunk_t} LR={LR} AG={AG} "
+            f"SEED={SEED_BASE + rnd * 10 + i + k} "
+            f"CHECKPOINT_INTERVAL=1000 ANNEAL_LR=1 MIN_LR_RATIO=0.1 WARMUP_EPOCHS=0 "
+            f"BANKS={banks_use} LEAGUE_PCT={LEAGUE_PCT} "
+            f"KL_ANCHOR={remote_anchor} KL_COEF={KL_COEF} "
+            f"bash tools/db04_line.sh"
+        )
+        gpu_sh(env_prefix + cmd)
+        gpu_pull(f"{PTCG_REMOTE}/experiments/native-{ck_run}/final.bin", chunk_bins[k])
         if not DP:
-            assert os.path.getsize(loc) == BIN_BYTES, f"✗ 快照不完整 {loc}"
-        bps.append(loc)
-    assert len(bps) >= 2, f"✗ 族 {i} 没拿到足够 breakpoint（{len(bps)}）"
-    log(f"  族 {i} 训练完成：{len(bps)} 个 breakpoint + final")
-    return run, local_bin, bps
+            assert os.path.getsize(chunk_bins[k]) == BIN_BYTES, f"✗ 块 {ck_run} 产物不完整"
+            # 块间体检（450 局 vs 冻结 bank）→ 决定棘轮要不要上
+            w = eval_bank(stage(ck_run, bin_to_pt(chunk_bins[k], ck_run), DECK_CSV),
+                          banks, f"{ck_run}_bank")
+            chunk_ws.append(w)
+            lgw, dist, per = parse_lgw(pull_train_log(ck_run))
+            log(f"    族 {i} 块 {k}: w={w:6.2f}  锚={os.path.basename(anchor_local)}"
+                + (f"  lgw={lgw:.3f}" if lgw is not None else ""))
+            if lgw is not None:
+                for b, ww, nn in per:
+                    if not (BANK_LO < ww < BANK_HI):
+                        log(f"    ⚠️ 族 {i} 块 {k} × bank_{b} 在线胜率 {ww:.2f}（份额≈{nn:.2f}）不在带内")
+                STATE.setdefault("lgw", []).append(
+                    dict(round=rnd, lineage=init_name, chunk=k, lgw=lgw, dist=dist,
+                         per_bank=[dict(bank=b, wr=ww, n=nn) for b, ww, nn in per]))
+                save_state()
+            # last-best 棘轮：不比当前最好差超过 slack 才把锚切到这一块
+            if best_w is None or w >= best_w - ANCHOR_SLACK_PP:
+                anchor_local = chunk_bins[k]
+                best_w = max(best_w or w, w)
+        cur = chunk_bins[k]
+    gpu_pull(f"{PTCG_REMOTE}/experiments/native-{run}_c{BREAKPOINTS - 1}/final.bin", local_bin)
+    w_txt = " ".join(f"{w:.2f}" for w in chunk_ws) if chunk_ws else "-"
+    log(f"  族 {i} 训练完成：{BREAKPOINTS} 块，块胜率 [{w_txt}]，最终锚={os.path.basename(anchor_local)}")
+    return run, local_bin, chunk_bins, chunk_ws
 
 
 # ── 面板（v2 口径）──────────────────────────────────────────────────────
@@ -392,30 +428,23 @@ def round_select(rnd, lineages, state):
     for i, (name, base_w, init_bin, bps) in enumerate(lineages):
         banks_str = ",".join(b for b in BANKS.split(",")
                              if "bank_" + os.path.basename(b).split(".")[0].split("_")[-1] in allowed[i])
-        run, final_bin, bp_bins = train_lineage(rnd, i, init_bin, name, banks_str)
-        lgw, dist, per = parse_lgw(pull_train_log(run))
-        if lgw is not None:
-            log(f"    族 {i} 训练日志 lgw={lgw:.3f}  逐bank={dist}")
-            for b, w, n in per:
-                if BANK_LO < w < BANK_HI:
-                    continue
-                log(f"    ⚠️ 族 {i} × bank_{b} 在线胜率 {w:.2f}（份额≈{n:.2f}）不在 "
-                    f"({BANK_LO*100:.0f}%, {BANK_HI*100:.0f}%) 带内 ⇒ 下轮体检应剔除该 bank")
-            STATE.setdefault("lgw", []).append(
-                dict(round=rnd, lineage=name, lgw=lgw, dist=dist,
-                     per_bank=[dict(bank=b, wr=w, n=n) for b, w, n in per]))
-            save_state()
+        banks_all = bank_agents(DECK_CSV)
+        run, final_bin, bp_bins, chunk_ws = train_lineage(
+            rnd, i, init_bin, name, banks_str, banks_all)
         for k, b in enumerate(bp_bins):
-            cands.append(dict(kind="bp", i=i, name=f"{run}_bp{k}", bin=b, parent_w=base_w))
+            cands.append(dict(kind="bp", i=i, name=f"{run}_c{k}", bin=b, parent_w=base_w,
+                              w=(chunk_ws[k] if chunk_ws else None)))
         swa_bin = swa(bp_bins, f"{run}_swa")
         cands.append(dict(kind="swa", i=i, name=f"{run}_swa", bin=swa_bin, parent_w=base_w))
-    # 评测全部候选 vs 冻结 bank
+    # 评测还没测过的候选（SWA；分块 bp 的 w 已在训练里量过并复用于选育）
     banks = bank_agents(DECK_CSV)
     for c in cands:
+        if c.get("w") is not None:
+            continue
         c["agent"] = stage(c["name"], bin_to_pt(c["bin"], c["name"]), DECK_CSV)
         c["w"] = eval_bank(c["agent"], banks, c["name"])
         if DP:
-            c["w"] = 50.0 + (2.0 if c["kind"] == "swa" else 1.0) * (0.5 + c["i"] / 10)
+            c["w"] = 50.0 + 2.0 * (0.5 + c["i"] / 10)
     # 闸门
     promoted = []
     by_lineage = {}
@@ -466,7 +495,7 @@ def main():
     global DECK, DECK_CSV, ROUNDS, LINEAGES, STEPS, BREAKPOINTS, GATE_PP, BANK_N, PANEL_SEEDS
     global PANEL_MATCHES, LR, KL_COEF, LEAGUE_PCT, AG, EVAL_SEED, LOCAL_W, PANEL_W, MAX_TOTAL_STEPS
     global GPU, EVAL_HOST, PTCG_REMOTE, BANKS, LOG, DP, STATE, SEED_BASE, MAX_PER_LINEAGE, PANEL_GATE
-    global BANK_LO, BANK_HI
+    global BANK_LO, BANK_HI, ANCHOR_SLACK_PP
 
     a = cfg()
     DP = a.dry_run
@@ -481,6 +510,7 @@ def main():
     MAX_TOTAL_STEPS, SEED_BASE = a.max_total_steps, a.seed_base
     MAX_PER_LINEAGE, PANEL_GATE = a.max_per_lineage, a.panel_gate
     BANK_LO, BANK_HI = a.bank_lo, a.bank_hi
+    ANCHOR_SLACK_PP = a.anchor_slack_pp
     GPU = os.environ.get("GPU", "")
     EVAL_HOST = os.environ.get("EVAL_HOST", "")
     PTCG_REMOTE = os.environ.get("PTCG_REMOTE", "/root/ptcg_train_kit/port_repo")
@@ -492,8 +522,8 @@ def main():
         log(f"卡组 = {DECK}  （{DECK_CSV}）")
     else:
         raise SystemExit(f"✗ 找不到卡组 {DECK_CSV}")
-    log(f"计划：{ROUNDS} 轮 × {LINEAGES} 族 × {STEPS/1e6:.2f}M 步 = {ROUNDS*LINEAGES*STEPS/1e6:.0f}M 步"
-        f"（上限 {MAX_TOTAL_STEPS/1e6:.0f}M）；每族 {BREAKPOINTS} bp + 1 SWA；闸门 +{GATE_PP}pp；"
+    log(f"计划：{ROUNDS} 轮 × {LINEAGES} 族 × {STEPS/1e6:.2f}M 步 = {ROUNDS*LINEAGES*STEPS/1e6:.1f}M 步"
+        f"（上限 {MAX_TOTAL_STEPS/1e6:.0f}M）；每族 {BREAKPOINTS} 块 + 1 SWA（KL 锚=最新自己）；闸门 +{GATE_PP}pp；"
         f"bank {BANK_N} 局/候选；面板 {PANEL_SEEDS}")
     if not DP:
         assert GPU, "✗ 需要 GPU=root@host（或 --dry-run）"
